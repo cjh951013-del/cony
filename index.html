@@ -1272,6 +1272,7 @@ function showScreen(s){
 /* ===================== SET MODE ===================== */
 function setMode(m){
   if(G.editing)cancelShape();
+  if(G.float)commitFloat();
   G.mode=m;
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
   $('brush-cg').style.display=(m==='draw'||m==='eraser'||m==='text')?'block':'none';
@@ -1419,6 +1420,8 @@ function bindAll(){
     }
     $('sel-tb').style.display='none';prevCtx.clearRect(0,0,CW,CH);
   });
+  $('sel-mv').addEventListener('click',liftToFloat);
+  $('sel-pa').addEventListener('click',pasteFloat);
   
   // CANVAS EVENTS
   const mc=$('main-c');
@@ -1602,6 +1605,14 @@ function enterSnap(){if(!G.path||G.path.length<2)return;const s=detectShape(G.pa
 function commitShape(){if(!G.shape)return;if(G.mode==='stamp')stampShape(mainCtx,G.shape,false);else strokePolyCtx(mainCtx,shapeToPoly(G.shape));exitEdit();saveH();}
 function cancelShape(){exitEdit();}
 function exitEdit(){G.editing=false;G.shape=null;G.dragH=null;G.awaitLift=false;G.path=null;G.snap=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);hideShapeBar();}
+
+/* ----- selection float (move / paste) ----- */
+function clipToCanvas(img){const c=document.createElement('canvas');c.width=Math.max(1,img.width);c.height=Math.max(1,img.height);c.getContext('2d').putImageData(img,0,0);return c;}
+function selRect(){if(!G.selStart||!G.selEnd)return null;const x=Math.min(G.selStart.x,G.selEnd.x),y=Math.min(G.selStart.y,G.selEnd.y),w=Math.abs(G.selEnd.x-G.selStart.x),h=Math.abs(G.selEnd.y-G.selStart.y);return(w<2||h<2)?null:{x,y,w,h};}
+function renderFloat(){if(!prevCtx)return;prevCtx.clearRect(0,0,CW,CH);const f=G.float;if(!f)return;prevCtx.drawImage(f.cv,f.x,f.y);prevCtx.save();prevCtx.strokeStyle='rgba(168,85,247,.9)';prevCtx.lineWidth=Math.max(1,1.5/G.zoom);prevCtx.setLineDash([6/G.zoom,4/G.zoom]);prevCtx.strokeRect(f.x,f.y,f.w,f.h);prevCtx.restore();}
+function liftToFloat(){const r=selRect();if(!r)return;const data=mainCtx.getImageData(r.x,r.y,r.w,r.h);mainCtx.clearRect(r.x,r.y,r.w,r.h);G.float={cv:clipToCanvas(data),x:r.x,y:r.y,w:r.w,h:r.h,dragging:false};$('sel-tb').style.display='none';renderFloat();saveH();}
+function pasteFloat(){if(!G.clipboard)return;const r=selRect();const x=r?r.x:Math.round(CW/2-G.clipboard.width/2),y=r?r.y:Math.round(CH/2-G.clipboard.height/2);G.float={cv:clipToCanvas(G.clipboard),x,y,w:G.clipboard.width,h:G.clipboard.height,dragging:false};$('sel-tb').style.display='none';renderFloat();}
+function commitFloat(){if(!G.float)return;mainCtx.drawImage(G.float.cv,G.float.x,G.float.y);G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);saveH();}
 function strokePolyCtx(ctx,poly){
   if(!poly||poly.length<1)return;
   ctx.lineWidth=G.brushSz;ctx.strokeStyle=G.color;ctx.lineCap='round';ctx.lineJoin='round';ctx.setLineDash([]);
@@ -1661,7 +1672,10 @@ function onDown(e){
   G.isDrawing=true;G.lastPos=pos;
   if(G.mode==='stamp'||G.mode==='draw'){G.path=[pos];G.snap=null;renderPreview();armHold();}
   else if(G.mode==='eraser'){mainCtx.clearRect(pos.x-G.brushSz*2,pos.y-G.brushSz*2,G.brushSz*4,G.brushSz*4);}
-  else if(G.mode==='selection'){G.selStart=pos;G.selEnd=pos;$('sel-tb').style.display='none';}
+  else if(G.mode==='selection'||G.mode==='select'){
+    if(G.float){const f=G.float;if(pos.x>=f.x&&pos.x<=f.x+f.w&&pos.y>=f.y&&pos.y<=f.y+f.h){f.dragging=true;f.dx=pos.x-f.x;f.dy=pos.y-f.y;}else{commitFloat();G.selStart=pos;G.selEnd=pos;$('sel-tb').style.display='none';}}
+    else{G.selStart=pos;G.selEnd=pos;$('sel-tb').style.display='none';}
+  }
 }
 function onMove(e){
   e.preventDefault();
@@ -1676,11 +1690,14 @@ function onMove(e){
     if(dist2(pos,last)>=MIN_PT){G.path.push(pos);if(dist2(pos,last)>HOLD_TOL&&!G.editing)armHold();}
     renderPreview();
   }else if(G.mode==='eraser'){mainCtx.clearRect(pos.x-G.brushSz*2,pos.y-G.brushSz*2,G.brushSz*4,G.brushSz*4);}
-  else if(G.mode==='selection'&&G.selStart){
-    G.selEnd=pos;prevCtx.clearRect(0,0,CW,CH);
-    prevCtx.strokeStyle='rgba(168,85,247,.8)';prevCtx.lineWidth=1;prevCtx.setLineDash([6,4]);
-    const sx=Math.min(G.selStart.x,pos.x),sy=Math.min(G.selStart.y,pos.y);
-    prevCtx.strokeRect(sx,sy,Math.abs(pos.x-G.selStart.x),Math.abs(pos.y-G.selStart.y));
+  else if(G.mode==='selection'||G.mode==='select'){
+    if(G.float&&G.float.dragging){G.float.x=pos.x-G.float.dx;G.float.y=pos.y-G.float.dy;renderFloat();}
+    else if(G.selStart){
+      G.selEnd=pos;prevCtx.clearRect(0,0,CW,CH);
+      prevCtx.strokeStyle='rgba(168,85,247,.8)';prevCtx.lineWidth=1;prevCtx.setLineDash([6,4]);
+      const sx=Math.min(G.selStart.x,pos.x),sy=Math.min(G.selStart.y,pos.y);
+      prevCtx.strokeRect(sx,sy,Math.abs(pos.x-G.selStart.x),Math.abs(pos.y-G.selStart.y));
+    }
   }
 }
 function onUp(e){
@@ -1700,8 +1717,11 @@ function onUp(e){
     if(G.path)commitStroke();
     endStroke();saveH();
   }
-  else if(G.mode==='selection'&&G.selStart){$('sel-tb').style.display='flex';}
-  else if(G.mode!=='select')saveH();
+  else if(G.mode==='selection'||G.mode==='select'){
+    if(G.float){G.float.dragging=false;}
+    else if(G.selStart){$('sel-tb').style.display='flex';}
+  }
+  else if(G.mode==='eraser'){saveH();}
 }
 function onWheel(e){e.preventDefault();G.zoom=Math.max(.2,Math.min(4,G.zoom+(e.deltaY>0?-.1:.1)));applyTransform();}
 function onDblClick(e){
