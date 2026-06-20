@@ -1276,6 +1276,7 @@ function openP(id){
   G.anchor={x:CW/2,y:CH/2};G.anchorMode=false;
   clearCv();drawBg();renderShelf();renderLayers();renderPalettes();
   G.hist=[];G.histIdx=-1;$('btn-undo').disabled=true;$('btn-redo').disabled=true;
+  $('sr').classList.add('hide');
   showScreen('ed');
 }
 function showScreen(s){
