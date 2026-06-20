@@ -129,6 +129,8 @@ select,input{font-family:inherit}
   #sl.collapsed{bottom:auto}
   #sr.collapsed{bottom:auto}
 }
+#ad-center{display:none}
+#sl.hide,#sr.hide{display:none!important}
 canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:none}
 #prev-c{pointer-events:none}
 #snap-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:5px 12px;border-radius:15px;font-size:11px;font-weight:600;display:none;pointer-events:none;z-index:10}
@@ -325,6 +327,8 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
     </div>
     <div class="ec" id="ad-center">💡 길게 누르기=직선·곡선 자동 · 뱃지 탭/C·L=직선↔곡선 · 두 손가락=이동·줌 · 두 손가락 탭=실행취소 · 세 손가락 탭=다시실행</div>
     <div class="er">
+      <button class="ib" id="tgl-sl" title="기호 팔레트 보기/숨기기">🧶</button>
+      <button class="ib" id="tgl-sr" title="도구 패널 보기/숨기기">⚙</button>
       <button class="ib" id="btn-undo" disabled>↩</button>
       <button class="ib" id="btn-redo" disabled>↪</button>
       <button class="ib" id="btn-zo">🔍−</button>
@@ -1327,6 +1331,8 @@ function bindAll(){
   $('btn-anchor').addEventListener('click',()=>{G.anchorMode=true;const cw=$('cw');if(cw)cw.style.cursor='crosshair';const b=$('snap-badge');if(b){b.style.display='block';b.style.pointerEvents='none';b.textContent='◎ 기준점 위치를 탭하세요';}});
   $('sl-col').addEventListener('click',()=>{const c=$('sl').classList.toggle('collapsed');$('sl-col').textContent=c?'›':'‹';});
   $('sr-col').addEventListener('click',()=>{const c=$('sr').classList.toggle('collapsed');$('sr-col').textContent=c?'‹':'›';});
+  $('tgl-sl').addEventListener('click',()=>$('sl').classList.toggle('hide'));
+  $('tgl-sr').addEventListener('click',()=>$('sr').classList.toggle('hide'));
   $('btn-exp').addEventListener('click',()=>openM('m-exp'));
   $('btn-narr').addEventListener('click',()=>{
     if(!isPro()){openM('m-pro');return;}
