@@ -134,7 +134,10 @@ select,input{font-family:inherit}
 #tooldock{position:absolute;left:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:6px;z-index:7;box-shadow:0 6px 20px rgba(0,0,0,.25)}
 #tooldock .tbtn{width:44px;height:44px;border-radius:10px;padding:0;justify-content:center;align-items:center}
 #tooldock .tbtn .ti{font-size:20px}
-@media(max-width:640px){#tooldock{left:6px;top:6px;transform:none;flex-direction:row;flex-wrap:wrap;max-width:calc(100% - 12px);gap:4px}#tooldock .tbtn{width:38px;height:38px}}
+#sizerail{display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:6px;margin-top:2px;border-top:1px solid var(--border)}
+#sizerail input[type=range]{writing-mode:vertical-lr;direction:rtl;width:12px;height:120px;accent-color:var(--primary)}
+#sizerail span{font-size:10px;color:var(--text2);min-width:22px;text-align:center}
+@media(max-width:640px){#tooldock{left:6px;top:6px;transform:none;flex-direction:row;flex-wrap:wrap;max-width:calc(100% - 12px);gap:4px}#tooldock .tbtn{width:38px;height:38px}#sizerail{border-top:none;border-left:1px solid var(--border);padding-top:0;padding-left:6px;margin-top:0;flex-direction:row}#sizerail input[type=range]{writing-mode:horizontal-tb;direction:ltr;width:90px;height:auto}}
 canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:none}
 #prev-c{pointer-events:none}
 #snap-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:5px 12px;border-radius:15px;font-size:11px;font-weight:600;display:none;pointer-events:none;z-index:10}
@@ -374,6 +377,7 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
         <button class="tbtn" data-mode="eraser" title="지우개"><span class="ti">🧹</span></button>
         <button class="tbtn" data-mode="select" title="선택"><span class="ti">↖</span></button>
         <button class="tbtn" data-mode="selection" title="영역"><span class="ti">⭕</span></button>
+        <div id="sizerail"><input type="range" id="size-rail" min="1" max="60" value="48" title="크기"><span id="size-rail-v">48</span></div>
       </aside>
       <div id="snap-badge">📐 직선 고정 ON</div>
       <div id="sel-tb">
@@ -687,6 +691,7 @@ let G={
   toolColors:{},
   bgColor:'#202024',
   brushSz:3,
+  stampSz:48,
   rot:0,
   zoom:1,
   pan:{x:0,y:0},
@@ -895,7 +900,7 @@ function applyTransform(){
 
 /* ===================== DRAWING ===================== */
 function stampAt(x,y){
-  const sz=48;
+  const sz=G.stampSz||48;
   const col=G.toolColors[G.stitch]||G.color;
   drawSVGStitch(mainCtx,x,y,G.stitch,col,sz,G.rot);
 }
@@ -1291,6 +1296,7 @@ function setMode(m){
   if(G.float)commitFloat();
   G.mode=m;
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
+  {const sr=$('size-rail');if(sr){const v=m==='stamp'?(G.stampSz||48):(G.brushSz||3);sr.value=v;const sv=$('size-rail-v');if(sv)sv.textContent=v;}}
   $('brush-cg').style.display=(m==='draw'||m==='eraser'||m==='text')?'block':'none';
   $('stamp-cg').style.display=m==='stamp'?'block':'none';
   const cw=$('cw');
@@ -1334,6 +1340,7 @@ function bindAll(){
   $('sr-col').addEventListener('click',()=>{const c=$('sr').classList.toggle('collapsed');$('sr-col').textContent=c?'‹':'›';});
   $('tgl-sl').addEventListener('click',()=>$('sl').classList.toggle('hide'));
   $('tgl-sr').addEventListener('click',()=>$('sr').classList.toggle('hide'));
+  $('size-rail').addEventListener('input',()=>{const v=parseInt($('size-rail').value);if(G.mode==='stamp'){G.stampSz=v;}else{G.brushSz=Math.min(30,v);const b=$('bsz');if(b)b.value=G.brushSz;const bv=$('bszv');if(bv)bv.textContent=G.brushSz+'px';}const sv=$('size-rail-v');if(sv)sv.textContent=v;});
   $('btn-exp').addEventListener('click',()=>openM('m-exp'));
   $('btn-narr').addEventListener('click',()=>{
     if(!isPro()){openM('m-pro');return;}
@@ -1598,7 +1605,7 @@ function stampShape(ctx,s,ghost){
   const n=Math.max(2,s.n||Math.round(L/STAMP_GAP)),gap=closed?L/n:L/(n>1?n-1:1);
   const pts=resampleAlong(poly,gap),col=G.toolColors[G.stitch]||G.color;
   if(ghost)ctx.globalAlpha=0.55;
-  for(const p of pts)drawSVGStitch(ctx,p.x,p.y,G.stitch,col,48,G.rot);
+  for(const p of pts)drawSVGStitch(ctx,p.x,p.y,G.stitch,col,G.stampSz||48,G.rot);
   if(ghost)ctx.globalAlpha=1;
 }
 function shapeAddStitch(d){if(!G.shape||G.mode!=='stamp')return;G.shape.n=Math.max(2,shapeStitchCount(G.shape)+d);showShapeBar();renderEdit();}
@@ -1647,7 +1654,7 @@ function stampPolyCtx(ctx,poly,ghost){
   let pts=poly.length<2?[poly[0]]:resampleAlong(poly,STAMP_GAP);
   pts=snapPts(pts);
   if(ghost)ctx.globalAlpha=0.55;
-  for(const p of pts)drawSVGStitch(ctx,p.x,p.y,G.stitch,col,48,G.rot);
+  for(const p of pts)drawSVGStitch(ctx,p.x,p.y,G.stitch,col,G.stampSz||48,G.rot);
   if(ghost)ctx.globalAlpha=1;
 }
 function renderPreview(){
