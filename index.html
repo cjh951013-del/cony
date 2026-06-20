@@ -123,7 +123,7 @@ select,input{font-family:inherit}
 @media(min-width:641px){
   #eb{position:relative}
   #cw{position:absolute;inset:0;flex:none}
-  #sl{position:absolute;left:10px;top:10px;bottom:10px;width:118px;border:1px solid var(--border);border-radius:12px;z-index:6;box-shadow:0 6px 20px rgba(0,0,0,.22)}
+  #sl{position:absolute;left:74px;top:10px;bottom:10px;width:118px;border:1px solid var(--border);border-radius:12px;z-index:6;box-shadow:0 6px 20px rgba(0,0,0,.22)}
   #sl.right{left:auto;right:10px}
   #sr{position:absolute;right:10px;top:10px;bottom:10px;width:220px;border:1px solid var(--border);border-radius:12px;z-index:6;box-shadow:0 6px 20px rgba(0,0,0,.22)}
   #sl.collapsed{bottom:auto}
@@ -131,6 +131,10 @@ select,input{font-family:inherit}
 }
 #ad-center{display:none}
 #sl.hide,#sr.hide{display:none!important}
+#tooldock{position:absolute;left:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:6px;z-index:7;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+#tooldock .tbtn{width:44px;height:44px;border-radius:10px;padding:0;justify-content:center;align-items:center}
+#tooldock .tbtn .ti{font-size:20px}
+@media(max-width:640px){#tooldock{left:6px;top:6px;transform:none;flex-direction:row;flex-wrap:wrap;max-width:calc(100% - 12px);gap:4px}#tooldock .tbtn{width:38px;height:38px}}
 canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:none}
 #prev-c{pointer-events:none}
 #snap-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:5px 12px;border-radius:15px;font-size:11px;font-weight:600;display:none;pointer-events:none;z-index:10}
@@ -363,6 +367,14 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
       <canvas id="bg-c"></canvas>
       <canvas id="main-c"></canvas>
       <canvas id="prev-c"></canvas>
+      <aside id="tooldock">
+        <button class="tbtn act" data-mode="stamp" title="기호 도장"><span class="ti">🔖</span></button>
+        <button class="tbtn" data-mode="draw" title="손글씨"><span class="ti">✏️</span></button>
+        <button class="tbtn" data-mode="text" title="타이핑"><span class="ti" style="font-weight:700">T</span></button>
+        <button class="tbtn" data-mode="eraser" title="지우개"><span class="ti">🧹</span></button>
+        <button class="tbtn" data-mode="select" title="선택"><span class="ti">↖</span></button>
+        <button class="tbtn" data-mode="selection" title="영역"><span class="ti">⭕</span></button>
+      </aside>
       <div id="snap-badge">📐 직선 고정 ON</div>
       <div id="sel-tb">
         <button class="selb" id="sel-cp">📋 복사</button>
@@ -397,17 +409,6 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
 
       <!-- TOOLS TAB -->
       <div class="tp act" id="tab-tools">
-        <div class="cg">
-          <div class="cgl">그리기 모드</div>
-          <div class="tg">
-            <button class="tbtn act" data-mode="stamp"><span class="ti">🔖</span>기호 도장</button>
-            <button class="tbtn" data-mode="draw"><span class="ti">✏️</span>손글씨</button>
-            <button class="tbtn" data-mode="text"><span class="ti" style="font-weight:700">T</span>타이핑</button>
-            <button class="tbtn" data-mode="eraser"><span class="ti">🧹</span>지우개</button>
-            <button class="tbtn" data-mode="select"><span class="ti">↖</span>선택</button>
-            <button class="tbtn" data-mode="selection"><span class="ti">⭕</span>영역</button>
-          </div>
-        </div>
 
         <div class="cg" id="brush-cg" style="display:none">
           <div class="cgl">크기</div>
