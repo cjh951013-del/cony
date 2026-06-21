@@ -37,7 +37,9 @@
 - **P3 대칭 가이드**(a36637e): `G.symmetry`(v/h/quad/radial N), `symXf()` 변환목록을 strokePolyCtx·stampPolyCtx·stampShape·stampAt·fillCell에 적용(그리기·스탬프·도형·방안 전부 미러, 프리뷰 포함). 앵커 기준 대칭축 점선 가이드.
 - **P4 컬러 휠**(156bb06): 색상 팝오버에 HSB 디스크(각=색상,반경=채도)+명도 슬라이더+선택마커, `hsv2rgb/rgb2hsv`. **색 히스토리**(`G.colorHist`, 커밋시 누적·중복제거·최대10, 클릭 재선택).
 - **P5 캔버스 액션**(6b30be4): ⋯메뉴 좌우/상하 반전(전 레이어), 활성 레이어 지우기, 전체 초기화. **멀티레이어 히스토리**(`saveHMulti`→`{multi:[...]}`, undo/redo가 단일·멀티 항목 모두 처리). 캔버스 반전 undo로 전 레이어 복원.
-> ⚠️ 자동저장(snapshotCurrent/restoreCanvas)은 합성(평탄화) PNG로 저장·복원 → **레이어별 영속화는 미구현**(복원시 단일 레이어로 평탄화됨). 차후 작업.
+- **레이어 영속화(완료)**: 프로젝트별 `cony_layers_<id>` 키에 레이어 PNG+이름·가시성·투명도·blend 저장(`serializeLayers/persistLayers/restoreLayers`), 재오픈시 복원(쿼터초과 안전폐기, 없으면 평탄화 폴백). delP시 키 삭제.
+- **블렌드 모드(완료)**: 레이어별 `l.blend`(보통/곱하기/스크린/오버레이/어둡게/밝게/닷지/반전차)를 composite()의 globalCompositeOperation으로 적용, 패널 셀렉트. **레이어 이름변경**(✎). 둘다 영속.
+- **내보내기(완료)**: PNG/JPG=합성+CONY 워터마크. **PDF=브라우저 인쇄 시트**(`exportPrintable`→#print-area: 제목+차트+자동범례+슬로건, `@media print`, 오프라인·모바일 OK, window.print).
 
 ## 최근 완료(main 병합) — 2026-06-21 세션
 - **코·단 번호매기기**(`G.numbersOn` 토글, `drawNumbers`, 좌하단=1). **표준기호 +10**(코바늘: fpdc/bpdc/cl/puff/shell/spike, 대바늘: p2tog/m1/rc/lc; `stitchOrder`는 배열길이서 동적). **범례 자동**(`recordSymUse`로 스탬프시 기록→`openLegend` 모달, ⋯메뉴). **방사 배치**(`G.radial` 토글=앵커 향해 자동회전 스탬프, `placeRing`=원형 N개; 가이드섹션 개수/반지름). **방안뜨기 모드**(도크 ▦, `fillCell`=40px 격자칸 색칠; onDown/Move/Up graph 분기).
