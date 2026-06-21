@@ -15,15 +15,20 @@
 - 화면: 대시보드(`#screen-dash`) + 에디터(`#screen-ed`).
 - 캔버스 3겹: `bg-c`(격자·프레임·앵커 마커), `main-c`(실제 그림 = 래스터 비트맵 1200×1200), `prev-c`(미리보기·편집핸들 오버레이, `pointer-events:none`).
 - 전역 상태 객체 `G`: mode, stitch, color, rot, zoom, pan, gridOn, anchor, shape, editing, path 등.
-- 좌표 변환 `getPos(e)`(zoom 반영). 표준 기호 렌더 `drawSVGStitch(ctx,x,y,id,color,size,rot)`.
+- 좌표 변환 `getPos(e)`(zoom 반영, getBoundingClientRect 기준 → 캔버스 CSS크기=비트맵1200이라 정확). 표준 기호 렌더 `drawSVGStitch(ctx,x,y,id,color,size,rot)`.
+- **`fitToScreen()`(중요)**: 1200×1200 전체를 `#cw` 뷰포트에 맞춰 zoom+center. openP/showScreen/중앙버튼/리사이즈·회전에서 호출. **폰에서 필수**(예전엔 100%라 좌상단만 보였음).
 
 ## 구현된 핵심 시스템
 - **드로잉 엔진(프로크리에이트식)**: draw/stamp = 경로기록 → prev 미리보기 → 손뗄 때 커밋. 길게누르기(HOLD)/Shift/두번째 손가락 = 스냅 트리거.
-- **QuickShape**: `detectShape`(직선/곡선/원·타원/사각/삼각, PCA로 회전 인식) → 편집 핸들(코너·중심·초록 회전) → `#shape-bar`(다른모양/완료/취소). stamp는 **코수 고정·자간 가변**(±코 버튼).
-- **멀티터치**: 두 손가락 드래그=팬, 핀치=줌, 두 손가락 탭=undo, 세 손가락 탭=redo.
+- **QuickShape**: `detectShape`(직선/곡선/원·타원/사각/삼각, PCA로 회전 인식) → 편집 핸들 → `#shape-bar`. stamp는 코수 고정·자간 가변. **자동(길게누르기) 트리거는 `shapeFit()` 신뢰도 검사로 게이팅**(곡선은 자동변환 금지, 직선≤0.05·닫힌도형≤0.045만 스냅) → 자유 손그림이 도형으로 안 바뀜. HOLD_MS=620. `더보기▸도형 자동인식` 토글(`G.quickShape`). Shift/두손가락은 무조건 스냅(`enterSnap()` 명시).
+- **멀티터치**: 두 손가락 드래그=팬, 핀치=줌, 두 손가락 탭=undo, 세 손가락 탭=redo, **네 손가락 탭=UI 숨기기(`toggleUIHidden`, `body.ui-hidden`+`#ui-restore`)**.
 - **기준점(앵커)+격자 스냅**: 도구패널 '◎ 기준점 잡기'로 앵커 지정, gridOn이면 핸들·스탬프가 앵커 격자에 스냅(방안뜨기 기초). `snapToGrid`/`setAnchor`/`drawAnchor`.
 - 라이트/다크 모드(더보기 ⋯ 메뉴, `html[data-theme=light]`), 모바일 반응형(`@media≤640px` 세로 스택), 패널 접기(좌/우), 실 DB·AI·단수카운터 제거.
-- **프로크리에이트식 UI(완료, main 병합됨)**: 좌측 세로 **모드 도크**(`#tooldock` 도장/손글씨/T/지우개/선택/영역) + **크기 레일**(`#size-rail`, 도장=stampSz·그리기=brushSz) + 풀블리드 캔버스(도구옵션 패널 `#sr`은 ⚙로 on-demand) + 상단 **색상 스와치+팝오버**(`#topcol`/`#colpop`, `setColor`/`buildColorPicker`로 패널·팝오버·스와치 동기화) + **⋯ 더보기 팝오버**(`#morepop`: 테마·패널위치·내보내기·초기화). 두 팝오버 상호배타·바깥클릭 닫힘.
+- **프로크리에이트식 UI v3(완료, main 병합 2026-06-22)**: 폰/태블릿/데스크탑 통일·풀블리드. 실제 프로크리에이트 크롬 재현.
+  - **상단 바**(`#eh`, 반투명 오버레이): 좌클러스터 갤러리(`btn-back`)/동작🔧(`btn-more`→`#morepop`)/가이드🪄(`btn-adjust`→`#sr` 도구탭)/선택⬚(`btn-sel-top`)/변형⤢(`btn-trans`), 우클러스터 펜·기호✏️(`btn-paint`→`#sl` 팔레트)/지우개🩹(`btn-erase`)/레이어▦(`btn-layers`→`#sr` 레이어탭)/색상(`topcol`→`#colpop`). 활성 도구는 `setMode`가 버튼 `.act` 동기화. 버튼은 `.pc-tb`.
+  - **좌측 슬라이더 사이드바**(`#tooldock`, 프로크리에이트 시그니처): 세로 크기슬라이더(`#size-rail`, 모드별 max 30/60)+스포이드 사각(`btn-modify`→pick)+세로 불투명도(`#op-rail`→`G.opacity`, strokePolyCtx/stampPolyCtx 적용)+실행취소/다시실행(`btn-undo/redo`).
+  - **팝오버 패널**: `#sl`(팔레트, 상단에 기호/펜/방안/글자 모드탭 `.pc-modes`)·`#sr`(도구·가이드 / 레이어 탭) 떠있는 팝오버로 통일, 한 번에 하나만(`togglePanel`/`closePanels`/`showSrTab` — bindAll 내부 클로저), ✕/바깥탭(캔버스) 닫힘. `btn-adjust`↔`btn-layers`는 같은 `#sr` 탭 전환.
+  - 첫 진입시 제스처 힌트 토스트(`#gesture-hint`, `G.hintShown`).
 
 ## 커스텀 기호(자작) 시스템 — 완료, main 병합됨
 - `G.userSymbols` = 자작 글리프 배열. 글리프 = 정규화 셀(좌표 -1..1=±h) 안의 요소들: `{t:'line',pts:[[x,y]..]}`/`{t:'dot',x,y,r}`/`{t:'circ',x,y,r}`/`{t:'sym',id,x,y,s}`(기존기호 삽입=조합). 내부가 몇 개든 한 칸(size)로 정규화.
