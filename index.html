@@ -405,6 +405,7 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
       <aside id="tooldock">
         <button class="tbtn act" data-mode="stamp" title="기호 도장"><span class="ti">🔖</span></button>
         <button class="tbtn" data-mode="draw" title="손글씨"><span class="ti">✏️</span></button>
+        <button class="tbtn" data-mode="graph" title="방안뜨기(칸 색칠)"><span class="ti">▦</span></button>
         <button class="tbtn" data-mode="text" title="타이핑"><span class="ti" style="font-weight:700">T</span></button>
         <button class="tbtn" data-mode="eraser" title="지우개"><span class="ti">🧹</span></button>
         <button class="tbtn" data-mode="select" title="선택"><span class="ti">↖</span></button>
@@ -1217,6 +1218,14 @@ function placeRing(){
 function symName(id){
   for(const t of ['crochet','knitting']){const s=STITCHES[t].find(x=>x.id===id);if(s)return s.name;}
   const u=(G.userSymbols||[]).find(x=>x.id===id);return u?u.name+' (내 기호)':id;
+}
+// 방안뜨기(그래프) 색칠: 보이는 격자(40px)에 맞춰 한 칸을 현재 색으로 채움
+function fillCell(p){
+  const gs=40;
+  const cx=Math.floor(p.x/gs)*gs, cy=Math.floor(p.y/gs)*gs;
+  if(cx<0||cy<0||cx>=CW||cy>=CH)return;
+  mainCtx.fillStyle=G.color;
+  mainCtx.fillRect(cx,cy,gs,gs);
 }
 function stampAt(x,y){
   const sz=G.stampSz||48;
@@ -2093,6 +2102,7 @@ function onDown(e){
   }
   G.isDrawing=true;G.lastPos=pos;
   if(G.mode==='stamp'||G.mode==='draw'){G.path=[pos];G.snap=null;renderPreview();armHold();}
+  else if(G.mode==='graph'){fillCell(pos);}
   else if(G.mode==='eraser'){mainCtx.clearRect(pos.x-G.brushSz*2,pos.y-G.brushSz*2,G.brushSz*4,G.brushSz*4);}
   else if(G.mode==='selection'||G.mode==='select'){
     if(G.float){const f=G.float,h=floatRotHandle(f);if(Math.hypot(pos.x-h.x,pos.y-h.y)<Math.max(14,18/G.zoom)){f.rotating=true;}else if(insideFloat(f,pos)){f.dragging=true;f.dx=pos.x-f.x;f.dy=pos.y-f.y;}else{commitFloat();G.selStart=pos;G.selEnd=pos;$('sel-tb').style.display='none';}}
@@ -2111,7 +2121,8 @@ function onMove(e){
     const last=G.path[G.path.length-1];
     if(dist2(pos,last)>=MIN_PT){G.path.push(pos);if(dist2(pos,last)>HOLD_TOL&&!G.editing)armHold();}
     renderPreview();
-  }else if(G.mode==='eraser'){mainCtx.clearRect(pos.x-G.brushSz*2,pos.y-G.brushSz*2,G.brushSz*4,G.brushSz*4);}
+  }else if(G.mode==='graph'){fillCell(pos);}
+  else if(G.mode==='eraser'){mainCtx.clearRect(pos.x-G.brushSz*2,pos.y-G.brushSz*2,G.brushSz*4,G.brushSz*4);}
   else if(G.mode==='selection'||G.mode==='select'){
     if(G.float&&G.float.rotating){const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2;f.rot=Math.atan2(pos.y-cy,pos.x-cx)+Math.PI/2;renderFloat();}
     else if(G.float&&G.float.dragging){G.float.x=pos.x-G.float.dx;G.float.y=pos.y-G.float.dy;renderFloat();}
@@ -2145,6 +2156,7 @@ function onUp(e){
     else if(G.selStart){$('sel-tb').style.display='flex';}
   }
   else if(G.mode==='eraser'){saveH();}
+  else if(G.mode==='graph'){saveH();}
 }
 function onWheel(e){e.preventDefault();G.zoom=Math.max(.2,Math.min(4,G.zoom+(e.deltaY>0?-.1:.1)));applyTransform();}
 function onDblClick(e){
