@@ -243,6 +243,11 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
 .mb.p{background:var(--primary);border-color:var(--primary);color:#fff}
 .mb.p:hover{background:var(--accent)}
 .mb.g{background:var(--gold);border-color:var(--gold);color:#000}
+.sym-tools{display:flex;gap:5px;flex-wrap:wrap}
+.symt{flex:1;min-width:56px;padding:7px 4px;border-radius:7px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer}
+.symt:hover{border-color:var(--primary);color:var(--primary)}
+.symt.act{background:rgba(168,85,247,.18);border-color:var(--primary);color:var(--primary)}
+.symt.d{color:var(--danger)}
 
 /* PLAN SELECTOR */
 .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
@@ -386,7 +391,8 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
       <div class="stl" id="stitch-list"></div>
       <div class="drag-hint">2초 누르기 → 순서변경</div>
       <div class="sl-footer">
-        <button id="btn-stitch-mgr">기호 편집/정렬</button>
+        <button id="btn-new-sym">＋ 내 기호 만들기</button>
+        <button id="btn-stitch-mgr" style="margin-top:4px">기호 편집/정렬</button>
       </div>
     </aside>
 
@@ -623,6 +629,33 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
     <p style="font-size:11px;color:var(--text2);margin-bottom:10px">드래그하여 순서 변경 · 체크박스로 표시 여부 설정</p>
     <div id="mgr-list"></div>
     <div class="mf"><button class="mb" onclick="closeM('m-mgr')">취소</button><button class="mb p" id="btn-mgr-save">저장</button></div>
+  </div>
+</div>
+
+<!-- ===== MODAL: 내 기호 만들기 ===== -->
+<div class="mo" id="m-sym">
+  <div class="mc" style="max-width:360px">
+    <div class="mh"><h2>✏️ 내 기호 만들기</h2><button class="mhx" onclick="closeM('m-sym')">✕</button></div>
+    <input type="text" id="sym-name" placeholder="기호 이름 (예: 내 사슬)" style="width:100%;padding:8px;margin-bottom:10px;background:var(--panel2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px">
+    <div id="sym-canvas-wrap" style="display:flex;justify-content:center;margin-bottom:8px">
+      <canvas id="sym-canvas" width="280" height="280" style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;touch-action:none;cursor:crosshair"></canvas>
+    </div>
+    <div class="sym-tools">
+      <button class="symt act" data-tool="line">／ 선</button>
+      <button class="symt" data-tool="dot">● 점</button>
+      <button class="symt" data-tool="circ">○ 원</button>
+      <button class="symt" data-tool="sym">🧶 기호</button>
+    </div>
+    <div id="sym-embed-row" style="display:none;margin-top:6px">
+      <select id="sym-embed-sel" style="width:100%;padding:6px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px"></select>
+    </div>
+    <div class="sym-tools" style="margin-top:6px">
+      <button class="symt" id="sym-finishline" title="그리던 선 마무리">✓ 선 완료</button>
+      <button class="symt" id="sym-undo">↩ 되돌리기</button>
+      <button class="symt d" id="sym-clear">🗑 비우기</button>
+    </div>
+    <p style="font-size:10px;color:var(--text3);margin-top:8px">‘선’은 점을 여러 번 찍어 잇고 <b>✓ 선 완료</b>로 마무리 · ‘기호’는 기존 기호를 셀 안에 넣어 <b>조합</b>합니다. 무엇이든 한 칸 크기로 정규화됩니다.</p>
+    <div class="mf"><button class="mb" onclick="closeM('m-sym')">취소</button><button class="mb p" id="sym-save">저장</button></div>
   </div>
 </div>
 
@@ -897,6 +930,95 @@ function persistUserSymbols(){
 }
 function loadUserSymbols(){
   try{const s=localStorage.getItem('cony_usersymbols_v1');if(s){const a=JSON.parse(s);if(Array.isArray(a))G.userSymbols=a;}}catch(e){}
+}
+
+/* ===================== 기호 편집기 ===================== */
+const SYM_ED=280, SYM_PAD=26;
+let symEdit={el:[],tool:'line',cur:[],embedId:'dc'};
+function symToScreen(nx,ny){const r=SYM_ED/2-SYM_PAD;return [SYM_ED/2+nx*r, SYM_ED/2+ny*r];}
+function screenToSym(sx,sy){const r=SYM_ED/2-SYM_PAD;return [(sx-SYM_ED/2)/r, (sy-SYM_ED/2)/r];}
+function drawSymEditor(){
+  const cv=$('sym-canvas');if(!cv)return;const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,SYM_ED,SYM_ED);
+  const r=SYM_ED/2-SYM_PAD;
+  // 셀 가이드(±1 박스 + 중심 십자)
+  ctx.strokeStyle='rgba(120,120,160,.28)';ctx.lineWidth=1;
+  ctx.strokeRect(SYM_ED/2-r,SYM_ED/2-r,2*r,2*r);
+  ctx.beginPath();ctx.moveTo(SYM_ED/2-r,SYM_ED/2);ctx.lineTo(SYM_ED/2+r,SYM_ED/2);
+  ctx.moveTo(SYM_ED/2,SYM_ED/2-r);ctx.lineTo(SYM_ED/2,SYM_ED/2+r);ctx.stroke();
+  // 확정된 요소
+  drawCustomGlyph(ctx,SYM_ED/2,SYM_ED/2,{el:symEdit.el},'#a855f7',2*r,0);
+  // 그리는 중인 선(주황)
+  if(symEdit.cur.length){
+    ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.beginPath();
+    symEdit.cur.forEach((p,i)=>{const s=symToScreen(p[0],p[1]);i?ctx.lineTo(s[0],s[1]):ctx.moveTo(s[0],s[1]);});
+    ctx.stroke();
+    ctx.fillStyle='#f59e0b';
+    symEdit.cur.forEach(p=>{const s=symToScreen(p[0],p[1]);ctx.beginPath();ctx.arc(s[0],s[1],3.5,0,7);ctx.fill();});
+  }
+}
+function symFinishLine(){
+  if(symEdit.cur.length>=2) symEdit.el.push({t:'line',pts:symEdit.cur.slice()});
+  symEdit.cur=[];drawSymEditor();
+}
+function symCanvasTap(e){
+  e.preventDefault();
+  const cv=$('sym-canvas'),rect=cv.getBoundingClientRect();
+  const sx=(e.clientX-rect.left)*cv.width/rect.width;
+  const sy=(e.clientY-rect.top)*cv.height/rect.height;
+  let p=screenToSym(sx,sy);
+  let nx=Math.max(-1,Math.min(1,p[0])), ny=Math.max(-1,Math.min(1,p[1]));
+  const t=symEdit.tool;
+  if(t==='line') symEdit.cur.push([nx,ny]);
+  else if(t==='dot') symEdit.el.push({t:'dot',x:nx,y:ny,r:.15});
+  else if(t==='circ') symEdit.el.push({t:'circ',x:nx,y:ny,r:.35});
+  else if(t==='sym') symEdit.el.push({t:'sym',id:symEdit.embedId,x:nx,y:ny,s:.45});
+  drawSymEditor();
+}
+function openSymEditor(){
+  symEdit={el:[],tool:'line',cur:[],embedId:'dc'};
+  $('sym-name').value='';
+  // 삽입용 기호 셀렉트 채우기(표준 전세트)
+  const sel=$('sym-embed-sel');
+  if(sel && !sel.dataset.filled){
+    let html='';
+    [['코바늘','crochet'],['대바늘','knitting']].forEach(([label,type])=>{
+      html+=`<optgroup label="${label}">`;
+      STITCHES[type].forEach(s=>{html+=`<option value="${s.id}">${s.name}</option>`;});
+      html+='</optgroup>';
+    });
+    sel.innerHTML=html;sel.dataset.filled='1';sel.value='dc';
+  }
+  document.querySelectorAll('.symt[data-tool]').forEach(b=>b.classList.toggle('act',b.dataset.tool==='line'));
+  $('sym-embed-row').style.display='none';
+  drawSymEditor();
+  openM('m-sym');
+}
+function bindSymEditor(){
+  document.querySelectorAll('.symt[data-tool]').forEach(b=>b.addEventListener('click',()=>{
+    symEdit.tool=b.dataset.tool;
+    document.querySelectorAll('.symt[data-tool]').forEach(x=>x.classList.toggle('act',x===b));
+    $('sym-embed-row').style.display=(b.dataset.tool==='sym')?'block':'none';
+    if(b.dataset.tool!=='line') symFinishLine(); // 다른 도구로 바꾸면 그리던 선 마무리
+  }));
+  $('sym-embed-sel').addEventListener('change',e=>{symEdit.embedId=e.target.value;});
+  $('sym-canvas').addEventListener('pointerdown',symCanvasTap);
+  $('sym-finishline').addEventListener('click',symFinishLine);
+  $('sym-undo').addEventListener('click',()=>{
+    if(symEdit.cur.length) symEdit.cur.pop();
+    else if(symEdit.el.length) symEdit.el.pop();
+    drawSymEditor();
+  });
+  $('sym-clear').addEventListener('click',()=>{symEdit.el=[];symEdit.cur=[];drawSymEditor();});
+  $('sym-save').addEventListener('click',()=>{
+    symFinishLine(); // 미완성 선 자동 마무리
+    if(!symEdit.el.length){alert('기호가 비어 있어요. 점·선·원이나 기존 기호를 추가해 주세요.');return;}
+    const name=$('sym-name').value.trim()||'내 기호';
+    addCustomSymbol(name,symEdit.el);
+    renderShelf();
+    closeM('m-sym');
+  });
 }
 
 function drawStitchSVGIcon(container,id,size,color){
@@ -1481,6 +1603,9 @@ function bindAll(){
   $('btn-mgr').addEventListener('click',()=>{openMgr();openM('m-mgr');});
   $('btn-stitch-mgr').addEventListener('click',()=>{openMgr();openM('m-mgr');});
   $('btn-mgr-save').addEventListener('click',()=>{renderShelf();closeM('m-mgr');});
+  // SYMBOL EDITOR
+  $('btn-new-sym').addEventListener('click',openSymEditor);
+  bindSymEditor();
   
   // PANEL POSITION
   document.querySelectorAll('.posb').forEach(b=>b.addEventListener('click',()=>{
