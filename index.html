@@ -188,6 +188,12 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
 #colpop #colpop-x{background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0}
 #colpop .cpal{gap:6px}
 #colpop .ci{width:24px;height:24px}
+#morepop{position:fixed;top:46px;right:10px;z-index:60;min-width:184px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:0 12px 30px rgba(0,0,0,.4);display:none}
+#morepop.open{display:block}
+.mrow{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;text-align:left}
+.mrow:hover{background:var(--panel2)}
+.mrow .mi{width:18px;text-align:center;flex-shrink:0;font-size:14px}
+.mrow.d{color:var(--danger)}
 .sr2{display:flex;align-items:center;justify-content:space-between;gap:4px}
 .sr2 span{font-size:10px;color:var(--text2)}
 .sr2 select{background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px;flex:1;max-width:110px}
@@ -350,12 +356,17 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
       <button class="ib" id="btn-zo">🔍−</button>
       <span class="zt" id="zt">100%</span>
       <button class="ib" id="btn-zi">🔍＋</button>
-      <button class="ib" id="btn-clr" style="color:var(--danger)">🗑</button>
-      <button class="ib" id="btn-panel-pos" title="패널 위치 변경">⇄</button>
-      <button class="ib" id="btn-theme" title="라이트/다크 모드">🌙</button>
+      <button class="ib" id="btn-more" title="더보기">⋯</button>
       <button class="pro-tog" id="btn-pro">👑 PRO</button>
     </div>
   </header>
+
+  <div id="morepop">
+    <button class="mrow" id="btn-theme"><span class="mi">🌙</span><span>라이트 / 다크 모드</span></button>
+    <button class="mrow" id="btn-panel-pos"><span class="mi">⇄</span><span>패널 위치 바꾸기</span></button>
+    <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
+    <button class="mrow d" id="btn-clr"><span class="mi">🗑</span><span>캔버스 초기화</span></button>
+  </div>
 
   <div id="colpop">
     <div class="cph"><span>색상</span><button id="colpop-x" title="닫기">✕</button></div>
@@ -1347,11 +1358,11 @@ function bindAll(){
   $('btn-redo').addEventListener('click',redo);
   $('btn-zi').addEventListener('click',()=>{G.zoom=Math.min(4,G.zoom+.25);applyTransform();});
   $('btn-zo').addEventListener('click',()=>{G.zoom=Math.max(.2,G.zoom-.25);applyTransform();});
-  $('btn-clr').addEventListener('click',()=>{if(confirm('캔버스를 초기화하시겠습니까?')){clearCv();saveH();}});
+  $('btn-clr').addEventListener('click',()=>{$('morepop').classList.remove('open');if(confirm('캔버스를 초기화하시겠습니까?')){clearCv();saveH();}});
   $('btn-ctr').addEventListener('click',()=>{G.pan={x:0,y:0};G.zoom=1;applyTransform();});
   $('btn-pro').addEventListener('click',()=>openM('m-pro'));
-  $('btn-theme').addEventListener('click',()=>{const lt=document.documentElement.getAttribute('data-theme')==='light';if(lt){document.documentElement.removeAttribute('data-theme');G.bgColor='#202024';$('btn-theme').textContent='🌙';}else{document.documentElement.setAttribute('data-theme','light');G.bgColor='#ffffff';$('btn-theme').textContent='☀️';}if(bgCtx)drawBg();});
-  $('btn-panel-pos').addEventListener('click',()=>openM('m-pos'));
+  $('btn-theme').addEventListener('click',()=>{const lt=document.documentElement.getAttribute('data-theme')==='light';const ic=$('btn-theme').querySelector('.mi');if(lt){document.documentElement.removeAttribute('data-theme');G.bgColor='#202024';if(ic)ic.textContent='🌙';}else{document.documentElement.setAttribute('data-theme','light');G.bgColor='#ffffff';if(ic)ic.textContent='☀️';}if(bgCtx)drawBg();});
+  $('btn-panel-pos').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-pos');});
   
   // TOOLS
   document.querySelectorAll('.tbtn').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
@@ -1368,9 +1379,14 @@ function bindAll(){
   $('sr-col').addEventListener('click',()=>{const c=$('sr').classList.toggle('collapsed');$('sr-col').textContent=c?'‹':'›';});
   $('tgl-sl').addEventListener('click',()=>$('sl').classList.toggle('hide'));
   $('tgl-sr').addEventListener('click',()=>$('sr').classList.toggle('hide'));
-  $('topcol').addEventListener('click',e=>{e.stopPropagation();$('colpop').classList.toggle('open');});
+  $('topcol').addEventListener('click',e=>{e.stopPropagation();$('morepop').classList.remove('open');$('colpop').classList.toggle('open');});
   $('colpop-x').addEventListener('click',()=>$('colpop').classList.remove('open'));
-  document.addEventListener('click',e=>{const p=$('colpop');if(p&&p.classList.contains('open')&&!p.contains(e.target)&&e.target.id!=='topcol')p.classList.remove('open');});
+  $('btn-more').addEventListener('click',e=>{e.stopPropagation();$('colpop').classList.remove('open');$('morepop').classList.toggle('open');});
+  $('btn-exp2').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-exp');});
+  document.addEventListener('click',e=>{
+    const cp=$('colpop');if(cp&&cp.classList.contains('open')&&!cp.contains(e.target)&&e.target.id!=='topcol')cp.classList.remove('open');
+    const mp=$('morepop');if(mp&&mp.classList.contains('open')&&!mp.contains(e.target)&&e.target.id!=='btn-more')mp.classList.remove('open');
+  });
   $('size-rail').addEventListener('input',()=>{const v=parseInt($('size-rail').value);if(G.mode==='stamp'){G.stampSz=v;}else{G.brushSz=Math.min(30,v);const b=$('bsz');if(b)b.value=G.brushSz;const bv=$('bszv');if(bv)bv.textContent=G.brushSz+'px';}const sv=$('size-rail-v');if(sv)sv.textContent=v;});
   $('btn-exp').addEventListener('click',()=>openM('m-exp'));
   $('btn-narr').addEventListener('click',()=>{
