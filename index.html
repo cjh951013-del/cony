@@ -142,6 +142,10 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
 #prev-c{pointer-events:none}
 #snap-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:5px 12px;border-radius:15px;font-size:11px;font-weight:600;display:none;pointer-events:none;z-index:10}
 #sel-tb{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 8px;gap:5px;display:none;z-index:10}
+#sel-shape{position:absolute;top:10px;left:10px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px;gap:3px;display:none;z-index:10}
+#sel-shape.show{display:flex}
+.ssb{width:34px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);font-size:15px;cursor:pointer;padding:0}
+.ssb.act{background:rgba(168,85,247,.18);border-color:var(--primary);color:var(--primary)}
 #shape-bar{position:absolute;top:46px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--info);border-radius:8px;padding:5px 8px;gap:5px;display:none;align-items:center;z-index:11}
 #shape-bar span{font-size:11px;font-weight:700;color:var(--info);margin-right:2px}
 .selb{padding:4px 9px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:11px}
@@ -454,6 +458,11 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
         <div id="sizerail"><input type="range" id="size-rail" min="1" max="60" value="48" title="크기"><span id="size-rail-v">48</span></div>
       </aside>
       <div id="snap-badge">📐 직선 고정 ON</div>
+      <div id="sel-shape">
+        <button class="ssb act" data-sm="rect" title="사각 선택">▭</button>
+        <button class="ssb" data-sm="ellipse" title="타원 선택">⬭</button>
+        <button class="ssb" data-sm="lasso" title="올가미 선택">✎</button>
+      </div>
       <div id="sel-tb">
         <button class="selb" id="sel-cp">📋 복사</button>
         <button class="selb" id="sel-pa">📌 붙이기</button>
@@ -858,7 +867,7 @@ let G={
   panStart:{x:0,y:0},
   lastPos:{x:0,y:0},
   spaceDown:false,
-  selStart:null,selEnd:null,clipboard:null,
+  selStart:null,selEnd:null,clipboard:null,selMode:'rect',selPath:null,
   panelPos:'left',
   stitchOrder:{crochet:[...Array(STITCHES.crochet.length).keys()],knitting:[...Array(STITCHES.knitting.length).keys()]},
   stitchVisible:{crochet:new Array(STITCHES.crochet.length).fill(true),knitting:new Array(STITCHES.knitting.length).fill(true)},
@@ -2029,6 +2038,7 @@ function setMode(m){
   $('stamp-cg').style.display=m==='stamp'?'block':'none';
   const cw=$('cw');
   cw.style.cursor=m==='eraser'?'cell':m==='text'?'text':m==='pick'?'copy':m==='select'||m==='selection'?'default':'crosshair';
+  const ss=$('sel-shape');if(ss)ss.classList.toggle('show',m==='select'||m==='selection');
 }
 
 /* ===================== EVENTS ===================== */
@@ -2191,22 +2201,18 @@ function bindAll(){
   
   // SELECTION BAR
   $('sel-cp').addEventListener('click',()=>{
-    if(G.selStart&&G.selEnd){
-      const x=Math.min(G.selStart.x,G.selEnd.x),y=Math.min(G.selStart.y,G.selEnd.y);
-      const w=Math.abs(G.selEnd.x-G.selStart.x),h2=Math.abs(G.selEnd.y-G.selStart.y);
-      G.clipboard=mainCtx.getImageData(x,y,w||1,h2||1);
-    }
+    const r=selRect();if(r){const mc2=applySelMask(clipToCanvas(mainCtx.getImageData(r.x,r.y,r.w,r.h)),r);G.clipboard=mc2.getContext('2d').getImageData(0,0,r.w,r.h);}
   });
   $('sel-dl').addEventListener('click',()=>{
-    if(G.selStart&&G.selEnd){
-      const x=Math.min(G.selStart.x,G.selEnd.x),y=Math.min(G.selStart.y,G.selEnd.y);
-      const w=Math.abs(G.selEnd.x-G.selStart.x),h2=Math.abs(G.selEnd.y-G.selStart.y);
-      mainCtx.clearRect(x,y,w||1,h2||1);composite();saveH();
-    }
+    const r=selRect();if(r){clearSelectionRegion(r);composite();saveH();}
     $('sel-tb').style.display='none';prevCtx.clearRect(0,0,CW,CH);
   });
   $('sel-mv').addEventListener('click',liftToFloat);
   $('sel-pa').addEventListener('click',pasteFloat);
+  document.querySelectorAll('.ssb').forEach(b=>b.addEventListener('click',()=>{
+    G.selMode=b.dataset.sm;document.querySelectorAll('.ssb').forEach(x=>x.classList.toggle('act',x===b));
+    G.selStart=G.selEnd=null;G.selPath=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);$('sel-tb').style.display='none';
+  }));
   
   // CANVAS EVENTS
   const mc=$('main-c');
@@ -2394,11 +2400,31 @@ function exitEdit(){G.editing=false;G.shape=null;G.dragH=null;G.awaitLift=false;
 
 /* ----- selection float (move / paste) ----- */
 function clipToCanvas(img){const c=document.createElement('canvas');c.width=Math.max(1,img.width);c.height=Math.max(1,img.height);c.getContext('2d').putImageData(img,0,0);return c;}
-function selRect(){if(!G.selStart||!G.selEnd)return null;const x=Math.min(G.selStart.x,G.selEnd.x),y=Math.min(G.selStart.y,G.selEnd.y),w=Math.abs(G.selEnd.x-G.selStart.x),h=Math.abs(G.selEnd.y-G.selStart.y);return(w<2||h<2)?null:{x,y,w,h};}
+function selRect(){
+  if(G.selMode==='lasso'){if(!G.selPath||G.selPath.length<3)return null;let a=1e9,b=1e9,c=-1e9,d=-1e9;G.selPath.forEach(p=>{a=Math.min(a,p.x);b=Math.min(b,p.y);c=Math.max(c,p.x);d=Math.max(d,p.y);});const w=c-a,h=d-b;return(w<2||h<2)?null:{x:a,y:b,w,h};}
+  if(!G.selStart||!G.selEnd)return null;const x=Math.min(G.selStart.x,G.selEnd.x),y=Math.min(G.selStart.y,G.selEnd.y),w=Math.abs(G.selEnd.x-G.selStart.x),h=Math.abs(G.selEnd.y-G.selStart.y);return(w<2||h<2)?null:{x,y,w,h};}
+// 선택 모양 경로를 ctx에 그림(offset 만큼 평행이동). 사각형은 false 반환(마스크 불필요)
+function traceSel(ctx,r,ox,oy){
+  ox=ox||0;oy=oy||0;
+  if(G.selMode==='ellipse'){ctx.ellipse(r.x+r.w/2-ox,r.y+r.h/2-oy,r.w/2,r.h/2,0,0,7);return true;}
+  if(G.selMode==='lasso'&&G.selPath){G.selPath.forEach((p,i)=>{i?ctx.lineTo(p.x-ox,p.y-oy):ctx.moveTo(p.x-ox,p.y-oy);});ctx.closePath();return true;}
+  return false;
+}
+function applySelMask(srcCanvas,r){
+  if(G.selMode==='rect')return srcCanvas;
+  const c=document.createElement('canvas');c.width=r.w;c.height=r.h;const ctx=c.getContext('2d');
+  ctx.drawImage(srcCanvas,0,0);ctx.globalCompositeOperation='destination-in';
+  ctx.beginPath();traceSel(ctx,r,r.x,r.y);ctx.fill();
+  return c;
+}
+function clearSelectionRegion(r){
+  if(G.selMode==='rect'){mainCtx.clearRect(r.x,r.y,r.w,r.h);return;}
+  mainCtx.save();mainCtx.beginPath();traceSel(mainCtx,r,0,0);mainCtx.clip();mainCtx.clearRect(r.x,r.y,r.w,r.h);mainCtx.restore();
+}
 function floatRotHandle(f){const cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0,d=f.h/2+Math.max(26,f.h*0.3);return{x:cx+d*Math.sin(r),y:cy-d*Math.cos(r),cx,cy};}
 function insideFloat(f,p){const cx=f.x+f.w/2,cy=f.y+f.h/2,r=-(f.rot||0),dx=p.x-cx,dy=p.y-cy,lx=dx*Math.cos(r)-dy*Math.sin(r),ly=dx*Math.sin(r)+dy*Math.cos(r);return Math.abs(lx)<=f.w/2&&Math.abs(ly)<=f.h/2;}
 function renderFloat(){if(!prevCtx)return;prevCtx.clearRect(0,0,CW,CH);const f=G.float;if(!f)return;const cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;prevCtx.save();prevCtx.translate(cx,cy);prevCtx.rotate(r);prevCtx.drawImage(f.cv,-f.w/2,-f.h/2);prevCtx.strokeStyle='rgba(168,85,247,.9)';prevCtx.lineWidth=Math.max(1,1.5/G.zoom);prevCtx.setLineDash([6/G.zoom,4/G.zoom]);prevCtx.strokeRect(-f.w/2,-f.h/2,f.w,f.h);prevCtx.restore();const h=floatRotHandle(f);prevCtx.save();prevCtx.setLineDash([]);prevCtx.strokeStyle='rgba(34,197,94,.9)';prevCtx.lineWidth=Math.max(1,1.5/G.zoom);prevCtx.beginPath();prevCtx.moveTo(cx,cy);prevCtx.lineTo(h.x,h.y);prevCtx.stroke();prevCtx.beginPath();prevCtx.arc(h.x,h.y,Math.max(5,8/G.zoom),0,7);prevCtx.fillStyle='#22c55e';prevCtx.fill();prevCtx.lineWidth=Math.max(1,2/G.zoom);prevCtx.strokeStyle='#fff';prevCtx.stroke();prevCtx.restore();}
-function liftToFloat(){const r=selRect();if(!r)return;const data=mainCtx.getImageData(r.x,r.y,r.w,r.h);mainCtx.clearRect(r.x,r.y,r.w,r.h);composite();G.float={cv:clipToCanvas(data),x:r.x,y:r.y,w:r.w,h:r.h,dragging:false};$('sel-tb').style.display='none';renderFloat();saveH();}
+function liftToFloat(){const r=selRect();if(!r)return;const data=mainCtx.getImageData(r.x,r.y,r.w,r.h);const cv=applySelMask(clipToCanvas(data),r);clearSelectionRegion(r);composite();G.float={cv,x:r.x,y:r.y,w:r.w,h:r.h,dragging:false};$('sel-tb').style.display='none';renderFloat();saveH();}
 function pasteFloat(){if(!G.clipboard)return;const r=selRect();const x=r?r.x:Math.round(CW/2-G.clipboard.width/2),y=r?r.y:Math.round(CH/2-G.clipboard.height/2);G.float={cv:clipToCanvas(G.clipboard),x,y,w:G.clipboard.width,h:G.clipboard.height,dragging:false};$('sel-tb').style.display='none';renderFloat();}
 function commitFloat(){if(!G.float)return;const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;mainCtx.save();mainCtx.translate(cx,cy);mainCtx.rotate(r);mainCtx.drawImage(f.cv,-f.w/2,-f.h/2);mainCtx.restore();G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();saveH();}
 function strokePolyCtx(ctx,poly){
@@ -2466,8 +2492,8 @@ function onDown(e){
   else if(G.mode==='graph'){fillCell(pos);composite();}
   else if(G.mode==='eraser'){mainCtx.clearRect(pos.x-G.brushSz*2,pos.y-G.brushSz*2,G.brushSz*4,G.brushSz*4);composite();}
   else if(G.mode==='selection'||G.mode==='select'){
-    if(G.float){const f=G.float,h=floatRotHandle(f);if(Math.hypot(pos.x-h.x,pos.y-h.y)<Math.max(14,18/G.zoom)){f.rotating=true;}else if(insideFloat(f,pos)){f.dragging=true;f.dx=pos.x-f.x;f.dy=pos.y-f.y;}else{commitFloat();G.selStart=pos;G.selEnd=pos;$('sel-tb').style.display='none';}}
-    else{G.selStart=pos;G.selEnd=pos;$('sel-tb').style.display='none';}
+    if(G.float){const f=G.float,h=floatRotHandle(f);if(Math.hypot(pos.x-h.x,pos.y-h.y)<Math.max(14,18/G.zoom)){f.rotating=true;}else if(insideFloat(f,pos)){f.dragging=true;f.dx=pos.x-f.x;f.dy=pos.y-f.y;}else{commitFloat();G.selStart=pos;G.selEnd=pos;G.selPath=(G.selMode==='lasso')?[pos]:null;$('sel-tb').style.display='none';}}
+    else{G.selStart=pos;G.selEnd=pos;G.selPath=(G.selMode==='lasso')?[pos]:null;$('sel-tb').style.display='none';}
   }
 }
 function onMove(e){
@@ -2488,10 +2514,13 @@ function onMove(e){
     if(G.float&&G.float.rotating){const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2;f.rot=Math.atan2(pos.y-cy,pos.x-cx)+Math.PI/2;renderFloat();}
     else if(G.float&&G.float.dragging){G.float.x=pos.x-G.float.dx;G.float.y=pos.y-G.float.dy;renderFloat();}
     else if(G.selStart){
-      G.selEnd=pos;prevCtx.clearRect(0,0,CW,CH);
-      prevCtx.strokeStyle='rgba(168,85,247,.8)';prevCtx.lineWidth=1;prevCtx.setLineDash([6,4]);
-      const sx=Math.min(G.selStart.x,pos.x),sy=Math.min(G.selStart.y,pos.y);
-      prevCtx.strokeRect(sx,sy,Math.abs(pos.x-G.selStart.x),Math.abs(pos.y-G.selStart.y));
+      G.selEnd=pos;if(G.selMode==='lasso'&&G.selPath)G.selPath.push(pos);
+      prevCtx.clearRect(0,0,CW,CH);
+      prevCtx.strokeStyle='rgba(168,85,247,.85)';prevCtx.lineWidth=Math.max(1,1.2/G.zoom);prevCtx.setLineDash([6/G.zoom,4/G.zoom]);
+      prevCtx.beginPath();
+      if(G.selMode==='ellipse'){const x=Math.min(G.selStart.x,pos.x),y=Math.min(G.selStart.y,pos.y),w=Math.abs(pos.x-G.selStart.x),h=Math.abs(pos.y-G.selStart.y);if(w>1&&h>1)prevCtx.ellipse(x+w/2,y+h/2,w/2,h/2,0,0,7);prevCtx.stroke();}
+      else if(G.selMode==='lasso'&&G.selPath){G.selPath.forEach((p,i)=>{i?prevCtx.lineTo(p.x,p.y):prevCtx.moveTo(p.x,p.y);});prevCtx.stroke();}
+      else{const sx=Math.min(G.selStart.x,pos.x),sy=Math.min(G.selStart.y,pos.y);prevCtx.strokeRect(sx,sy,Math.abs(pos.x-G.selStart.x),Math.abs(pos.y-G.selStart.y));}
     }
   }
 }
