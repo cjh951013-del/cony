@@ -405,6 +405,7 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
   <div id="morepop">
     <button class="mrow" id="btn-theme"><span class="mi">🌙</span><span>라이트 / 다크 모드</span></button>
     <button class="mrow" id="btn-panel-pos"><span class="mi">⇄</span><span>패널 위치 바꾸기</span></button>
+    <button class="mrow" id="btn-quickshape"><span class="mi">📐</span><span>도형 자동인식: 켜짐</span></button>
     <button class="mrow" id="btn-legend"><span class="mi">📋</span><span>기호 범례 보기</span></button>
     <button class="mrow" id="btn-img"><span class="mi">🖼</span><span>이미지 가져오기 (따라 그리기)</span></button>
     <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
@@ -876,6 +877,7 @@ let G={
   longPressTimer:null,
   dragSrcIdx:null,
   narrType:'ko',
+  quickShape:true,
 };
 
 let bgCtx,mainCtx,prevCtx,dispCtx;
@@ -1307,7 +1309,18 @@ function applyTransform(){
     const c=$(id);
     c.style.transform=`translate(${G.pan.x}px,${G.pan.y}px) scale(${G.zoom})`;
   });
-  $('zt').textContent=Math.round(G.zoom*100)+'%';
+  const zt=$('zt');if(zt)zt.textContent=Math.round(G.zoom*100)+'%';
+}
+// 전체 캔버스(1200×1200)를 화면(#cw)에 꽉 차게 맞추고 가운데 정렬 — 폰/태블릿 필수
+function fitToScreen(){
+  const cw=$('cw');if(!cw)return;
+  const vw=cw.clientWidth||window.innerWidth, vh=cw.clientHeight||window.innerHeight;
+  if(vw<2||vh<2)return;
+  const m=Math.max(8,Math.min(vw,vh)*0.04);
+  const z=Math.max(0.08,Math.min(8,Math.min((vw-2*m)/CW,(vh-2*m)/CH)));
+  G.zoom=z;
+  G.pan={x:(vw-CW*z)/2,y:(vh-CH*z)/2};
+  applyTransform();
 }
 
 /* ===================== DRAWING ===================== */
@@ -2021,7 +2034,7 @@ function showScreen(s){
       const bgC=$('bg-c'),mc=$('main-c'),pc=$('prev-c');
       [bgC,mc,pc].forEach(c=>{c.width=CW;c.height=CH;});
       ensureLayerCanvases();setActiveCtx();
-      drawBg();applyTransform();restoreCanvas();
+      drawBg();fitToScreen();restoreCanvas();
     },50);
   }
 }
@@ -2061,7 +2074,7 @@ function bindAll(){
   $('btn-fliph').addEventListener('click',()=>{$('morepop').classList.remove('open');flipCanvas('h');});
   $('btn-flipv').addEventListener('click',()=>{$('morepop').classList.remove('open');flipCanvas('v');});
   $('btn-clrlayer').addEventListener('click',()=>{$('morepop').classList.remove('open');clearActiveLayer();});
-  $('btn-ctr').addEventListener('click',()=>{G.pan={x:0,y:0};G.zoom=1;applyTransform();});
+  $('btn-ctr').addEventListener('click',()=>{fitToScreen();});
   $('btn-pro').addEventListener('click',()=>openM('m-pro'));
   $('btn-theme').addEventListener('click',()=>{const lt=document.documentElement.getAttribute('data-theme')==='light';const ic=$('btn-theme').querySelector('.mi');if(lt){document.documentElement.removeAttribute('data-theme');G.bgColor='#202024';if(ic)ic.textContent='🌙';}else{document.documentElement.setAttribute('data-theme','light');G.bgColor='#ffffff';if(ic)ic.textContent='☀️';}if(bgCtx)drawBg();});
   $('btn-panel-pos').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-pos');});
@@ -2098,6 +2111,7 @@ function bindAll(){
   window.addEventListener('pointerup',()=>{if(cwDrag){cwDrag=false;pushColorHist(G.color);renderColorHist();}});
   $('cw-val').addEventListener('input',()=>{cwState.v=parseInt($('cw-val').value)/100;$('cw-val-v').textContent=$('cw-val').value;const rgb=hsv2rgb(cwState.h,cwState.s,cwState.v);setColor(rgb2hex(rgb[0],rgb[1],rgb[2]));drawColorWheel();});
   $('btn-more').addEventListener('click',e=>{e.stopPropagation();$('colpop').classList.remove('open');$('morepop').classList.toggle('open');});
+  $('btn-quickshape').addEventListener('click',()=>{G.quickShape=!G.quickShape;const t=$('btn-quickshape').querySelector('span:last-child');if(t)t.textContent='도형 자동인식: '+(G.quickShape?'켜짐':'꺼짐');});
   $('btn-legend').addEventListener('click',()=>{$('morepop').classList.remove('open');openLegend();});
   $('btn-img').addEventListener('click',()=>{$('morepop').classList.remove('open');$('img-input').click();});
   $('img-input').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];importImageFile(f);e.target.value='';});
@@ -2220,6 +2234,11 @@ function bindAll(){
   mc.addEventListener('touchstart',onDown,{passive:false});mc.addEventListener('touchmove',onMove,{passive:false});mc.addEventListener('touchend',onUp);
   mc.addEventListener('wheel',onWheel,{passive:false});
   mc.addEventListener('dblclick',onDblClick);
+  // 화면 회전/리사이즈 시 다시 맞춤(그리는 중에는 보류)
+  let rezTm=null;
+  const refit=()=>{if(G.screen!=='ed')return;clearTimeout(rezTm);rezTm=setTimeout(()=>{if(!G.isDrawing&&!G.editing&&!G.multi)fitToScreen();},160);};
+  window.addEventListener('resize',refit);
+  window.addEventListener('orientationchange',refit);
   $('shape-cycle').addEventListener('click',cycleShapeType);
   $('shape-done').addEventListener('click',commitShape);
   $('shape-cancel').addEventListener('click',cancelShape);
@@ -2248,7 +2267,7 @@ function bindAll(){
 
 /* ===================== DRAW ENGINE (Procreate / Pinpino style) ===================== */
 let pinchDist=0;
-const HOLD_MS=420, HOLD_TOL=7, MIN_PT=2.4, STAMP_GAP=38;
+const HOLD_MS=620, HOLD_TOL=7, MIN_PT=2.4, STAMP_GAP=38;
 let holdTm=null;
 function dist2(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 function polyLen(p){let s=0;for(let i=1;i<p.length;i++)s+=dist2(p[i-1],p[i]);return s;}
@@ -2326,6 +2345,10 @@ function shapeToPoly(s){
   if(s.type==='ellipse'){const r=s.rot||0,o=[];for(let i=0;i<=48;i++){const t=i/48*2*Math.PI,w=unproj(s.rx*Math.cos(t),s.ry*Math.sin(t),r);o.push({x:s.cx+w.x,y:s.cy+w.y});}return o;}
   return[];
 }
+// QuickShape 신뢰도: 손으로 그린 경로가 인식된 도형에 얼마나 잘 맞는지(작을수록 정확)
+function nearestOnSeg(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,L2=dx*dx+dy*dy||1;let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/L2;t=Math.max(0,Math.min(1,t));return{x:a.x+dx*t,y:a.y+dy*t};}
+function distToPoly(p,poly){let best=1e9;for(let i=1;i<poly.length;i++){const q=nearestOnSeg(p,poly[i-1],poly[i]);const d=Math.hypot(p.x-q.x,p.y-q.y);if(d<best)best=d;}return best;}
+function shapeFit(path,s){const poly=shapeToPoly(s);if(poly.length<2)return 9;const bb=bboxOf(path),diag=Math.hypot(bb.w,bb.h)||1;let sum=0;for(const p of path)sum+=distToPoly(p,poly);return (sum/path.length)/diag;}
 function handlesOf(s){
   if(!s)return[];
   if(s.type==='line')return[{id:'a',x:s.a.x,y:s.a.y},{id:'b',x:s.b.x,y:s.b.y}];
@@ -2393,7 +2416,19 @@ function renderEdit(){
   for(const h of hs){prevCtx.beginPath();prevCtx.arc(h.x,h.y,R,0,7);prevCtx.fillStyle=h.id==='mv'?'#f59e0b':h.id==='rot'?'#22c55e':'#22d3ee';prevCtx.fill();prevCtx.lineWidth=Math.max(1,2/G.zoom);prevCtx.strokeStyle='#fff';prevCtx.stroke();}
   prevCtx.restore();
 }
-function enterSnap(){if(!G.path||G.path.length<2)return;const s=detectShape(G.path);if(!s)return;if(G.mode==='stamp')s.n=shapeStitchCount(s);G.shape=s;G.editing=true;G.isDrawing=false;G.awaitLift=true;clearTimeout(holdTm);showShapeBar();renderEdit();}
+function enterSnap(auto){
+  if(!G.path||G.path.length<2)return;
+  const s=detectShape(G.path);if(!s)return;
+  // 자동(길게누르기) 트리거는 신뢰도 검사 — 자유로운 손그림은 도형으로 바꾸지 않음
+  if(auto){
+    if(s.type==='curve')return; // 곡선은 거의 모든 손그림에 해당 → 자동변환 금지(직선/원/사각/삼각만)
+    const dev=shapeFit(G.path,s);
+    const lim=(s.type==='line')?0.05:0.045;
+    if(dev>lim)return;
+  }
+  if(G.mode==='stamp')s.n=shapeStitchCount(s);
+  G.shape=s;G.editing=true;G.isDrawing=false;G.awaitLift=true;clearTimeout(holdTm);showShapeBar();renderEdit();
+}
 function commitShape(){if(!G.shape)return;if(G.mode==='stamp')stampShape(mainCtx,G.shape,false);else strokePolyCtx(mainCtx,shapeToPoly(G.shape));exitEdit();saveH();}
 function cancelShape(){exitEdit();}
 function exitEdit(){G.editing=false;G.shape=null;G.dragH=null;G.awaitLift=false;G.path=null;G.snap=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);hideShapeBar();}
@@ -2453,7 +2488,7 @@ function renderPreview(){
   if(G.mode==='draw')strokePolyCtx(prevCtx,G.path);
   else if(G.mode==='stamp')stampPolyCtx(prevCtx,G.path,true);
 }
-function armHold(){clearTimeout(holdTm);holdTm=setTimeout(()=>{if(G.isDrawing&&G.path&&!G.editing)enterSnap();},HOLD_MS);}
+function armHold(){if(G.quickShape===false)return;clearTimeout(holdTm);holdTm=setTimeout(()=>{if(G.isDrawing&&G.path&&!G.editing)enterSnap(true);},HOLD_MS);}
 function commitStroke(){
   if(G.mode==='draw'){
     if(G.path&&G.path.length>1)strokePolyCtx(mainCtx,G.path);
