@@ -385,7 +385,10 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
     <button class="mrow" id="btn-panel-pos"><span class="mi">⇄</span><span>패널 위치 바꾸기</span></button>
     <button class="mrow" id="btn-legend"><span class="mi">📋</span><span>기호 범례 보기</span></button>
     <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
-    <button class="mrow d" id="btn-clr"><span class="mi">🗑</span><span>캔버스 초기화</span></button>
+    <button class="mrow" id="btn-fliph"><span class="mi">⇋</span><span>좌우 반전</span></button>
+    <button class="mrow" id="btn-flipv"><span class="mi">⤲</span><span>상하 반전</span></button>
+    <button class="mrow" id="btn-clrlayer"><span class="mi">🧽</span><span>활성 레이어 지우기</span></button>
+    <button class="mrow d" id="btn-clr"><span class="mi">🗑</span><span>전체 초기화</span></button>
   </div>
 
   <div id="colpop">
@@ -1329,20 +1332,46 @@ function saveH(){
   G.histIdx=G.hist.length-1;
   setUndoBtns();setSS();schedulePersist();
 }
+// 캔버스 전체(여러 레이어 동시) 변경용 스냅샷
+function saveHMulti(){
+  const multi=G.layers.map(l=>({lid:l.id,data:l.ctx.getImageData(0,0,CW,CH)}));
+  G.hist=G.hist.slice(0,G.histIdx+1);
+  G.hist.push({multi});
+  if(G.hist.length>40)G.hist.shift();
+  G.histIdx=G.hist.length-1;setUndoBtns();setSS();schedulePersist();
+}
+function prevDataFor(lid,beforeIdx){
+  for(let j=beforeIdx;j>=0;j--){const e=G.hist[j];
+    if(e.multi){const m=e.multi.find(x=>x.lid===lid);if(m)return m.data;}
+    else if(e.lid===lid)return e.data;}
+  return null;
+}
 function undo(){
   if(G.histIdx<=0)return;
-  const cur=G.hist[G.histIdx],L=cur.lid;
-  let prev=null;for(let j=G.histIdx-1;j>=0;j--){if(G.hist[j].lid===L){prev=G.hist[j];break;}}
-  const lyr=layerById(L);
-  if(lyr){if(prev)lyr.ctx.putImageData(prev.data,0,0);else lyr.ctx.clearRect(0,0,CW,CH);G.activeL=L;setActiveCtx();}
+  const cur=G.hist[G.histIdx];
+  const affected=cur.multi?cur.multi.map(x=>x.lid):[cur.lid];
+  affected.forEach(lid=>{const prev=prevDataFor(lid,G.histIdx-1),l=layerById(lid);if(l){if(prev)l.ctx.putImageData(prev,0,0);else l.ctx.clearRect(0,0,CW,CH);}});
+  if(!cur.multi){G.activeL=cur.lid;setActiveCtx();}
   G.histIdx--;composite();renderLayers();setUndoBtns();
 }
 function redo(){
   if(G.histIdx>=G.hist.length-1)return;
-  G.histIdx++;const e=G.hist[G.histIdx],lyr=layerById(e.lid);
-  if(lyr){lyr.ctx.putImageData(e.data,0,0);G.activeL=e.lid;setActiveCtx();}
+  G.histIdx++;const e=G.hist[G.histIdx];
+  if(e.multi){e.multi.forEach(s=>{const l=layerById(s.lid);if(l)l.ctx.putImageData(s.data,0,0);});}
+  else{const l=layerById(e.lid);if(l){l.ctx.putImageData(e.data,0,0);G.activeL=e.lid;setActiveCtx();}}
   composite();renderLayers();setUndoBtns();
 }
+// 캔버스/레이어 액션
+function flipLayerCv(l,dir){
+  const t=makeLayerCv();t.getContext('2d').drawImage(l.cv,0,0);
+  l.ctx.clearRect(0,0,CW,CH);l.ctx.save();
+  if(dir==='h'){l.ctx.translate(CW,0);l.ctx.scale(-1,1);}else{l.ctx.translate(0,CH);l.ctx.scale(1,-1);}
+  l.ctx.drawImage(t,0,0);l.ctx.restore();
+}
+function flipCanvas(dir){G.layers.forEach(l=>flipLayerCv(l,dir));composite();renderLayers();saveHMulti();}
+function flipActiveLayer(dir){flipLayerCv(activeLayer(),dir);composite();renderLayers();saveH();}
+function clearActiveLayer(){if(mainCtx)mainCtx.clearRect(0,0,CW,CH);composite();renderLayers();saveH();}
+function clearAllLayers(){G.layers.forEach(l=>l.ctx&&l.ctx.clearRect(0,0,CW,CH));G.usedSymbols=[];composite();renderLayers();saveHMulti();}
 function clearCv(){if(mainCtx)mainCtx.clearRect(0,0,CW,CH);G.usedSymbols=[];composite();}
 // 범례(레전드): 도안에 사용한 기호 목록을 모달에 자동 생성
 function openLegend(){
@@ -1895,7 +1924,10 @@ function bindAll(){
   $('btn-redo').addEventListener('click',redo);
   $('btn-zi').addEventListener('click',()=>{G.zoom=Math.min(4,G.zoom+.25);applyTransform();});
   $('btn-zo').addEventListener('click',()=>{G.zoom=Math.max(.2,G.zoom-.25);applyTransform();});
-  $('btn-clr').addEventListener('click',()=>{$('morepop').classList.remove('open');if(confirm('캔버스를 초기화하시겠습니까?')){clearCv();saveH();}});
+  $('btn-clr').addEventListener('click',()=>{$('morepop').classList.remove('open');if(confirm('모든 레이어를 비울까요? (전체 초기화)')){clearAllLayers();}});
+  $('btn-fliph').addEventListener('click',()=>{$('morepop').classList.remove('open');flipCanvas('h');});
+  $('btn-flipv').addEventListener('click',()=>{$('morepop').classList.remove('open');flipCanvas('v');});
+  $('btn-clrlayer').addEventListener('click',()=>{$('morepop').classList.remove('open');clearActiveLayer();});
   $('btn-ctr').addEventListener('click',()=>{G.pan={x:0,y:0};G.zoom=1;applyTransform();});
   $('btn-pro').addEventListener('click',()=>openM('m-pro'));
   $('btn-theme').addEventListener('click',()=>{const lt=document.documentElement.getAttribute('data-theme')==='light';const ic=$('btn-theme').querySelector('.mi');if(lt){document.documentElement.removeAttribute('data-theme');G.bgColor='#202024';if(ic)ic.textContent='🌙';}else{document.documentElement.setAttribute('data-theme','light');G.bgColor='#ffffff';if(ic)ic.textContent='☀️';}if(bgCtx)drawBg();});
