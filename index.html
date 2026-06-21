@@ -180,6 +180,18 @@ html[data-theme=light] .pc-sq{background:rgba(255,255,255,.7);border-color:rgba(
   .pc-sld input[type=range]{height:116px}
 }
 @media(max-width:360px){.pc-tb{min-width:32px;padding:0 3px;font-size:16px}}
+
+/* UI 숨김 모드 (4손가락 탭) */
+body.ui-hidden #eh,body.ui-hidden #tooldock,body.ui-hidden #sl,body.ui-hidden #sr,
+body.ui-hidden .fb,body.ui-hidden #colpop,body.ui-hidden #morepop,body.ui-hidden #sel-shape{display:none!important}
+#ui-restore{position:absolute;top:10px;right:10px;z-index:40;width:40px;height:40px;border-radius:50%;
+   border:1px solid rgba(255,255,255,.15);background:rgba(26,26,42,.82);color:var(--text);font-size:18px;
+   display:none;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+#gesture-hint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);max-width:92%;z-index:20;
+   background:rgba(20,20,34,.92);color:#e8e8f4;border:1px solid rgba(255,255,255,.1);border-radius:12px;
+   padding:9px 14px;font-size:11px;line-height:1.4;text-align:center;display:none;pointer-events:none;
+   box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;transition:opacity .4s}
+#gesture-hint.show{display:block;opacity:1}
 #prev-c{pointer-events:none}
 #snap-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:5px 12px;border-radius:15px;font-size:11px;font-weight:600;display:none;pointer-events:none;z-index:10}
 #sel-tb{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 8px;gap:5px;display:none;z-index:10}
@@ -501,6 +513,7 @@ html[data-theme=light] .pc-sq{background:rgba(255,255,255,.7);border-color:rgba(
         <button class="ib" id="btn-redo" title="다시실행" disabled>↪</button>
       </aside>
       <div id="snap-badge">📐 직선 고정 ON</div>
+      <div id="gesture-hint">✌️ 두 손가락=이동·확대 · 두 손가락 탭=실행취소 · 세 손가락 탭=다시실행 · 길게 누르기=도형 자동완성 · 네 손가락 탭=도구 숨기기</div>
       <div id="sel-shape">
         <button class="ssb act" data-sm="rect" title="사각 선택">▭</button>
         <button class="ssb" data-sm="ellipse" title="타원 선택">⬭</button>
@@ -2079,6 +2092,7 @@ function showScreen(s){
       ensureLayerCanvases();setActiveCtx();
       drawBg();fitToScreen();restoreCanvas();
       setMode(G.mode||'stamp'); // 상단 도구 버튼 하이라이트 초기화
+      if(!G.hintShown){G.hintShown=true;const h=$('gesture-hint');if(h){h.classList.add('show');setTimeout(()=>h.classList.remove('show'),5200);}}
     },50);
   }
 }
@@ -2098,7 +2112,7 @@ function setMode(m){
   setAct('btn-modify',m==='pick');
   setAct('btn-sel-top',m==='select');
   setAct('btn-trans',m==='selection');
-  {const sr=$('size-rail');if(sr){const v=m==='stamp'?(G.stampSz||48):(G.brushSz||3);sr.value=v;const sv=$('size-rail-v');if(sv)sv.textContent=v;}}
+  {const sr=$('size-rail');if(sr){sr.max=m==='stamp'?60:30;const v=m==='stamp'?(G.stampSz||48):(G.brushSz||3);sr.value=v;const sv=$('size-rail-v');if(sv)sv.textContent=v;}}
   {const b=$('brush-cg');if(b)b.style.display=(m==='draw'||m==='eraser'||m==='text')?'block':'none';}
   {const s=$('stamp-cg');if(s)s.style.display=m==='stamp'?'block':'none';}
   const cw=$('cw');
@@ -2579,6 +2593,16 @@ function commitStroke(){
   }
 }
 function endStroke(){clearTimeout(holdTm);if(prevCtx)prevCtx.clearRect(0,0,CW,CH);G.path=null;G.snap=null;}
+// 4손가락 탭 = UI 숨기기/보이기 (프로크리에이트). 숨김 상태에선 작은 복원 버튼만.
+function toggleUIHidden(){
+  const hidden=document.body.classList.toggle('ui-hidden');
+  let p=$('ui-restore');
+  if(hidden){
+    if(!p){p=document.createElement('button');p.id='ui-restore';p.textContent='👁';p.title='도구 표시';
+      p.onclick=()=>toggleUIHidden();document.getElementById('cw').appendChild(p);}
+    p.style.display='flex';
+  }else if(p){p.style.display='none';}
+}
 
 /* ===================== MULTITOUCH (Procreate-style nav) ===================== */
 function centroidT(ts){let x=0,y=0;for(const t of ts){x+=t.clientX;y+=t.clientY;}return{x:x/ts.length,y:y/ts.length};}
@@ -2645,7 +2669,7 @@ function onUp(e){
       const dt=Date.now()-G.multi.t0;
       const tap=dt<300&&G.multi.moved<14&&Math.abs(G.zoom-G.multi.z0)<0.04;
       const n=G.multi.n;G.multi=null;
-      if(tap){if(G.editing){cancelShape();}else{n>=3?redo():undo();}}
+      if(tap){if(G.editing){cancelShape();}else if(n>=4){toggleUIHidden();}else if(n>=3){redo();}else{undo();}}
     }
     return;
   }
