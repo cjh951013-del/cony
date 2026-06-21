@@ -180,6 +180,14 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
 .ci{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:var(--tr);flex-shrink:0}
 .ci:hover{transform:scale(1.15)}
 .ci.act{border-color:#fff}
+#topcol{-webkit-appearance:none;appearance:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--border2);cursor:pointer;padding:0;flex-shrink:0;background:#ffffff;box-shadow:inset 0 0 0 2px var(--panel)}
+#topcol:hover{transform:scale(1.08)}
+#colpop{position:fixed;top:46px;right:10px;z-index:60;width:184px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px;box-shadow:0 12px 30px rgba(0,0,0,.4);display:none}
+#colpop.open{display:block}
+#colpop .cph{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:8px}
+#colpop #colpop-x{background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0}
+#colpop .cpal{gap:6px}
+#colpop .ci{width:24px;height:24px}
 .sr2{display:flex;align-items:center;justify-content:space-between;gap:4px}
 .sr2 span{font-size:10px;color:var(--text2)}
 .sr2 select{background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px;flex:1;max-width:110px}
@@ -336,6 +344,7 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
     <div class="er">
       <button class="ib" id="tgl-sl" title="기호 팔레트 보기/숨기기">🧶</button>
       <button class="ib" id="tgl-sr" title="도구 패널 보기/숨기기">⚙</button>
+      <button id="topcol" title="색상 선택"></button>
       <button class="ib" id="btn-undo" disabled>↩</button>
       <button class="ib" id="btn-redo" disabled>↪</button>
       <button class="ib" id="btn-zo">🔍−</button>
@@ -347,6 +356,11 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
       <button class="pro-tog" id="btn-pro">👑 PRO</button>
     </div>
   </header>
+
+  <div id="colpop">
+    <div class="cph"><span>색상</span><button id="colpop-x" title="닫기">✕</button></div>
+    <div class="cpal" id="colpop-pal"></div>
+  </div>
 
   <div id="eb">
     <!-- LEFT: 기호 팔레트 -->
@@ -1116,20 +1130,33 @@ function renderLayers(){
 }
 
 /* ===================== COLOR PALETTES ===================== */
-function renderPalettes(){
-  const cp=$('cpal');cp.innerHTML='';
+// 한 곳에서 색을 바꾸면 모든 팔레트(패널·상단 팝오버·상단 스와치)가 동기화된다.
+function setColor(c){
+  G.color=c;
+  document.querySelectorAll('#cpal .ci,#colpop-pal .ci').forEach(x=>x.classList.toggle('act',x.dataset.c===c));
+  const tc=$('topcol');if(tc)tc.style.background=c;
+  renderShelf();
+}
+function buildColorPicker(container){
+  if(!container)return;
+  container.innerHTML='';
   COLORS.forEach(c=>{
     const el=document.createElement('div');
     el.className='ci'+(c===G.color?' act':'');
-    el.style.background=c;
-    el.addEventListener('click',()=>{G.color=c;document.querySelectorAll('#cpal .ci').forEach(x=>x.classList.remove('act'));el.classList.add('act');renderShelf();});
-    cp.appendChild(el);
+    el.style.background=c;el.dataset.c=c;
+    el.addEventListener('click',()=>setColor(c));
+    container.appendChild(el);
   });
   const cin=document.createElement('input');
   cin.type='color';cin.value=G.color;
-  cin.style='width:20px;height:20px;border:none;padding:0;border-radius:50%;overflow:hidden;cursor:pointer;background:none';
-  cin.addEventListener('input',()=>{G.color=cin.value;document.querySelectorAll('#cpal .ci').forEach(x=>x.classList.remove('act'));renderShelf();});
-  cp.appendChild(cin);
+  cin.style='width:24px;height:24px;border:none;padding:0;border-radius:50%;overflow:hidden;cursor:pointer;background:none';
+  cin.addEventListener('input',()=>setColor(cin.value));
+  container.appendChild(cin);
+}
+function renderPalettes(){
+  buildColorPicker($('cpal'));
+  buildColorPicker($('colpop-pal'));
+  const tc=$('topcol');if(tc)tc.style.background=G.color;
 
   const bp=$('bgpal');bp.innerHTML='';
   BG_COLORS.forEach(c=>{
@@ -1341,6 +1368,9 @@ function bindAll(){
   $('sr-col').addEventListener('click',()=>{const c=$('sr').classList.toggle('collapsed');$('sr-col').textContent=c?'‹':'›';});
   $('tgl-sl').addEventListener('click',()=>$('sl').classList.toggle('hide'));
   $('tgl-sr').addEventListener('click',()=>$('sr').classList.toggle('hide'));
+  $('topcol').addEventListener('click',e=>{e.stopPropagation();$('colpop').classList.toggle('open');});
+  $('colpop-x').addEventListener('click',()=>$('colpop').classList.remove('open'));
+  document.addEventListener('click',e=>{const p=$('colpop');if(p&&p.classList.contains('open')&&!p.contains(e.target)&&e.target.id!=='topcol')p.classList.remove('open');});
   $('size-rail').addEventListener('input',()=>{const v=parseInt($('size-rail').value);if(G.mode==='stamp'){G.stampSz=v;}else{G.brushSz=Math.min(30,v);const b=$('bsz');if(b)b.value=G.brushSz;const bv=$('bszv');if(bv)bv.textContent=G.brushSz+'px';}const sv=$('size-rail-v');if(sv)sv.textContent=v;});
   $('btn-exp').addEventListener('click',()=>openM('m-exp'));
   $('btn-narr').addEventListener('click',()=>{
