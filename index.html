@@ -499,6 +499,16 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
           <div class="sr2" style="margin-bottom:4px"><span>원형 개수</span><input type="number" id="ring-n" value="12" min="2" max="120" style="width:54px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
           <div class="sr2" style="margin-bottom:4px"><span>원형 반지름</span><input type="number" id="ring-r" value="200" min="20" max="580" step="10" style="width:54px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
           <button class="ib" id="btn-ring" style="width:100%;margin-bottom:6px;font-size:10px">⊙ 원형 한 바퀴 배치</button>
+          <div class="sr2" style="margin-bottom:4px"><span>대칭 그리기</span>
+            <select id="sym-sel">
+              <option value="">없음</option>
+              <option value="v">수직 ⇄</option>
+              <option value="h">수평 ⇅</option>
+              <option value="quad">사분 ✛</option>
+              <option value="radial">방사 ✻</option>
+            </select>
+          </div>
+          <div class="sr2" id="symn-row" style="margin-bottom:4px;display:none"><span>방사 분할</span><input type="number" id="sym-n" value="6" min="2" max="16" style="width:54px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
           <div class="sr2"><span>프레임</span>
             <select id="frame-sel">
               <option value="none">없음</option>
@@ -803,6 +813,8 @@ let G={
   radial:false,
   radialN:12,
   radialR:200,
+  symmetry:'',
+  symN:6,
   anchor:{x:600,y:600},anchorMode:false,
   frame:'circle',
   fRounds:6,
@@ -1157,6 +1169,17 @@ function drawBg(){
   if(G.numbersOn) drawNumbers(ctx);
   drawFrame(ctx);
   drawAnchor(ctx);
+  if(G.symmetry)drawSymAxes(ctx);
+}
+// 대칭축 가이드선(앵커 기준)
+function drawSymAxes(ctx){
+  const a=G.anchor||{x:CW/2,y:CH/2};
+  ctx.save();ctx.strokeStyle='rgba(168,85,247,0.5)';ctx.lineWidth=1.2;ctx.setLineDash([10,7]);
+  const s=G.symmetry;
+  if(s==='v'||s==='quad'){ctx.beginPath();ctx.moveTo(a.x,0);ctx.lineTo(a.x,CH);ctx.stroke();}
+  if(s==='h'||s==='quad'){ctx.beginPath();ctx.moveTo(0,a.y);ctx.lineTo(CW,a.y);ctx.stroke();}
+  if(s==='radial'){const N=Math.max(2,G.symN||6);for(let k=0;k<N;k++){const ang=k*Math.PI/N;ctx.beginPath();ctx.moveTo(a.x-Math.cos(ang)*CW,a.y-Math.sin(ang)*CW);ctx.lineTo(a.x+Math.cos(ang)*CW,a.y+Math.sin(ang)*CW);ctx.stroke();}}
+  ctx.restore();
 }
 // 코·단 번호: 좌하단=1, 코(열)는 왼→오른쪽, 단(행)은 아래→위로 증가
 function drawNumbers(ctx){
@@ -1228,6 +1251,16 @@ function applyTransform(){
 
 /* ===================== DRAWING ===================== */
 function recordSymUse(id){if(id&&!G.usedSymbols.includes(id))G.usedSymbols.push(id);}
+// 대칭 가이드: 기준점(앵커) 기준 미러/회전 변환 목록(항상 항등 포함)
+function symXf(){
+  const a=G.anchor||{x:CW/2,y:CH/2}, s=G.symmetry, fns=[p=>p];
+  if(!s)return fns;
+  if(s==='v'||s==='quad')fns.push(p=>({x:2*a.x-p.x,y:p.y}));
+  if(s==='h'||s==='quad')fns.push(p=>({x:p.x,y:2*a.y-p.y}));
+  if(s==='quad')fns.push(p=>({x:2*a.x-p.x,y:2*a.y-p.y}));
+  if(s==='radial'){const N=Math.max(2,G.symN||6);for(let k=1;k<N;k++){const ang=k*2*Math.PI/N;fns.push(p=>{const dx=p.x-a.x,dy=p.y-a.y;return{x:a.x+dx*Math.cos(ang)-dy*Math.sin(ang),y:a.y+dx*Math.sin(ang)+dy*Math.cos(ang)};});}}
+  return fns;
+}
 // 스포이드: 보이는 레이어를 위에서부터 훑어 첫 불투명 픽셀 색을 집음(없으면 배경색)
 function pickColorAt(p){
   const x=Math.round(p.x),y=Math.round(p.y);
@@ -1264,17 +1297,12 @@ function symName(id){
 }
 // 방안뜨기(그래프) 색칠: 보이는 격자(40px)에 맞춰 한 칸을 현재 색으로 채움
 function fillCell(p){
-  const gs=40;
-  const cx=Math.floor(p.x/gs)*gs, cy=Math.floor(p.y/gs)*gs;
-  if(cx<0||cy<0||cx>=CW||cy>=CH)return;
-  mainCtx.fillStyle=G.color;
-  mainCtx.fillRect(cx,cy,gs,gs);
+  const gs=40;mainCtx.fillStyle=G.color;
+  symXf().forEach(T=>{const q=T(p);const cx=Math.floor(q.x/gs)*gs,cy=Math.floor(q.y/gs)*gs;if(cx>=0&&cy>=0&&cx<CW&&cy<CH)mainCtx.fillRect(cx,cy,gs,gs);});
 }
 function stampAt(x,y){
-  const sz=G.stampSz||48;
-  const col=G.toolColors[G.stitch]||G.color;
-  const rot=G.radial ? radialRotFor(x,y)+(G.rot||0) : G.rot;
-  drawSVGStitch(mainCtx,x,y,G.stitch,col,sz,rot);
+  const sz=G.stampSz||48, col=G.toolColors[G.stitch]||G.color;
+  symXf().forEach(T=>{const q=T({x,y});const rot=G.radial?radialRotFor(q.x,q.y)+(G.rot||0):G.rot;drawSVGStitch(mainCtx,q.x,q.y,G.stitch,col,sz,rot);});
   recordSymUse(G.stitch);
 }
 
@@ -1827,6 +1855,8 @@ function bindAll(){
   $('ring-n').addEventListener('input',()=>{G.radialN=Math.max(2,Math.min(120,parseInt($('ring-n').value)||12));});
   $('ring-r').addEventListener('input',()=>{G.radialR=Math.max(20,Math.min(580,parseInt($('ring-r').value)||200));});
   $('btn-ring').addEventListener('click',placeRing);
+  $('sym-sel').addEventListener('change',()=>{G.symmetry=$('sym-sel').value;$('symn-row').style.display=(G.symmetry==='radial')?'flex':'none';drawBg();});
+  $('sym-n').addEventListener('input',()=>{G.symN=Math.max(2,Math.min(16,parseInt($('sym-n').value)||6));drawBg();});
   $('btn-anchor').addEventListener('click',()=>{G.anchorMode=true;const cw=$('cw');if(cw)cw.style.cursor='crosshair';const b=$('snap-badge');if(b){b.style.display='block';b.style.pointerEvents='none';b.textContent='◎ 기준점 위치를 탭하세요';}});
   $('sl-col').addEventListener('click',()=>{const c=$('sl').classList.toggle('collapsed');$('sl-col').textContent=c?'›':'‹';});
   $('sr-col').addEventListener('click',()=>{const c=$('sr').classList.toggle('collapsed');$('sr-col').textContent=c?'‹':'›';});
@@ -2110,7 +2140,7 @@ function stampShape(ctx,s,ghost){
   const n=Math.max(2,s.n||Math.round(L/STAMP_GAP)),gap=closed?L/n:L/(n>1?n-1:1);
   const pts=resampleAlong(poly,gap),col=G.toolColors[G.stitch]||G.color;
   if(ghost)ctx.globalAlpha=0.55;
-  for(const p of pts)drawSVGStitch(ctx,p.x,p.y,G.stitch,col,G.stampSz||48,G.rot);
+  symXf().forEach(T=>{for(const p of pts){const q=T(p);drawSVGStitch(ctx,q.x,q.y,G.stitch,col,G.stampSz||48,G.rot);}});
   if(ghost)ctx.globalAlpha=1;
   if(!ghost)recordSymUse(G.stitch);
 }
@@ -2149,9 +2179,11 @@ function commitFloat(){if(!G.float)return;const f=G.float,cx=f.x+f.w/2,cy=f.y+f.
 function strokePolyCtx(ctx,poly){
   if(!poly||poly.length<1)return;
   ctx.lineWidth=G.brushSz;ctx.strokeStyle=G.color;ctx.lineCap='round';ctx.lineJoin='round';ctx.setLineDash([]);
-  ctx.beginPath();ctx.moveTo(poly[0].x,poly[0].y);
-  for(let i=1;i<poly.length;i++)ctx.lineTo(poly[i].x,poly[i].y);
-  ctx.stroke();
+  symXf().forEach(T=>{
+    const q0=T(poly[0]);ctx.beginPath();ctx.moveTo(q0.x,q0.y);
+    for(let i=1;i<poly.length;i++){const q=T(poly[i]);ctx.lineTo(q.x,q.y);}
+    ctx.stroke();
+  });
 }
 function snapPts(arr){if(!G.gridOn)return arr;const out=[];let last=null;for(const p of arr){const s=snapToGrid(p);if(!last||Math.abs(s.x-last.x)>0.5||Math.abs(s.y-last.y)>0.5)out.push(s);last=s;}return out;}
 function stampPolyCtx(ctx,poly,ghost){
@@ -2160,7 +2192,7 @@ function stampPolyCtx(ctx,poly,ghost){
   let pts=poly.length<2?[poly[0]]:resampleAlong(poly,STAMP_GAP);
   pts=snapPts(pts);
   if(ghost)ctx.globalAlpha=0.55;
-  for(const p of pts)drawSVGStitch(ctx,p.x,p.y,G.stitch,col,G.stampSz||48,G.rot);
+  symXf().forEach(T=>{for(const p of pts){const q=T(p);drawSVGStitch(ctx,q.x,q.y,G.stitch,col,G.stampSz||48,G.rot);}});
   if(ghost)ctx.globalAlpha=1;
   if(!ghost)recordSymUse(G.stitch);
 }
