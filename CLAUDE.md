@@ -20,7 +20,7 @@
 
 ## 구현된 핵심 시스템
 - **드로잉 엔진(프로크리에이트식)**: draw/stamp = 경로기록 → prev 미리보기 → 손뗄 때 커밋. 길게누르기(HOLD)/Shift/두번째 손가락 = 스냅 트리거.
-- **QuickShape**: `detectShape`(직선/곡선/원·타원/사각/삼각, PCA로 회전 인식) → 편집 핸들 → `#shape-bar`. stamp는 코수 고정·자간 가변. **자동(길게누르기) 트리거는 `shapeFit()` 신뢰도 검사로 게이팅**(곡선은 자동변환 금지, 직선≤0.05·닫힌도형≤0.045만 스냅) → 자유 손그림이 도형으로 안 바뀜. HOLD_MS=620. `더보기▸도형 자동인식` 토글(`G.quickShape`). Shift/두손가락은 무조건 스냅(`enterSnap()` 명시).
+- **QuickShape**: `detectShape`(직선/곡선/원·타원/사각/삼각, PCA로 회전 인식) → 편집 핸들 → `#shape-bar`. stamp는 코수 고정·자간 가변. **트리거 3종(전부 `enterSnap()` 동일)**: ①선 긋고 **2초 가만히**(HOLD_MS=2000, armHold 타이머) ②**다른 손가락 터치**(onDown 2터치 즉시) ③웹 **Shift**(keydown). `더보기▸길게 눌러 도형 고정` 토글(`G.quickShape`, off=2초자동만 끔, Shift/두손가락은 유지). 2초/명시 트리거라 신뢰도게이트 없음(예전 shapeFit 제거). **`#shape-bar`는 프로크리에이트식 미니 알약**(도형명 탭=다른모양⇄ · ✓ · ✕, 코수 ±는 stamp만, `.sb-name/.sb-ic`).
 - **멀티터치**: 두 손가락 드래그=팬, 핀치=줌, 두 손가락 탭=undo, 세 손가락 탭=redo, **네 손가락 탭=UI 숨기기(`toggleUIHidden`, `body.ui-hidden`+`#ui-restore`)**.
 - **기준점(앵커)+격자 스냅**: 도구패널 '◎ 기준점 잡기'로 앵커 지정, gridOn이면 핸들·스탬프가 앵커 격자에 스냅(방안뜨기 기초). `snapToGrid`/`setAnchor`/`drawAnchor`.
 - 라이트/다크 모드(더보기 ⋯ 메뉴, `html[data-theme=light]`), 모바일 반응형(`@media≤640px` 세로 스택), 패널 접기(좌/우), 실 DB·AI·단수카운터 제거.
