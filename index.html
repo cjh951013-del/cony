@@ -257,6 +257,23 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
 .mb.p{background:var(--primary);border-color:var(--primary);color:#fff}
 .mb.p:hover{background:var(--accent)}
 .mb.g{background:var(--gold);border-color:var(--gold);color:#000}
+/* 인쇄용 도안 시트 */
+#print-area{display:none}
+@media print{
+  body *{visibility:hidden!important}
+  #print-area,#print-area *{visibility:visible!important}
+  #print-area{display:block!important;position:absolute;left:0;top:0;width:100%;padding:24px;color:#111;background:#fff}
+  .pl-head{text-align:center;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px}
+  .pl-head h1{font-size:22px;margin:0}
+  .pl-sub{font-size:12px;color:#666;margin-top:4px}
+  .pl-chart{display:block;width:100%;max-width:640px;margin:0 auto 16px;border:1px solid #ccc}
+  .pl-h2{font-size:15px;border-left:4px solid #a855f7;padding-left:8px;margin:0 0 8px}
+  .pl-legend{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 18px}
+  .pl-item{display:flex;align-items:center;gap:8px;font-size:13px}
+  .pl-item img{width:26px;height:26px}
+  .pl-foot{margin-top:20px;text-align:center;font-size:11px;color:#888}
+  @page{margin:12mm}
+}
 .sym-tools{display:flex;gap:5px;flex-wrap:wrap}
 .symt{flex:1;min-width:56px;padding:7px 4px;border-radius:7px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer}
 .symt:hover{border-color:var(--primary);color:var(--primary)}
@@ -725,7 +742,8 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
   </div>
 </div>
 
-<!-- ===== MODAL: 실 추가 ===== -->
+<!-- ===== 인쇄용 도안 시트 ===== -->
+<div id="print-area"></div>
 
 <script>
 /* ===================== DATA ===================== */
@@ -1829,17 +1847,42 @@ FO: Sl st, fasten off, weave in ends.`;
 
 /* ===================== EXPORT ===================== */
 function doExport(fmt){
+  if(fmt==='pdf'){exportPrintable();return;}
   const cv=document.createElement('canvas');cv.width=CW;cv.height=CH;
   const ctx=cv.getContext('2d');
   ctx.drawImage($('bg-c'),0,0);ctx.drawImage($('main-c'),0,0);
-  if(fmt==='pdf'){alert('PDF 내보내기: Stitch Legend + 단수 통계 포함 인쇄용 PDF\n(실제 배포 시 jsPDF 연동 예정)');return;}
   const fname=$('exp-nm').value||'cony_pattern';
   if(fmt==='jpg'){ctx.globalCompositeOperation='destination-over';ctx.fillStyle='#fff';ctx.fillRect(0,0,CW,CH);}
   if(!isPro()){
-    ctx.globalAlpha=.4;ctx.fillStyle='rgba(100,100,200,.5)';ctx.font='bold 28px sans-serif';
-    ctx.fillText('Crochet Flow — Free',20,CH-30);ctx.globalAlpha=1;
+    ctx.globalAlpha=.45;ctx.fillStyle='rgba(120,120,200,.6)';ctx.font='bold 26px sans-serif';
+    ctx.fillText('CONY · 멈춰도 돼, 포기만 안 하면',20,CH-28);ctx.globalAlpha=1;
   }
   cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fname+'.'+fmt;a.click();},(fmt==='jpg'?'image/jpeg':'image/png'),.95);
+}
+// 인쇄용 도안 PDF: 브라우저 인쇄 파이프라인(오프라인·모바일 OK). 차트+범례+제목.
+function exportPrintable(){
+  // 차트 이미지(배경+모든 레이어 합성, 흰 배경)
+  const cv=document.createElement('canvas');cv.width=CW;cv.height=CH;const ctx=cv.getContext('2d');
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,CW,CH);
+  ctx.drawImage($('bg-c'),0,0);ctx.drawImage($('main-c'),0,0);
+  const chartURL=cv.toDataURL('image/png');
+  // 범례(사용 기호)
+  let legend='';
+  (G.usedSymbols||[]).forEach(id=>{
+    const ic=document.createElement('canvas');ic.width=ic.height=30;
+    drawSVGStitch(ic.getContext('2d'),15,15,id,'#111',22,0);
+    legend+=`<div class="pl-item"><img src="${ic.toDataURL()}"><span>${symName(id)}</span></div>`;
+  });
+  if(!legend)legend='<span style="color:#888;font-size:12px">사용한 기호 없음</span>';
+  const title=(G.cur&&G.cur.name)||'무제 도안';
+  const area=$('print-area');
+  area.innerHTML=`
+    <div class="pl-head"><h1>${title}</h1><div class="pl-sub">CONY · 멈춰도 돼, 포기만 안 하면</div></div>
+    <img class="pl-chart" src="${chartURL}">
+    <h2 class="pl-h2">기호 범례</h2>
+    <div class="pl-legend">${legend}</div>
+    <div class="pl-foot">made with CONY 뜨개 도안 · ${new Date().toLocaleDateString('ko-KR')}</div>`;
+  setTimeout(()=>window.print(),120);
 }
 
 /* ===================== THUMBNAIL ===================== */
