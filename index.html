@@ -199,8 +199,23 @@ body.ui-hidden .fb,body.ui-hidden #colpop,body.ui-hidden #morepop,body.ui-hidden
 #sel-shape.show{display:flex}
 .ssb{width:34px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);font-size:15px;cursor:pointer;padding:0}
 .ssb.act{background:rgba(168,85,247,.18);border-color:var(--primary);color:var(--primary)}
-#shape-bar{position:absolute;top:46px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--info);border-radius:8px;padding:5px 8px;gap:5px;display:none;align-items:center;z-index:11}
-#shape-bar span{font-size:11px;font-weight:700;color:var(--info);margin-right:2px}
+/* QuickShape 편집 — 프로크리에이트식 미니 알약(깔끔) */
+#shape-bar{position:absolute;top:58px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:3px;z-index:31;
+   background:rgba(20,20,34,.93);border:1px solid rgba(255,255,255,.12);border-radius:13px;padding:4px 5px;
+   box-shadow:0 8px 24px rgba(0,0,0,.42);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:rgba(0,0,0,.1)}
+#shape-bar .sb-name{display:flex;align-items:center;gap:6px;background:transparent;border:none;color:var(--text);
+   font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:9px;cursor:pointer;line-height:1}
+#shape-bar .sb-name:hover{background:rgba(255,255,255,.09)}
+#shape-bar .sb-caret{font-size:10px;color:var(--text3)}
+#shape-bar .sb-cnt{display:inline-flex;align-items:center;gap:1px}
+#shape-bar .sb-cnt b{font-size:11px;font-weight:600;color:var(--text2);min-width:30px;text-align:center}
+#shape-bar .sb-sep{width:1px;height:18px;background:rgba(255,255,255,.13);margin:0 2px}
+.sb-ic{width:30px;height:30px;border-radius:8px;border:none;background:transparent;color:var(--text);
+   font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1}
+.sb-ic:hover{background:rgba(255,255,255,.12)}
+.sb-ic.ok{color:#34d399}
+.sb-ic.no{color:#f87171}
 .selb{padding:4px 9px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:11px}
 .selb:hover{border-color:var(--primary)}
 .selb.d:hover{border-color:var(--danger);color:var(--danger)}
@@ -456,7 +471,7 @@ body.ui-hidden .fb,body.ui-hidden #colpop,body.ui-hidden #morepop,body.ui-hidden
   <div id="morepop">
     <button class="mrow" id="btn-pro" style="color:var(--gold)"><span class="mi">👑</span><span>PRO 업그레이드</span></button>
     <button class="mrow" id="btn-theme"><span class="mi">🌙</span><span>라이트 / 다크 모드</span></button>
-    <button class="mrow" id="btn-quickshape"><span class="mi">📐</span><span>도형 자동인식: 켜짐</span></button>
+    <button class="mrow" id="btn-quickshape"><span class="mi">📐</span><span>길게 눌러 도형 고정: 켜짐</span></button>
     <button class="mrow" id="btn-legend"><span class="mi">📋</span><span>기호 범례 보기</span></button>
     <button class="mrow" id="btn-img"><span class="mi">🖼</span><span>이미지 가져오기 (따라 그리기)</span></button>
     <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
@@ -513,7 +528,7 @@ body.ui-hidden .fb,body.ui-hidden #colpop,body.ui-hidden #morepop,body.ui-hidden
         <button class="ib" id="btn-redo" title="다시실행" disabled>↪</button>
       </aside>
       <div id="snap-badge">📐 직선 고정 ON</div>
-      <div id="gesture-hint">✌️ 두 손가락=이동·확대 · 두 손가락 탭=실행취소 · 세 손가락 탭=다시실행 · 길게 누르기=도형 자동완성 · 네 손가락 탭=도구 숨기기</div>
+      <div id="gesture-hint">✌️ 두 손가락=이동·확대 · 두 손가락 탭=실행취소 · 세 손가락 탭=다시실행 · 선 긋고 2초(또는 다른 손 터치)=도형 고정 · 네 손가락 탭=도구 숨기기</div>
       <div id="sel-shape">
         <button class="ssb act" data-sm="rect" title="사각 선택">▭</button>
         <button class="ssb" data-sm="ellipse" title="타원 선택">⬭</button>
@@ -526,15 +541,15 @@ body.ui-hidden .fb,body.ui-hidden #colpop,body.ui-hidden #morepop,body.ui-hidden
         <button class="selb" id="sel-mv">✥ 이동</button>
       </div>
       <div id="shape-bar">
-        <span id="shape-type">모양</span>
-        <span id="shape-count-wrap" style="display:none;align-items:center;gap:3px">
-          <button class="selb" id="shape-less">−코</button>
-          <span id="shape-count" style="font-size:11px;color:var(--text2);min-width:32px;text-align:center">0코</span>
-          <button class="selb" id="shape-more">＋코</button>
+        <button class="sb-name" id="shape-cycle" title="다른 모양으로"><span id="shape-type">직선</span><span class="sb-caret">⇄</span></button>
+        <span class="sb-cnt" id="shape-count-wrap" style="display:none">
+          <button class="sb-ic" id="shape-less">−</button>
+          <b id="shape-count">0</b>
+          <button class="sb-ic" id="shape-more">＋</button>
         </span>
-        <button class="selb" id="shape-cycle">🔁 다른 모양</button>
-        <button class="selb" id="shape-done">✓ 완료</button>
-        <button class="selb d" id="shape-cancel">✕ 취소</button>
+        <span class="sb-sep"></span>
+        <button class="sb-ic ok" id="shape-done" title="완료">✓</button>
+        <button class="sb-ic no" id="shape-cancel" title="취소">✕</button>
       </div>
       <div class="fb">
         <button class="fbb" id="btn-ctr" title="화면 중앙">⊕</button>
@@ -2199,7 +2214,7 @@ function bindAll(){
   window.addEventListener('pointerup',()=>{if(cwDrag){cwDrag=false;pushColorHist(G.color);renderColorHist();}});
   $('cw-val').addEventListener('input',()=>{cwState.v=parseInt($('cw-val').value)/100;$('cw-val-v').textContent=$('cw-val').value;const rgb=hsv2rgb(cwState.h,cwState.s,cwState.v);setColor(rgb2hex(rgb[0],rgb[1],rgb[2]));drawColorWheel();});
   $('btn-more').addEventListener('click',e=>{e.stopPropagation();$('colpop').classList.remove('open');$('morepop').classList.toggle('open');});
-  $('btn-quickshape').addEventListener('click',()=>{G.quickShape=!G.quickShape;const t=$('btn-quickshape').querySelector('span:last-child');if(t)t.textContent='도형 자동인식: '+(G.quickShape?'켜짐':'꺼짐');});
+  $('btn-quickshape').addEventListener('click',()=>{G.quickShape=!G.quickShape;const t=$('btn-quickshape').querySelector('span:last-child');if(t)t.textContent='길게 눌러 도형 고정: '+(G.quickShape?'켜짐':'꺼짐');});
   $('btn-legend').addEventListener('click',()=>{$('morepop').classList.remove('open');openLegend();});
   $('btn-img').addEventListener('click',()=>{$('morepop').classList.remove('open');$('img-input').click();});
   $('img-input').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];importImageFile(f);e.target.value='';});
@@ -2340,7 +2355,7 @@ function bindAll(){
   // KEYS
   document.addEventListener('keydown',e=>{
     if(G.screen!=='ed')return;
-    if(e.target.matches('input,textarea,select'))return;
+    if(e.target&&e.target.matches&&e.target.matches('input,textarea,select'))return;
     if(e.code==='Space'){e.preventDefault();G.spaceDown=true;}
     if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'){e.preventDefault();e.shiftKey?redo():undo();}
     if((e.ctrlKey||e.metaKey)&&e.code==='KeyY'){e.preventDefault();redo();}
@@ -2359,7 +2374,7 @@ function bindAll(){
 
 /* ===================== DRAW ENGINE (Procreate / Pinpino style) ===================== */
 let pinchDist=0;
-const HOLD_MS=620, HOLD_TOL=7, MIN_PT=2.4, STAMP_GAP=38;
+const HOLD_MS=2000, HOLD_TOL=7, MIN_PT=2.4, STAMP_GAP=38;
 let holdTm=null;
 function dist2(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 function polyLen(p){let s=0;for(let i=1;i<p.length;i++)s+=dist2(p[i-1],p[i]);return s;}
@@ -2437,10 +2452,6 @@ function shapeToPoly(s){
   if(s.type==='ellipse'){const r=s.rot||0,o=[];for(let i=0;i<=48;i++){const t=i/48*2*Math.PI,w=unproj(s.rx*Math.cos(t),s.ry*Math.sin(t),r);o.push({x:s.cx+w.x,y:s.cy+w.y});}return o;}
   return[];
 }
-// QuickShape 신뢰도: 손으로 그린 경로가 인식된 도형에 얼마나 잘 맞는지(작을수록 정확)
-function nearestOnSeg(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,L2=dx*dx+dy*dy||1;let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/L2;t=Math.max(0,Math.min(1,t));return{x:a.x+dx*t,y:a.y+dy*t};}
-function distToPoly(p,poly){let best=1e9;for(let i=1;i<poly.length;i++){const q=nearestOnSeg(p,poly[i-1],poly[i]);const d=Math.hypot(p.x-q.x,p.y-q.y);if(d<best)best=d;}return best;}
-function shapeFit(path,s){const poly=shapeToPoly(s);if(poly.length<2)return 9;const bb=bboxOf(path),diag=Math.hypot(bb.w,bb.h)||1;let sum=0;for(const p of path)sum+=distToPoly(p,poly);return (sum/path.length)/diag;}
 function handlesOf(s){
   if(!s)return[];
   if(s.type==='line')return[{id:'a',x:s.a.x,y:s.a.y},{id:'b',x:s.b.x,y:s.b.y}];
@@ -2492,7 +2503,7 @@ function stampShape(ctx,s,ghost){
 }
 function shapeAddStitch(d){if(!G.shape||G.mode!=='stamp')return;G.shape.n=Math.max(2,shapeStitchCount(G.shape)+d);showShapeBar();renderEdit();}
 function cycleShapeTypeBtn(){cycleShapeType();}
-function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';const t=$('shape-type');if(t)t.textContent='✏️ '+(TYPE_LABEL[G.shape.type]||'모양');const cw=$('shape-count-wrap');if(cw)cw.style.display=G.mode==='stamp'?'inline-flex':'none';const cc=$('shape-count');if(cc&&G.mode==='stamp')cc.textContent=shapeStitchCount(G.shape)+'코';}
+function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';const t=$('shape-type');if(t)t.textContent=(TYPE_LABEL[G.shape.type]||'모양');const cw=$('shape-count-wrap');if(cw)cw.style.display=G.mode==='stamp'?'inline-flex':'none';const cc=$('shape-count');if(cc&&G.mode==='stamp')cc.textContent=shapeStitchCount(G.shape)+'코';}
 function hideShapeBar(){const b=$('shape-bar');if(b)b.style.display='none';}
 function renderEdit(){
   if(!prevCtx||!G.shape)return;
@@ -2508,16 +2519,9 @@ function renderEdit(){
   for(const h of hs){prevCtx.beginPath();prevCtx.arc(h.x,h.y,R,0,7);prevCtx.fillStyle=h.id==='mv'?'#f59e0b':h.id==='rot'?'#22c55e':'#22d3ee';prevCtx.fill();prevCtx.lineWidth=Math.max(1,2/G.zoom);prevCtx.strokeStyle='#fff';prevCtx.stroke();}
   prevCtx.restore();
 }
-function enterSnap(auto){
+function enterSnap(){
   if(!G.path||G.path.length<2)return;
   const s=detectShape(G.path);if(!s)return;
-  // 자동(길게누르기) 트리거는 신뢰도 검사 — 자유로운 손그림은 도형으로 바꾸지 않음
-  if(auto){
-    if(s.type==='curve')return; // 곡선은 거의 모든 손그림에 해당 → 자동변환 금지(직선/원/사각/삼각만)
-    const dev=shapeFit(G.path,s);
-    const lim=(s.type==='line')?0.05:0.045;
-    if(dev>lim)return;
-  }
   if(G.mode==='stamp')s.n=shapeStitchCount(s);
   G.shape=s;G.editing=true;G.isDrawing=false;G.awaitLift=true;clearTimeout(holdTm);showShapeBar();renderEdit();
 }
@@ -2582,7 +2586,8 @@ function renderPreview(){
   if(G.mode==='draw')strokePolyCtx(prevCtx,G.path);
   else if(G.mode==='stamp')stampPolyCtx(prevCtx,G.path,true);
 }
-function armHold(){if(G.quickShape===false)return;clearTimeout(holdTm);holdTm=setTimeout(()=>{if(G.isDrawing&&G.path&&!G.editing)enterSnap(true);},HOLD_MS);}
+// 2초 동안 가만히 누르고 있으면 도형 고정 (다른 손가락 터치/Shift는 즉시 — onDown/keydown에서 enterSnap)
+function armHold(){if(G.quickShape===false)return;clearTimeout(holdTm);holdTm=setTimeout(()=>{if(G.isDrawing&&G.path&&!G.editing)enterSnap();},HOLD_MS);}
 function commitStroke(){
   if(G.mode==='draw'){
     if(G.path&&G.path.length>1)strokePolyCtx(mainCtx,G.path);
