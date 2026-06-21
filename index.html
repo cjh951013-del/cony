@@ -1415,9 +1415,34 @@ function setSS(){$('sst').textContent='💾 저장 중...';clearTimeout(ssTm);ss
 /* ===================== AUTOSAVE (localStorage) ===================== */
 let persistTm;
 function schedulePersist(){clearTimeout(persistTm);persistTm=setTimeout(snapshotCurrent,1000);}
+// 레이어 영속화: 프로젝트별 키에 레이어 PNG+메타 저장(쿼터 초과시 안전 폐기)
+function serializeLayers(){
+  return G.layers.map(l=>({name:l.name,visible:l.visible!==false,opacity:(l.opacity==null?1:l.opacity),png:l.cv?l.cv.toDataURL('image/png'):null}));
+}
+function persistLayers(){
+  if(!G.cur)return;
+  try{localStorage.setItem('cony_layers_'+G.cur.id,JSON.stringify(serializeLayers()));}
+  catch(e){try{localStorage.removeItem('cony_layers_'+G.cur.id);}catch(e2){}}
+}
+function loadLayersData(id){
+  try{const s=localStorage.getItem('cony_layers_'+id);if(s){const a=JSON.parse(s);if(Array.isArray(a)&&a.length)return a;}}catch(e){}
+  return null;
+}
+function restoreLayers(data,done){
+  G.layers=data.map((d,i)=>({id:i+1,name:d.name||('레이어 '+(i+1)),visible:d.visible!==false,opacity:(d.opacity==null?1:d.opacity)}));
+  G.activeL=G.layers[G.layers.length-1].id;
+  ensureLayerCanvases();setActiveCtx();
+  let pending=0;
+  data.forEach((d,i)=>{if(d.png){pending++;const img=new Image();
+    img.onload=()=>{if(G.layers[i])G.layers[i].ctx.drawImage(img,0,0);if(--pending===0){composite();renderLayers();done&&done();}};
+    img.onerror=()=>{if(--pending===0){composite();renderLayers();done&&done();}};
+    img.src=d.png;}});
+  if(pending===0){composite();renderLayers();done&&done();}
+}
 function snapshotCurrent(){
   if(!G.cur||!mainCtx)return;
   try{G.cur.data=$('main-c').toDataURL('image/png');}catch(e){}
+  persistLayers();
   persistProjects();
 }
 function persistProjects(){
@@ -1431,7 +1456,10 @@ function loadPersisted(){
 }
 function restoreCanvas(){
   setActiveCtx();
-  if(G.cur&&G.cur.data){
+  const ld=G.cur?loadLayersData(G.cur.id):null;
+  if(ld){
+    restoreLayers(ld,()=>{G.hist=[];G.histIdx=-1;saveH();});
+  }else if(G.cur&&G.cur.data){
     const img=new Image();
     img.onload=()=>{mainCtx.drawImage(img,0,0);composite();G.hist=[];G.histIdx=-1;saveH();};
     img.onerror=()=>{composite();G.hist=[];G.histIdx=-1;saveH();};
@@ -1910,7 +1938,7 @@ function renderDash(){
 }
 function delP(id,e){
   e.stopPropagation();
-  if(confirm('삭제하시겠습니까?')){G.projects=G.projects.filter(x=>x.id!==id);renderDash();persistProjects();}
+  if(confirm('삭제하시겠습니까?')){G.projects=G.projects.filter(x=>x.id!==id);try{localStorage.removeItem('cony_layers_'+id);}catch(e2){}renderDash();persistProjects();}
 }
 window.delP=delP;
 
