@@ -694,6 +694,12 @@ const STITCHES={
     {id:'dec',name:'코줄이기',svg:'V-up',visible:true},
     {id:'pop',name:'팝콘뜨기',svg:'pop',visible:true},
     {id:'picot',name:'피코뜨기',svg:'picot',visible:true},
+    {id:'fpdc',name:'앞걸어한길긴뜨기',svg:'fpdc',visible:true},
+    {id:'bpdc',name:'뒤걸어한길긴뜨기',svg:'bpdc',visible:true},
+    {id:'cl',name:'한길긴뜨기모아뜨기',svg:'cl',visible:true},
+    {id:'puff',name:'퍼프뜨기',svg:'puff',visible:true},
+    {id:'shell',name:'조개뜨기(부채꼴)',svg:'shell',visible:true},
+    {id:'spike',name:'롱스티치',svg:'spike',visible:true},
   ],
   knitting:[
     {id:'k',name:'겉뜨기(K)',svg:'X',visible:true},
@@ -706,6 +712,10 @@ const STITCHES={
     {id:'sl1',name:'걸러뜨기',svg:'arrow-r',visible:true},
     {id:'k-tbl',name:'뒤코겉뜨기',svg:'rect',visible:true},
     {id:'mb',name:'보빈뜨기',svg:'dot-fill',visible:true},
+    {id:'p2tog',name:'안뜨기2코모아',svg:'p2tog',visible:true},
+    {id:'m1',name:'코늘리기(M1)',svg:'m1',visible:true},
+    {id:'rc',name:'오른코위교차',svg:'rc',visible:true},
+    {id:'lc',name:'왼코위교차',svg:'lc',visible:true},
   ]
 };
 
@@ -771,8 +781,8 @@ let G={
   spaceDown:false,
   selStart:null,selEnd:null,clipboard:null,
   panelPos:'left',
-  stitchOrder:{crochet:[...Array(12).keys()],knitting:[...Array(10).keys()]},
-  stitchVisible:{crochet:new Array(12).fill(true),knitting:new Array(10).fill(true)},
+  stitchOrder:{crochet:[...Array(STITCHES.crochet.length).keys()],knitting:[...Array(STITCHES.knitting.length).keys()]},
+  stitchVisible:{crochet:new Array(STITCHES.crochet.length).fill(true),knitting:new Array(STITCHES.knitting.length).fill(true)},
   userYarns:[],
   userSymbols:[],
   longPressTimer:null,
@@ -882,6 +892,54 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
       ctx.beginPath();ctx.strokeRect(-h*.5,-h*.5,h,h);ctx.stroke();break;
     case 'dot-fill':
       ctx.beginPath();ctx.arc(0,0,h*.55,0,Math.PI*2);ctx.globalAlpha=.6;ctx.fill();ctx.globalAlpha=1;break;
+    // ── 추가 코바늘 ──
+    case 'fpdc': // 앞걸어 한길긴뜨기: dc 기둥 + 앞으로 도는 고리(오른쪽 ⌐)
+      ctx.beginPath();ctx.moveTo(-h*.5,-h*.55);ctx.lineTo(h*.5,-h*.55);
+      ctx.moveTo(0,-h*.55);ctx.lineTo(0,h*.3);
+      ctx.moveTo(-h*.3,h*.0);ctx.lineTo(h*.3,-h*.25);
+      ctx.moveTo(0,h*.3);ctx.lineTo(h*.32,h*.3);ctx.lineTo(h*.32,h*.0);ctx.stroke();break;
+    case 'bpdc': // 뒤걸어 한길긴뜨기: 고리가 뒤로(왼쪽 ⌐)
+      ctx.beginPath();ctx.moveTo(-h*.5,-h*.55);ctx.lineTo(h*.5,-h*.55);
+      ctx.moveTo(0,-h*.55);ctx.lineTo(0,h*.3);
+      ctx.moveTo(-h*.3,h*.0);ctx.lineTo(h*.3,-h*.25);
+      ctx.moveTo(0,h*.3);ctx.lineTo(-h*.32,h*.3);ctx.lineTo(-h*.32,h*.0);ctx.stroke();break;
+    case 'cl': // 모아뜨기(클러스터): 아래 한 점에서 여러 기둥이 퍼지고 위 가로바
+      ctx.beginPath();
+      ctx.moveTo(0,h*.55);ctx.lineTo(-h*.42,-h*.5);
+      ctx.moveTo(0,h*.55);ctx.lineTo(0,-h*.55);
+      ctx.moveTo(0,h*.55);ctx.lineTo(h*.42,-h*.5);
+      ctx.moveTo(-h*.42,-h*.55);ctx.lineTo(h*.42,-h*.55);ctx.stroke();break;
+    case 'puff': // 퍼프뜨기: 위·아래 가로바 + 살짝 부푼 세로 3가닥
+      ctx.beginPath();
+      ctx.moveTo(-h*.42,-h*.5);ctx.lineTo(h*.42,-h*.5);
+      ctx.moveTo(-h*.42,h*.5);ctx.lineTo(h*.42,h*.5);
+      ctx.moveTo(0,-h*.5);ctx.lineTo(0,h*.5);
+      ctx.moveTo(-h*.3,-h*.4);ctx.quadraticCurveTo(-h*.42,0,-h*.3,h*.4);
+      ctx.moveTo(h*.3,-h*.4);ctx.quadraticCurveTo(h*.42,0,h*.3,h*.4);ctx.stroke();break;
+    case 'shell': // 조개뜨기(부채꼴): 아래 점에서 5가닥 부채살
+      ctx.beginPath();
+      [[-h*.5,-h*.45],[-h*.27,-h*.6],[0,-h*.64],[h*.27,-h*.6],[h*.5,-h*.45]].forEach(p=>{
+        ctx.moveTo(0,h*.6);ctx.lineTo(p[0],p[1]);});
+      ctx.stroke();break;
+    case 'spike': // 롱스티치: 길게 내려꽂은 세로 + 아래 작은 ×
+      ctx.beginPath();ctx.moveTo(0,-h*.7);ctx.lineTo(0,h*.7);
+      ctx.moveTo(-h*.22,h*.35);ctx.lineTo(h*.22,h*.6);
+      ctx.moveTo(h*.22,h*.35);ctx.lineTo(-h*.22,h*.6);ctx.stroke();break;
+    // ── 추가 대바늘 ──
+    case 'p2tog': // 안뜨기 2코모아: 원 + 오른쪽 빗금
+      ctx.beginPath();ctx.arc(0,0,h*.45,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-h*.45,h*.45);ctx.lineTo(h*.55,-h*.55);ctx.stroke();break;
+    case 'm1': // 코늘리기(M1): 위로 솟은 ʌ + 밑단 가로바(만든 코)
+      ctx.beginPath();ctx.moveTo(-h*.5,h*.4);ctx.lineTo(0,-h*.55);ctx.lineTo(h*.5,h*.4);
+      ctx.moveTo(-h*.5,h*.4);ctx.lineTo(h*.5,h*.4);ctx.stroke();break;
+    case 'rc': // 오른코 위 교차: ／가 위, ＼는 가운데 끊김
+      ctx.beginPath();ctx.moveTo(-h*.55,-h*.55);ctx.lineTo(-h*.15,-h*.15);
+      ctx.moveTo(h*.15,h*.15);ctx.lineTo(h*.55,h*.55);ctx.stroke();   // ＼ 끊김(아래)
+      ctx.beginPath();ctx.moveTo(-h*.55,h*.55);ctx.lineTo(h*.55,-h*.55);ctx.stroke();break; // ／ 위
+    case 'lc': // 왼코 위 교차: ＼가 위, ／는 가운데 끊김
+      ctx.beginPath();ctx.moveTo(-h*.55,h*.55);ctx.lineTo(-h*.15,h*.15);
+      ctx.moveTo(h*.15,-h*.15);ctx.lineTo(h*.55,-h*.55);ctx.stroke();  // ／ 끊김(아래)
+      ctx.beginPath();ctx.moveTo(-h*.55,-h*.55);ctx.lineTo(h*.55,h*.55);ctx.stroke();break; // ＼ 위
     default:
       ctx.beginPath();ctx.arc(0,0,h*.5,0,Math.PI*2);ctx.stroke();
   }
