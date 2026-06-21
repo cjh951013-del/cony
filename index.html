@@ -188,6 +188,9 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
 #colpop #colpop-x{background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0}
 #colpop .cpal{gap:6px}
 #colpop .ci{width:24px;height:24px}
+#cw-wrap{display:flex;justify-content:center}
+#cwheel{touch-action:none;cursor:crosshair;border-radius:50%}
+#colpop-hist:empty{display:none}
 #morepop{position:fixed;top:46px;right:10px;z-index:60;min-width:184px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:0 12px 30px rgba(0,0,0,.4);display:none}
 #morepop.open{display:block}
 .mrow{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;text-align:left}
@@ -387,6 +390,10 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
 
   <div id="colpop">
     <div class="cph"><span>색상</span><button id="colpop-x" title="닫기">✕</button></div>
+    <div id="cw-wrap"><canvas id="cwheel" width="180" height="180"></canvas></div>
+    <div class="rr" style="margin:6px 0 8px"><span style="font-size:11px">명도</span><input type="range" id="cw-val" min="0" max="100" value="100"><span class="rv" id="cw-val-v">100</span></div>
+    <div id="colpop-hist" class="cpal" style="margin-bottom:8px"></div>
+    <div class="cph" style="margin-bottom:5px"><span style="font-size:10px;color:var(--text3)">팔레트</span></div>
     <div class="cpal" id="colpop-pal"></div>
   </div>
 
@@ -801,6 +808,7 @@ let G={
   prevMode:'stamp',
   usedSymbols:[],
   color:'#ffffff',
+  colorHist:[],
   toolColors:{},
   bgColor:'#202024',
   brushSz:3,
@@ -1621,6 +1629,59 @@ function setColor(c){
   const tc=$('topcol');if(tc)tc.style.background=c;
   renderShelf();
 }
+/* ===== 컬러 휠(HSB 디스크) + 색 히스토리 ===== */
+function hsv2rgb(h,s,v){h/=360;let r,g,b;const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);
+  switch(i%6){case 0:r=v,g=t,b=p;break;case 1:r=q,g=v,b=p;break;case 2:r=p,g=v,b=t;break;case 3:r=p,g=q,b=v;break;case 4:r=t,g=p,b=v;break;default:r=v,g=p,b=q;}
+  return[Math.round(r*255),Math.round(g*255),Math.round(b*255)];}
+function rgb2hsv(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;
+  if(d){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360;}
+  return[h,mx?d/mx:0,mx];}
+function hex2rgb(hex){hex=hex.replace('#','');if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');return[parseInt(hex.slice(0,2),16),parseInt(hex.slice(2,4),16),parseInt(hex.slice(4,6),16)];}
+function rgb2hex(r,g,b){return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,v|0)).toString(16).padStart(2,'0')).join('');}
+let cwState={h:0,s:0,v:1};
+function drawColorWheel(){
+  const cv=$('cwheel');if(!cv)return;const ctx=cv.getContext('2d'),W=cv.width,R=W/2,V=cwState.v;
+  const img=ctx.createImageData(W,W),D=img.data;
+  for(let y=0;y<W;y++)for(let x=0;x<W;x++){
+    const dx=x-R,dy=y-R,r=Math.hypot(dx,dy),idx=(y*W+x)*4;
+    if(r>R){D[idx+3]=0;continue;}
+    let h=Math.atan2(dy,dx)*180/Math.PI;if(h<0)h+=360;const s=Math.min(1,r/(R-1));
+    const rgb=hsv2rgb(h,s,V);D[idx]=rgb[0];D[idx+1]=rgb[1];D[idx+2]=rgb[2];D[idx+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+  // 현재 선택 위치 표시
+  const ang=cwState.h*Math.PI/180,rr=cwState.s*(R-1);
+  const px=R+Math.cos(ang)*rr,py=R+Math.sin(ang)*rr;
+  ctx.beginPath();ctx.arc(px,py,6,0,7);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  ctx.beginPath();ctx.arc(px,py,6,0,7);ctx.strokeStyle='#000';ctx.lineWidth=1;ctx.stroke();
+}
+function wheelPick(e){
+  const cv=$('cwheel'),rect=cv.getBoundingClientRect(),R=cv.width/2;
+  const x=(e.clientX-rect.left)*cv.width/rect.width-R, y=(e.clientY-rect.top)*cv.height/rect.height-R;
+  let h=Math.atan2(y,x)*180/Math.PI;if(h<0)h+=360;
+  const s=Math.min(1,Math.hypot(x,y)/(R-1));
+  cwState.h=h;cwState.s=s;
+  const rgb=hsv2rgb(cwState.h,cwState.s,cwState.v);
+  setColor(rgb2hex(rgb[0],rgb[1],rgb[2]));drawColorWheel();
+}
+function syncWheelFromColor(){
+  try{const rgb=hex2rgb(G.color);const hsv=rgb2hsv(rgb[0],rgb[1],rgb[2]);cwState={h:hsv[0],s:hsv[1],v:hsv[2]};}catch(e){}
+  const sl=$('cw-val'),sv=$('cw-val-v');if(sl){sl.value=Math.round(cwState.v*100);}if(sv)sv.textContent=Math.round(cwState.v*100);
+  drawColorWheel();
+}
+function pushColorHist(c){
+  if(!c)return;if(!G.colorHist)G.colorHist=[];
+  G.colorHist=G.colorHist.filter(x=>x!==c);G.colorHist.unshift(c);
+  if(G.colorHist.length>10)G.colorHist.pop();
+}
+function renderColorHist(){
+  const box=$('colpop-hist');if(!box)return;box.innerHTML='';
+  (G.colorHist||[]).forEach(c=>{
+    const el=document.createElement('div');el.className='ci';el.style.background=c;el.dataset.c=c;
+    el.title=c;el.addEventListener('click',()=>{setColor(c);syncWheelFromColor();});
+    box.appendChild(el);
+  });
+}
 function buildColorPicker(container){
   if(!container)return;
   container.innerHTML='';
@@ -1862,8 +1923,15 @@ function bindAll(){
   $('sr-col').addEventListener('click',()=>{const c=$('sr').classList.toggle('collapsed');$('sr-col').textContent=c?'‹':'›';});
   $('tgl-sl').addEventListener('click',()=>$('sl').classList.toggle('hide'));
   $('tgl-sr').addEventListener('click',()=>$('sr').classList.toggle('hide'));
-  $('topcol').addEventListener('click',e=>{e.stopPropagation();$('morepop').classList.remove('open');$('colpop').classList.toggle('open');});
+  $('topcol').addEventListener('click',e=>{e.stopPropagation();$('morepop').classList.remove('open');const op=$('colpop').classList.toggle('open');if(op){syncWheelFromColor();renderColorHist();}});
   $('colpop-x').addEventListener('click',()=>$('colpop').classList.remove('open'));
+  // 컬러 휠 + 명도 슬라이더
+  let cwDrag=false;
+  const cw=$('cwheel');
+  cw.addEventListener('pointerdown',e=>{cwDrag=true;wheelPick(e);});
+  cw.addEventListener('pointermove',e=>{if(cwDrag)wheelPick(e);});
+  window.addEventListener('pointerup',()=>{if(cwDrag){cwDrag=false;pushColorHist(G.color);renderColorHist();}});
+  $('cw-val').addEventListener('input',()=>{cwState.v=parseInt($('cw-val').value)/100;$('cw-val-v').textContent=$('cw-val').value;const rgb=hsv2rgb(cwState.h,cwState.s,cwState.v);setColor(rgb2hex(rgb[0],rgb[1],rgb[2]));drawColorWheel();});
   $('btn-more').addEventListener('click',e=>{e.stopPropagation();$('colpop').classList.remove('open');$('morepop').classList.toggle('open');});
   $('btn-legend').addEventListener('click',()=>{$('morepop').classList.remove('open');openLegend();});
   $('btn-exp2').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-exp');});
@@ -2285,14 +2353,14 @@ function onUp(e){
   if(!G.isDrawing)return;G.isDrawing=false;
   if(G.mode==='stamp'||G.mode==='draw'){
     if(G.path)commitStroke();
-    endStroke();composite();saveH();
+    endStroke();composite();saveH();pushColorHist(G.color);
   }
   else if(G.mode==='selection'||G.mode==='select'){
     if(G.float){G.float.dragging=false;G.float.rotating=false;}
     else if(G.selStart){$('sel-tb').style.display='flex';}
   }
   else if(G.mode==='eraser'){composite();saveH();}
-  else if(G.mode==='graph'){composite();saveH();}
+  else if(G.mode==='graph'){composite();saveH();pushColorHist(G.color);}
 }
 function onWheel(e){e.preventDefault();G.zoom=Math.max(.2,Math.min(4,G.zoom+(e.deltaY>0?-.1:.1)));applyTransform();}
 function onDblClick(e){
