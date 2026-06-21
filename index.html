@@ -479,7 +479,13 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
           <div class="sw-wrap" style="margin-bottom:5px">
             <div class="sw" id="sw-nums"></div><span>코·단 번호 (좌하단=1)</span>
           </div>
+          <div class="sw-wrap" style="margin-bottom:5px">
+            <div class="sw" id="sw-radial"></div><span>방사 정렬 (앵커 향해 회전)</span>
+          </div>
           <button class="ib" id="btn-anchor" style="width:100%;margin-bottom:6px;font-size:10px">◎ 기준점 잡기</button>
+          <div class="sr2" style="margin-bottom:4px"><span>원형 개수</span><input type="number" id="ring-n" value="12" min="2" max="120" style="width:54px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
+          <div class="sr2" style="margin-bottom:4px"><span>원형 반지름</span><input type="number" id="ring-r" value="200" min="20" max="580" step="10" style="width:54px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
+          <button class="ib" id="btn-ring" style="width:100%;margin-bottom:6px;font-size:10px">⊙ 원형 한 바퀴 배치</button>
           <div class="sr2"><span>프레임</span>
             <select id="frame-sel">
               <option value="none">없음</option>
@@ -780,6 +786,9 @@ let G={
   pan:{x:0,y:0},
   gridOn:true,
   numbersOn:false,
+  radial:false,
+  radialN:12,
+  radialR:200,
   anchor:{x:600,y:600},anchorMode:false,
   frame:'circle',
   fRounds:6,
@@ -1186,6 +1195,25 @@ function applyTransform(){
 
 /* ===================== DRAWING ===================== */
 function recordSymUse(id){if(id&&!G.usedSymbols.includes(id))G.usedSymbols.push(id);}
+// 방사 정렬: 기준점(앵커) 중심으로 바깥을 향하도록 회전각(도) 계산
+function radialRotFor(x,y){
+  const a=G.anchor||{x:CW/2,y:CH/2};
+  return Math.atan2(y-a.y,x-a.x)*180/Math.PI+90;
+}
+// 원형(한 바퀴) 배치: 앵커 중심, 반지름·개수만큼 현재 기호를 방사 배치
+function placeRing(){
+  if(G.mode==='select'||G.mode==='selection')return;
+  const a=G.anchor||{x:CW/2,y:CH/2};
+  const n=Math.max(2,G.radialN|0), r=Math.max(20,G.radialR|0);
+  const sz=G.stampSz||48, col=G.toolColors[G.stitch]||G.color;
+  for(let i=0;i<n;i++){
+    const ang=-Math.PI/2 + i*2*Math.PI/n; // 12시 방향부터 시계방향
+    const x=a.x+r*Math.cos(ang), y=a.y+r*Math.sin(ang);
+    drawSVGStitch(mainCtx,x,y,G.stitch,col,sz,ang*180/Math.PI+90+(G.rot||0));
+  }
+  recordSymUse(G.stitch);
+  saveH();
+}
 function symName(id){
   for(const t of ['crochet','knitting']){const s=STITCHES[t].find(x=>x.id===id);if(s)return s.name;}
   const u=(G.userSymbols||[]).find(x=>x.id===id);return u?u.name+' (내 기호)':id;
@@ -1193,7 +1221,8 @@ function symName(id){
 function stampAt(x,y){
   const sz=G.stampSz||48;
   const col=G.toolColors[G.stitch]||G.color;
-  drawSVGStitch(mainCtx,x,y,G.stitch,col,sz,G.rot);
+  const rot=G.radial ? radialRotFor(x,y)+(G.rot||0) : G.rot;
+  drawSVGStitch(mainCtx,x,y,G.stitch,col,sz,rot);
   recordSymUse(G.stitch);
 }
 
@@ -1683,6 +1712,10 @@ function bindAll(){
   $('frounds').addEventListener('input',()=>{G.fRounds=parseInt($('frounds').value);$('frv').textContent=G.fRounds;drawBg();});
   $('sw-grid').addEventListener('click',()=>{G.gridOn=!G.gridOn;$('sw-grid').classList.toggle('on',G.gridOn);drawBg();});
   $('sw-nums').addEventListener('click',()=>{G.numbersOn=!G.numbersOn;$('sw-nums').classList.toggle('on',G.numbersOn);drawBg();});
+  $('sw-radial').addEventListener('click',()=>{G.radial=!G.radial;$('sw-radial').classList.toggle('on',G.radial);});
+  $('ring-n').addEventListener('input',()=>{G.radialN=Math.max(2,Math.min(120,parseInt($('ring-n').value)||12));});
+  $('ring-r').addEventListener('input',()=>{G.radialR=Math.max(20,Math.min(580,parseInt($('ring-r').value)||200));});
+  $('btn-ring').addEventListener('click',placeRing);
   $('btn-anchor').addEventListener('click',()=>{G.anchorMode=true;const cw=$('cw');if(cw)cw.style.cursor='crosshair';const b=$('snap-badge');if(b){b.style.display='block';b.style.pointerEvents='none';b.textContent='◎ 기준점 위치를 탭하세요';}});
   $('sl-col').addEventListener('click',()=>{const c=$('sl').classList.toggle('collapsed');$('sl-col').textContent=c?'›':'‹';});
   $('sr-col').addEventListener('click',()=>{const c=$('sr').classList.toggle('collapsed');$('sr-col').textContent=c?'‹':'›';});
