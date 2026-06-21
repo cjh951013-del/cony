@@ -419,6 +419,7 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
         <button class="tbtn" data-mode="graph" title="방안뜨기(칸 색칠)"><span class="ti">▦</span></button>
         <button class="tbtn" data-mode="text" title="타이핑"><span class="ti" style="font-weight:700">T</span></button>
         <button class="tbtn" data-mode="eraser" title="지우개"><span class="ti">🧹</span></button>
+        <button class="tbtn" data-mode="pick" title="스포이드(색 추출)"><span class="ti">💧</span></button>
         <button class="tbtn" data-mode="select" title="선택"><span class="ti">↖</span></button>
         <button class="tbtn" data-mode="selection" title="영역"><span class="ti">⭕</span></button>
         <div id="sizerail"><input type="range" id="size-rail" min="1" max="60" value="48" title="크기"><span id="size-rail-v">48</span></div>
@@ -787,6 +788,7 @@ let G={
   cur:null,
   mode:'stamp',
   stitch:'ch',
+  prevMode:'stamp',
   usedSymbols:[],
   color:'#ffffff',
   toolColors:{},
@@ -1226,6 +1228,17 @@ function applyTransform(){
 
 /* ===================== DRAWING ===================== */
 function recordSymUse(id){if(id&&!G.usedSymbols.includes(id))G.usedSymbols.push(id);}
+// 스포이드: 보이는 레이어를 위에서부터 훑어 첫 불투명 픽셀 색을 집음(없으면 배경색)
+function pickColorAt(p){
+  const x=Math.round(p.x),y=Math.round(p.y);
+  if(x<0||y<0||x>=CW||y>=CH)return;
+  for(let i=G.layers.length-1;i>=0;i--){
+    const l=G.layers[i];if(!l.visible||!l.ctx)continue;
+    let d;try{d=l.ctx.getImageData(x,y,1,1).data;}catch(e){continue;}
+    if(d[3]>8){setColor('#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join(''));return;}
+  }
+  setColor(G.bgColor||'#ffffff');
+}
 // 방사 정렬: 기준점(앵커) 중심으로 바깥을 향하도록 회전각(도) 계산
 function radialRotFor(x,y){
   const a=G.anchor||{x:CW/2,y:CH/2};
@@ -1767,13 +1780,14 @@ function showScreen(s){
 function setMode(m){
   if(G.editing)cancelShape();
   if(G.float)commitFloat();
+  if(m==='pick'&&G.mode!=='pick')G.prevMode=G.mode;
   G.mode=m;
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
   {const sr=$('size-rail');if(sr){const v=m==='stamp'?(G.stampSz||48):(G.brushSz||3);sr.value=v;const sv=$('size-rail-v');if(sv)sv.textContent=v;}}
   $('brush-cg').style.display=(m==='draw'||m==='eraser'||m==='text')?'block':'none';
   $('stamp-cg').style.display=m==='stamp'?'block':'none';
   const cw=$('cw');
-  cw.style.cursor=m==='eraser'?'cell':m==='text'?'text':m==='select'||m==='selection'?'default':'crosshair';
+  cw.style.cursor=m==='eraser'?'cell':m==='text'?'text':m==='pick'?'copy':m==='select'||m==='selection'?'default':'crosshair';
 }
 
 /* ===================== EVENTS ===================== */
@@ -2185,6 +2199,7 @@ function onDown(e){
   }
   const pos=getPos(e);
   if(G.anchorMode){setAnchor(pos);return;}
+  if(G.mode==='pick'){pickColorAt(pos);if(G.prevMode&&G.prevMode!=='pick')setMode(G.prevMode);return;}
   if(G.editing){G.dragH=hitHandle(G.shape,pos,Math.max(14,18/G.zoom));return;}
   if(G.spaceDown||e.button===1){
     G.isPanning=true;const raw=getRaw(e);G.panStart={x:raw.x-G.pan.x,y:raw.y-G.pan.y};return;
