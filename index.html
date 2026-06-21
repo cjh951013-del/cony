@@ -880,10 +880,27 @@ function applyLayerLock(l){if(l&&l.ctx)l.ctx.globalCompositeOperation=l.alphaLoc
 const BLEND_MODES=[['source-over','보통'],['multiply','곱하기'],['screen','스크린'],['overlay','오버레이'],['darken','어둡게'],['lighten','밝게'],['color-dodge','닷지'],['difference','반전차']];
 function activeLayer(){return G.layers.find(l=>l.id===G.activeL)||G.layers[0];}
 function setActiveCtx(){ensureLayerCanvases();const l=activeLayer();if(l)mainCtx=l.ctx;}
+let _clipTmp;
 function composite(){
   if(!dispCtx)return;
   dispCtx.clearRect(0,0,CW,CH);
-  G.layers.forEach(l=>{if(l.visible&&l.cv){dispCtx.globalAlpha=(l.opacity==null?1:l.opacity);dispCtx.globalCompositeOperation=l.blend||'source-over';dispCtx.drawImage(l.cv,0,0);}});
+  for(let i=0;i<G.layers.length;i++){
+    const l=G.layers[i];
+    if(!l.visible||!l.cv)continue;
+    let src=l.cv;
+    if(l.clip&&i>0&&G.layers[i-1]&&G.layers[i-1].cv){ // 바로 아래 레이어의 알파로 클리핑
+      if(!_clipTmp){_clipTmp=makeLayerCv();}
+      const tc=_clipTmp.getContext('2d');
+      tc.globalCompositeOperation='source-over';tc.clearRect(0,0,CW,CH);
+      tc.drawImage(l.cv,0,0);
+      tc.globalCompositeOperation='destination-in';tc.drawImage(G.layers[i-1].cv,0,0);
+      tc.globalCompositeOperation='source-over';
+      src=_clipTmp;
+    }
+    dispCtx.globalAlpha=(l.opacity==null?1:l.opacity);
+    dispCtx.globalCompositeOperation=l.blend||'source-over';
+    dispCtx.drawImage(src,0,0);
+  }
   dispCtx.globalAlpha=1;dispCtx.globalCompositeOperation='source-over';
 }
 function resetLayers(){ // 새 프로젝트: 단일 빈 레이어로 초기화
@@ -1421,7 +1438,7 @@ let persistTm;
 function schedulePersist(){clearTimeout(persistTm);persistTm=setTimeout(snapshotCurrent,1000);}
 // 레이어 영속화: 프로젝트별 키에 레이어 PNG+메타 저장(쿼터 초과시 안전 폐기)
 function serializeLayers(){
-  return G.layers.map(l=>({name:l.name,visible:l.visible!==false,opacity:(l.opacity==null?1:l.opacity),blend:l.blend||'source-over',alphaLock:!!l.alphaLock,png:l.cv?l.cv.toDataURL('image/png'):null}));
+  return G.layers.map(l=>({name:l.name,visible:l.visible!==false,opacity:(l.opacity==null?1:l.opacity),blend:l.blend||'source-over',alphaLock:!!l.alphaLock,clip:!!l.clip,png:l.cv?l.cv.toDataURL('image/png'):null}));
 }
 function persistLayers(){
   if(!G.cur)return;
@@ -1433,7 +1450,7 @@ function loadLayersData(id){
   return null;
 }
 function restoreLayers(data,done){
-  G.layers=data.map((d,i)=>({id:i+1,name:d.name||('레이어 '+(i+1)),visible:d.visible!==false,opacity:(d.opacity==null?1:d.opacity),blend:d.blend||'source-over',alphaLock:!!d.alphaLock}));
+  G.layers=data.map((d,i)=>({id:i+1,name:d.name||('레이어 '+(i+1)),visible:d.visible!==false,opacity:(d.opacity==null?1:d.opacity),blend:d.blend||'source-over',alphaLock:!!d.alphaLock,clip:!!d.clip}));
   G.activeL=G.layers[G.layers.length-1].id;
   ensureLayerCanvases();setActiveCtx();
   let pending=0;
@@ -1649,6 +1666,7 @@ function renderToolColors(){
 /* ===================== LAYERS ===================== */
 function toggleLayerVis(id){const l=layerById(id);if(l){l.visible=!l.visible;composite();renderLayers();}}
 function toggleAlphaLock(id){const l=layerById(id);if(l){l.alphaLock=!l.alphaLock;applyLayerLock(l);renderLayers();schedulePersist();}}
+function toggleClip(id){const l=layerById(id);if(l){l.clip=!l.clip;composite();renderLayers();schedulePersist();}}
 function setLayerBlend(id,b){const l=layerById(id);if(l){l.blend=b;composite();schedulePersist();}}
 function renameLayer(id){const l=layerById(id);if(!l)return;const n=prompt('레이어 이름',l.name);if(n!=null){l.name=(n.trim()||l.name);renderLayers();schedulePersist();}}
 function setLayerOpacity(id,v){const l=layerById(id);if(l){l.opacity=Math.max(0,Math.min(1,v));composite();}}
@@ -1691,7 +1709,7 @@ function renderLayers(){
       const blendOpts=BLEND_MODES.map(m=>`<option value="${m[0]}"${(l.blend||'source-over')===m[0]?' selected':''}>${m[1]}</option>`).join('');
       ctr.innerHTML=`<input type="range" min="0" max="100" value="${Math.round((l.opacity==null?1:l.opacity)*100)}" class="lopr" title="투명도">
         <select class="lblend">${blendOpts}</select>
-        <div class="lbtns"><button data-a="lock">${l.alphaLock?'🔒':'🔓'}</button><button data-a="rename">✎</button><button data-a="up">⬆</button><button data-a="down">⬇</button><button data-a="merge">🔻</button><button data-a="del" class="d">🗑</button></div>`;
+        <div class="lbtns"><button data-a="lock">${l.alphaLock?'🔒':'🔓'}</button><button data-a="clip" title="아래 레이어로 클리핑" style="${l.clip?'color:var(--primary)':''}">⤓</button><button data-a="rename">✎</button><button data-a="up">⬆</button><button data-a="down">⬇</button><button data-a="merge">🔻</button><button data-a="del" class="d">🗑</button></div>`;
       const slider=ctr.querySelector('.lopr');
       slider.addEventListener('input',e=>{setLayerOpacity(l.id,e.target.value/100);const op=el.querySelector('.lop');if(op)op.textContent=e.target.value+'%';});
       slider.addEventListener('click',e=>e.stopPropagation());
@@ -1700,7 +1718,7 @@ function renderLayers(){
       bl.addEventListener('change',e=>{setLayerBlend(l.id,e.target.value);});
       ctr.querySelectorAll('.lbtns button').forEach(b=>b.addEventListener('click',e=>{
         e.stopPropagation();const a=b.dataset.a;
-        if(a==='lock')toggleAlphaLock(l.id);else if(a==='rename')renameLayer(l.id);else if(a==='up')moveLayer(l.id,1);else if(a==='down')moveLayer(l.id,-1);
+        if(a==='lock')toggleAlphaLock(l.id);else if(a==='clip')toggleClip(l.id);else if(a==='rename')renameLayer(l.id);else if(a==='up')moveLayer(l.id,1);else if(a==='down')moveLayer(l.id,-1);
         else if(a==='merge')mergeDown(l.id);else if(a==='del')deleteLayer(l.id);
       }));
       list.appendChild(ctr);
