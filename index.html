@@ -103,42 +103,83 @@ select,input{font-family:inherit}
 /* ===== CANVAS ===== */
 #cw{flex:1;position:relative;overflow:hidden;background:var(--bg2);cursor:crosshair;touch-action:none;overscroll-behavior:none}
 #bg-cg{display:none}
-@media(max-width:640px){
-  #eh{padding:6px 8px;gap:4px}
-  #eh .ec{display:none}
-  #eh .el{flex:1;min-width:0}
-  #pn{width:90px}
-  #eb{flex-direction:column}
-  #cw{order:1;flex:1;min-height:38vh}
-  #eb #sl{width:100%;height:82px;flex-direction:row;order:2;border:none;border-top:1px solid var(--border);position:static;border-radius:0;box-shadow:none;top:auto;left:auto;bottom:auto}
-  #eb #sr{position:static;border-radius:0;box-shadow:none;top:auto;right:auto;bottom:auto}
-  #sl .sh{writing-mode:horizontal-tb;border-bottom:none;border-right:1px solid var(--border);padding:0 8px}
-  #sl .stl{flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:5px}
-  #sl .drag-hint{display:none}
-  #eb #sr{width:100%;max-height:44vh;order:3;border-left:none;border-top:1px solid var(--border)}
-  #eb #sl.collapsed{height:34px;width:100%}
-  #eb #sr.collapsed{max-height:34px;width:100%}
-}
-/* ===== Procreate-style floating layout (desktop/tablet) ===== */
-@media(min-width:641px){
-  #eb{position:relative}
-  #cw{position:absolute;inset:0;flex:none}
-  #sl{position:absolute;left:74px;top:10px;bottom:10px;width:118px;border:1px solid var(--border);border-radius:12px;z-index:6;box-shadow:0 6px 20px rgba(0,0,0,.22)}
-  #sl.right{left:auto;right:10px}
-  #sr{position:absolute;right:10px;top:10px;bottom:10px;width:220px;border:1px solid var(--border);border-radius:12px;z-index:6;box-shadow:0 6px 20px rgba(0,0,0,.22)}
-  #sl.collapsed{bottom:auto}
-  #sr.collapsed{bottom:auto}
-}
 #ad-center{display:none}
-#sl.hide,#sr.hide{display:none!important}
-#tooldock{position:absolute;left:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:6px;z-index:7;box-shadow:0 6px 20px rgba(0,0,0,.25)}
-#tooldock .tbtn{width:44px;height:44px;border-radius:10px;padding:0;justify-content:center;align-items:center}
-#tooldock .tbtn .ti{font-size:20px}
-#sizerail{display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:6px;margin-top:2px;border-top:1px solid var(--border)}
-#sizerail input[type=range]{writing-mode:vertical-lr;direction:rtl;width:12px;height:120px;accent-color:var(--primary)}
-#sizerail span{font-size:10px;color:var(--text2);min-width:22px;text-align:center}
-@media(max-width:640px){#tooldock{left:6px;top:6px;transform:none;flex-direction:row;flex-wrap:wrap;max-width:calc(100% - 12px);gap:4px}#tooldock .tbtn{width:38px;height:38px}#sizerail{border-top:none;border-left:1px solid var(--border);padding-top:0;padding-left:6px;margin-top:0;flex-direction:row}#sizerail input[type=range]{writing-mode:horizontal-tb;direction:ltr;width:90px;height:auto}}
 canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:none}
+
+/* ============================================================
+   PROCREATE-FAITHFUL CHROME (v3) — 모든 화면 통일, 풀블리드 캔버스
+   ============================================================ */
+#eb{position:relative;display:block;flex:1}
+#eb #cw{position:absolute;inset:0;flex:none}
+
+/* 상단 바: 반투명 오버레이, 좌/우 클러스터 (프로크리에이트 그대로) */
+#eh{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+    padding:7px 8px;gap:6px;background:linear-gradient(180deg,rgba(8,8,16,.74),rgba(8,8,16,0));
+    border:none;flex-wrap:nowrap;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+html[data-theme=light] #eh{background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,0))}
+#eh .el,#eh .er{display:flex;align-items:center;gap:4px;flex:0 0 auto;min-width:0}
+#eh .ec{display:none}
+.pc-tb{height:38px;min-width:42px;padding:0 8px;border-radius:11px;border:1px solid rgba(255,255,255,.09);
+       background:rgba(38,38,58,.66);color:var(--text);font-size:19px;line-height:1;
+       display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pc-tb:hover{background:rgba(60,60,92,.85)}
+.pc-tb.act{background:var(--primary);border-color:var(--primary);color:#fff}
+.pc-tb.txt{font-size:12.5px;font-weight:600}
+html[data-theme=light] .pc-tb{background:rgba(255,255,255,.72);border-color:rgba(0,0,0,.07);color:var(--text)}
+#topcol{-webkit-appearance:none;appearance:none;width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.5);box-shadow:inset 0 0 0 2px rgba(0,0,0,.25)}
+
+/* 좌측 슬라이더 사이드바 (프로크리에이트 시그니처) */
+#tooldock{position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:25;
+          display:flex;flex-direction:column;align-items:center;gap:9px;width:auto;
+          background:rgba(26,26,42,.8);border:1px solid rgba(255,255,255,.08);border-radius:18px;
+          padding:12px 9px;box-shadow:0 10px 28px rgba(0,0,0,.34);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+html[data-theme=light] #tooldock{background:rgba(255,255,255,.88);border-color:rgba(0,0,0,.08)}
+.pc-sld{display:flex;flex-direction:column;align-items:center;gap:3px}
+.pc-sld input[type=range]{writing-mode:vertical-lr;direction:rtl;-webkit-appearance:none;appearance:none;
+    width:26px;height:150px;accent-color:var(--primary);background:rgba(0,0,0,.28);border-radius:13px;cursor:pointer}
+html[data-theme=light] .pc-sld input[type=range]{background:rgba(0,0,0,.1)}
+.pc-sld span{font-size:9px;color:var(--text2);min-width:20px;text-align:center}
+.pc-sld .ic{font-size:11px;color:var(--text3)}
+.pc-sq{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(52,52,78,.72);
+       color:var(--text);font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.pc-sq:hover{border-color:var(--primary)}
+.pc-sq.act{background:var(--primary);border-color:var(--primary);color:#fff}
+html[data-theme=light] .pc-sq{background:rgba(255,255,255,.7);border-color:rgba(0,0,0,.08)}
+.pc-div{width:24px;height:1px;background:rgba(255,255,255,.12);margin:1px 0}
+#tooldock .ib{background:rgba(52,52,78,.72);border:1px solid rgba(255,255,255,.12);color:var(--text);width:36px;height:32px;border-radius:9px;font-size:15px}
+#tooldock .ib:disabled{opacity:.3}
+
+/* 좌/우 패널을 떠있는 팝오버로 통일 (기본 숨김, .show 로 표시) */
+#sl,#sr{position:absolute;z-index:28;display:none;flex-direction:column;
+        background:var(--panel);border:1px solid var(--border);border-radius:16px;
+        box-shadow:0 16px 44px rgba(0,0,0,.45);overflow:hidden;width:230px;max-height:76vh}
+#sl.show,#sr.show{display:flex}
+#sl{left:58px;top:56px}
+#sr{right:10px;top:56px}
+#sl.hide,#sr.hide{display:none}
+#sl .sh,#sr .tabs{flex-shrink:0}
+.pcol{font-size:13px}
+/* 팔레트 모드 탭 (펜/기호/방안/글자) */
+.pc-modes{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:7px;border-bottom:1px solid var(--border);flex-shrink:0}
+.pc-modes .tbtn{padding:6px 2px;font-size:9px;gap:2px}
+.pc-modes .tbtn .ti{font-size:16px}
+/* 좁은 폰: 패널을 넉넉히 + 상단 바 압축 */
+@media(max-width:520px){
+  #eh{padding:6px 6px;gap:3px}
+  #eh .el,#eh .er{gap:3px}
+  .pc-tb{min-width:36px;padding:0 5px;font-size:17px;height:36px;border-radius:9px}
+  #btn-back .glab{display:none}
+  #btn-back::before{content:'‹';font-size:18px;font-weight:700}
+  #topcol{width:30px;height:30px}
+}
+@media(max-width:480px){
+  #sl,#sr{width:min(88vw,300px)}
+  #sl{left:50%;transform:translateX(-50%)}
+  #sr{right:6px}
+  #tooldock{gap:7px;padding:10px 6px}
+  .pc-sld input[type=range]{height:116px}
+}
+@media(max-width:360px){.pc-tb{min-width:32px;padding:0 3px;font-size:16px}}
 #prev-c{pointer-events:none}
 #snap-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:5px 12px;border-radius:15px;font-size:11px;font-weight:600;display:none;pointer-events:none;z-index:10}
 #sel-tb{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 8px;gap:5px;display:none;z-index:10}
@@ -383,28 +424,26 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
 <div id="screen-ed" class="screen">
   <header id="eh">
     <div class="el">
-      <button class="ib" id="btn-back">← 대시보드</button>
-      <input type="text" id="pn" value="무제 도안">
-      <span class="ss" id="sst">✓ 저장됨</span>
+      <button class="pc-tb txt" id="btn-back" title="갤러리"><span class="glab">갤러리</span></button>
+      <button class="pc-tb" id="btn-more" title="동작·내보내기">🔧</button>
+      <button class="pc-tb" id="btn-adjust" title="가이드·대칭·프레임">🪄</button>
+      <button class="pc-tb" id="btn-sel-top" title="선택 영역">⬚</button>
+      <button class="pc-tb" id="btn-trans" title="이동·변형">⤢</button>
     </div>
-    <div class="ec" id="ad-center">💡 길게 누르기=직선·곡선 자동 · 뱃지 탭/C·L=직선↔곡선 · 두 손가락=이동·줌 · 두 손가락 탭=실행취소 · 세 손가락 탭=다시실행</div>
     <div class="er">
-      <button class="ib" id="tgl-sl" title="기호 팔레트 보기/숨기기">🧶</button>
-      <button class="ib" id="tgl-sr" title="도구 패널 보기/숨기기">⚙</button>
+      <button class="pc-tb" id="btn-paint" title="기호·펜">✏️</button>
+      <button class="pc-tb" id="btn-erase" title="지우개">🩹</button>
+      <button class="pc-tb" id="btn-layers" title="레이어">▦</button>
       <button id="topcol" title="색상 선택"></button>
-      <button class="ib" id="btn-undo" disabled>↩</button>
-      <button class="ib" id="btn-redo" disabled>↪</button>
-      <button class="ib" id="btn-zo">🔍−</button>
-      <span class="zt" id="zt">100%</span>
-      <button class="ib" id="btn-zi">🔍＋</button>
-      <button class="ib" id="btn-more" title="더보기">⋯</button>
-      <button class="pro-tog" id="btn-pro">👑 PRO</button>
+    </div>
+    <div style="display:none">
+      <input type="text" id="pn" value="무제 도안"><span class="ss" id="sst">✓ 저장됨</span>
     </div>
   </header>
 
   <div id="morepop">
+    <button class="mrow" id="btn-pro" style="color:var(--gold)"><span class="mi">👑</span><span>PRO 업그레이드</span></button>
     <button class="mrow" id="btn-theme"><span class="mi">🌙</span><span>라이트 / 다크 모드</span></button>
-    <button class="mrow" id="btn-panel-pos"><span class="mi">⇄</span><span>패널 위치 바꾸기</span></button>
     <button class="mrow" id="btn-quickshape"><span class="mi">📐</span><span>도형 자동인식: 켜짐</span></button>
     <button class="mrow" id="btn-legend"><span class="mi">📋</span><span>기호 범례 보기</span></button>
     <button class="mrow" id="btn-img"><span class="mi">🖼</span><span>이미지 가져오기 (따라 그리기)</span></button>
@@ -431,8 +470,14 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
         <span id="stl-title">코바늘</span>
         <span style="display:flex;gap:4px;align-items:center">
           <button id="btn-mgr" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px" title="기호 편집">⚙</button>
-          <button class="pcol" id="sl-col" title="패널 접기">‹</button>
+          <button class="pcol" id="sl-col" title="닫기">✕</button>
         </span>
+      </div>
+      <div class="pc-modes">
+        <button class="tbtn act" data-mode="stamp" title="기호 도장"><span class="ti">🔖</span>기호</button>
+        <button class="tbtn" data-mode="draw" title="펜·손글씨"><span class="ti">✏️</span>펜</button>
+        <button class="tbtn" data-mode="graph" title="방안뜨기(칸 색칠)"><span class="ti">▦</span>방안</button>
+        <button class="tbtn" data-mode="text" title="텍스트"><span class="ti">T</span>글자</button>
       </div>
       <div class="stl" id="stitch-list"></div>
       <div class="drag-hint">2초 누르기 → 순서변경</div>
@@ -448,15 +493,12 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
       <canvas id="main-c"></canvas>
       <canvas id="prev-c"></canvas>
       <aside id="tooldock">
-        <button class="tbtn act" data-mode="stamp" title="기호 도장"><span class="ti">🔖</span></button>
-        <button class="tbtn" data-mode="draw" title="손글씨"><span class="ti">✏️</span></button>
-        <button class="tbtn" data-mode="graph" title="방안뜨기(칸 색칠)"><span class="ti">▦</span></button>
-        <button class="tbtn" data-mode="text" title="타이핑"><span class="ti" style="font-weight:700">T</span></button>
-        <button class="tbtn" data-mode="eraser" title="지우개"><span class="ti">🧹</span></button>
-        <button class="tbtn" data-mode="pick" title="스포이드(색 추출)"><span class="ti">💧</span></button>
-        <button class="tbtn" data-mode="select" title="선택"><span class="ti">↖</span></button>
-        <button class="tbtn" data-mode="selection" title="영역"><span class="ti">⭕</span></button>
-        <div id="sizerail"><input type="range" id="size-rail" min="1" max="60" value="48" title="크기"><span id="size-rail-v">48</span></div>
+        <div class="pc-sld"><span class="ic">✦</span><input type="range" id="size-rail" min="1" max="60" value="48" title="크기(브러시/기호)"><span id="size-rail-v">48</span></div>
+        <button class="pc-sq" id="btn-modify" title="스포이드(색 추출)">💧</button>
+        <div class="pc-sld"><span class="ic">◐</span><input type="range" id="op-rail" min="5" max="100" value="100" title="불투명도"><span id="op-rail-v">100</span></div>
+        <div class="pc-div"></div>
+        <button class="ib" id="btn-undo" title="실행취소" disabled>↩</button>
+        <button class="ib" id="btn-redo" title="다시실행" disabled>↪</button>
       </aside>
       <div id="snap-badge">📐 직선 고정 ON</div>
       <div id="sel-shape">
@@ -490,9 +532,9 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
     <!-- RIGHT: 도구 패널 -->
     <aside id="sr">
       <div class="tabs">
-        <button class="pcol" id="sr-col" title="패널 접기">›</button>
-        <button class="tb act" data-tab="tools">도구</button>
+        <button class="tb act" data-tab="tools">도구·가이드</button>
         <button class="tb" data-tab="layers">레이어</button>
+        <button class="pcol" id="sr-col" title="닫기" style="margin-left:auto">✕</button>
       </div>
 
       <!-- TOOLS TAB -->
@@ -878,6 +920,7 @@ let G={
   dragSrcIdx:null,
   narrType:'ko',
   quickShape:true,
+  opacity:1,
 };
 
 let bgCtx,mainCtx,prevCtx,dispCtx;
@@ -2035,6 +2078,7 @@ function showScreen(s){
       [bgC,mc,pc].forEach(c=>{c.width=CW;c.height=CH;});
       ensureLayerCanvases();setActiveCtx();
       drawBg();fitToScreen();restoreCanvas();
+      setMode(G.mode||'stamp'); // 상단 도구 버튼 하이라이트 초기화
     },50);
   }
 }
@@ -2044,13 +2088,21 @@ function setMode(m){
   if(G.editing)cancelShape();
   if(G.float)commitFloat();
   if(m==='pick'&&G.mode!=='pick')G.prevMode=G.mode;
+  if(['stamp','draw','graph','text'].includes(m))G.prevPaint=m;
   G.mode=m;
-  document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
+  document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
+  // 상단 바 도구 버튼 하이라이트 동기화 (프로크리에이트식)
+  const setAct=(id,on)=>{const e=$(id);if(e)e.classList.toggle('act',!!on);};
+  setAct('btn-paint',['stamp','draw','graph','text'].includes(m));
+  setAct('btn-erase',m==='eraser');
+  setAct('btn-modify',m==='pick');
+  setAct('btn-sel-top',m==='select');
+  setAct('btn-trans',m==='selection');
   {const sr=$('size-rail');if(sr){const v=m==='stamp'?(G.stampSz||48):(G.brushSz||3);sr.value=v;const sv=$('size-rail-v');if(sv)sv.textContent=v;}}
-  $('brush-cg').style.display=(m==='draw'||m==='eraser'||m==='text')?'block':'none';
-  $('stamp-cg').style.display=m==='stamp'?'block':'none';
+  {const b=$('brush-cg');if(b)b.style.display=(m==='draw'||m==='eraser'||m==='text')?'block':'none';}
+  {const s=$('stamp-cg');if(s)s.style.display=m==='stamp'?'block':'none';}
   const cw=$('cw');
-  cw.style.cursor=m==='eraser'?'cell':m==='text'?'text':m==='pick'?'copy':m==='select'||m==='selection'?'default':'crosshair';
+  if(cw)cw.style.cursor=m==='eraser'?'cell':m==='text'?'text':m==='pick'?'copy':m==='select'||m==='selection'?'default':'crosshair';
   const ss=$('sel-shape');if(ss)ss.classList.toggle('show',m==='select'||m==='selection');
 }
 
@@ -2068,8 +2120,6 @@ function bindAll(){
   $('btn-back').addEventListener('click',()=>{saveThumb();snapshotCurrent();showScreen('dash');renderDash();});
   $('btn-undo').addEventListener('click',undo);
   $('btn-redo').addEventListener('click',redo);
-  $('btn-zi').addEventListener('click',()=>{G.zoom=Math.min(4,G.zoom+.25);applyTransform();});
-  $('btn-zo').addEventListener('click',()=>{G.zoom=Math.max(.2,G.zoom-.25);applyTransform();});
   $('btn-clr').addEventListener('click',()=>{$('morepop').classList.remove('open');if(confirm('모든 레이어를 비울까요? (전체 초기화)')){clearAllLayers();}});
   $('btn-fliph').addEventListener('click',()=>{$('morepop').classList.remove('open');flipCanvas('h');});
   $('btn-flipv').addEventListener('click',()=>{$('morepop').classList.remove('open');flipCanvas('v');});
@@ -2077,10 +2127,9 @@ function bindAll(){
   $('btn-ctr').addEventListener('click',()=>{fitToScreen();});
   $('btn-pro').addEventListener('click',()=>openM('m-pro'));
   $('btn-theme').addEventListener('click',()=>{const lt=document.documentElement.getAttribute('data-theme')==='light';const ic=$('btn-theme').querySelector('.mi');if(lt){document.documentElement.removeAttribute('data-theme');G.bgColor='#202024';if(ic)ic.textContent='🌙';}else{document.documentElement.setAttribute('data-theme','light');G.bgColor='#ffffff';if(ic)ic.textContent='☀️';}if(bgCtx)drawBg();});
-  $('btn-panel-pos').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-pos');});
   
   // TOOLS
-  document.querySelectorAll('.tbtn').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
+  document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
   $('bsz').addEventListener('input',()=>{G.brushSz=parseInt($('bsz').value);$('bszv').textContent=G.brushSz+'px';});
   $('rsl').addEventListener('input',()=>{G.rot=parseInt($('rsl').value);$('rv').textContent=G.rot+'°';});
   $('rl').addEventListener('click',()=>{G.rot=(G.rot-45+360)%360;$('rsl').value=G.rot;$('rv').textContent=G.rot+'°';});
@@ -2097,10 +2146,35 @@ function bindAll(){
   $('sym-sel').addEventListener('change',()=>{G.symmetry=$('sym-sel').value;$('symn-row').style.display=(G.symmetry==='radial')?'flex':'none';drawBg();});
   $('sym-n').addEventListener('input',()=>{G.symN=Math.max(2,Math.min(16,parseInt($('sym-n').value)||6));drawBg();});
   $('btn-anchor').addEventListener('click',()=>{G.anchorMode=true;const cw=$('cw');if(cw)cw.style.cursor='crosshair';const b=$('snap-badge');if(b){b.style.display='block';b.style.pointerEvents='none';b.textContent='◎ 기준점 위치를 탭하세요';}});
-  $('sl-col').addEventListener('click',()=>{const c=$('sl').classList.toggle('collapsed');$('sl-col').textContent=c?'›':'‹';});
-  $('sr-col').addEventListener('click',()=>{const c=$('sr').classList.toggle('collapsed');$('sr-col').textContent=c?'‹':'›';});
-  $('tgl-sl').addEventListener('click',()=>$('sl').classList.toggle('hide'));
-  $('tgl-sr').addEventListener('click',()=>$('sr').classList.toggle('hide'));
+  // ── 프로크리에이트식 상단 바 / 사이드바 ──
+  // 패널은 한 번에 하나만 (팔레트/도구·가이드/레이어)
+  function closePanels(except){['sl','sr'].forEach(id=>{if(id!==except)$(id).classList.remove('show');});}
+  function showSrTab(tab){
+    document.querySelectorAll('.tb').forEach(x=>x.classList.toggle('act',x.dataset.tab===tab));
+    document.querySelectorAll('.tp').forEach(x=>x.classList.remove('act'));
+    $('tab-'+tab).classList.add('act');
+  }
+  function togglePanel(id,tab){
+    const el=$(id),isShown=el.classList.contains('show');
+    $('colpop').classList.remove('open');$('morepop').classList.remove('open');
+    if(tab){
+      const curTab=(document.querySelector('.tb.act')||{}).dataset?.tab;
+      if(isShown&&curTab===tab){el.classList.remove('show');return;} // 같은 탭 다시 누르면 닫기
+      closePanels(id);showSrTab(tab);el.classList.add('show');return;
+    }
+    const willOpen=!isShown;closePanels(willOpen?id:null);el.classList.toggle('show',willOpen);
+  }
+  $('sl-col').addEventListener('click',()=>$('sl').classList.remove('show'));
+  $('sr-col').addEventListener('click',()=>$('sr').classList.remove('show'));
+  const PAINT_MODES=['stamp','draw','graph','text'];
+  $('btn-paint').addEventListener('click',()=>{if(!PAINT_MODES.includes(G.mode))setMode(G.prevPaint||'stamp');togglePanel('sl');});
+  $('btn-erase').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode('eraser');});
+  $('btn-modify').addEventListener('click',()=>{closePanels();setMode('pick');});
+  $('btn-layers').addEventListener('click',()=>togglePanel('sr','layers'));
+  $('btn-adjust').addEventListener('click',()=>togglePanel('sr','tools'));
+  $('btn-sel-top').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode('select');});
+  $('btn-trans').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode('selection');});
+  $('op-rail').addEventListener('input',()=>{const v=parseInt($('op-rail').value);G.opacity=v/100;const sv=$('op-rail-v');if(sv)sv.textContent=v;});
   $('topcol').addEventListener('click',e=>{e.stopPropagation();$('morepop').classList.remove('open');const op=$('colpop').classList.toggle('open');if(op){syncWheelFromColor();renderColorHist();}});
   $('colpop-x').addEventListener('click',()=>$('colpop').classList.remove('open'));
   // 컬러 휠 + 명도 슬라이더
@@ -2118,7 +2192,11 @@ function bindAll(){
   $('btn-exp2').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-exp');});
   document.addEventListener('click',e=>{
     const cp=$('colpop');if(cp&&cp.classList.contains('open')&&!cp.contains(e.target)&&e.target.id!=='topcol')cp.classList.remove('open');
-    const mp=$('morepop');if(mp&&mp.classList.contains('open')&&!mp.contains(e.target)&&e.target.id!=='btn-more')mp.classList.remove('open');
+    const mp=$('morepop');if(mp&&mp.classList.contains('open')&&!mp.contains(e.target)&&!e.target.closest('#btn-more'))mp.classList.remove('open');
+    // 캔버스를 직접 탭하면 떠있는 패널 닫기 (도구 버튼/패널 내부 클릭은 유지)
+    if(e.target.closest('#cw')&&!e.target.closest('#tooldock')){
+      $('sl').classList.remove('show');$('sr').classList.remove('show');
+    }
   });
   $('size-rail').addEventListener('input',()=>{const v=parseInt($('size-rail').value);if(G.mode==='stamp'){G.stampSz=v;}else{G.brushSz=Math.min(30,v);const b=$('bsz');if(b)b.value=G.brushSz;const bv=$('bszv');if(bv)bv.textContent=G.brushSz+'px';}const sv=$('size-rail-v');if(sv)sv.textContent=v;});
   $('btn-exp').addEventListener('click',()=>openM('m-exp'));
@@ -2464,12 +2542,14 @@ function pasteFloat(){if(!G.clipboard)return;const r=selRect();const x=r?r.x:Mat
 function commitFloat(){if(!G.float)return;const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;mainCtx.save();mainCtx.translate(cx,cy);mainCtx.rotate(r);mainCtx.drawImage(f.cv,-f.w/2,-f.h/2);mainCtx.restore();G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();saveH();}
 function strokePolyCtx(ctx,poly){
   if(!poly||poly.length<1)return;
+  const oa=ctx.globalAlpha; if(G.opacity<1)ctx.globalAlpha=oa*G.opacity;
   ctx.lineWidth=G.brushSz;ctx.strokeStyle=G.color;ctx.lineCap='round';ctx.lineJoin='round';ctx.setLineDash([]);
   symXf().forEach(T=>{
     const q0=T(poly[0]);ctx.beginPath();ctx.moveTo(q0.x,q0.y);
     for(let i=1;i<poly.length;i++){const q=T(poly[i]);ctx.lineTo(q.x,q.y);}
     ctx.stroke();
   });
+  ctx.globalAlpha=oa;
 }
 function snapPts(arr){if(!G.gridOn)return arr;const out=[];let last=null;for(const p of arr){const s=snapToGrid(p);if(!last||Math.abs(s.x-last.x)>0.5||Math.abs(s.y-last.y)>0.5)out.push(s);last=s;}return out;}
 function stampPolyCtx(ctx,poly,ghost){
@@ -2477,9 +2557,9 @@ function stampPolyCtx(ctx,poly,ghost){
   const col=G.toolColors[G.stitch]||G.color;
   let pts=poly.length<2?[poly[0]]:resampleAlong(poly,STAMP_GAP);
   pts=snapPts(pts);
-  if(ghost)ctx.globalAlpha=0.55;
+  ctx.globalAlpha=ghost?0.55:G.opacity;
   symXf().forEach(T=>{for(const p of pts){const q=T(p);drawSVGStitch(ctx,q.x,q.y,G.stitch,col,G.stampSz||48,G.rot);}});
-  if(ghost)ctx.globalAlpha=1;
+  ctx.globalAlpha=1;
   if(!ghost)recordSymUse(G.stitch);
 }
 function renderPreview(){
