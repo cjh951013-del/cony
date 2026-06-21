@@ -39,6 +39,7 @@
 - **P5 캔버스 액션**(6b30be4): ⋯메뉴 좌우/상하 반전(전 레이어), 활성 레이어 지우기, 전체 초기화. **멀티레이어 히스토리**(`saveHMulti`→`{multi:[...]}`, undo/redo가 단일·멀티 항목 모두 처리). 캔버스 반전 undo로 전 레이어 복원.
 - **레이어 영속화(완료)**: 프로젝트별 `cony_layers_<id>` 키에 레이어 PNG+이름·가시성·투명도·blend 저장(`serializeLayers/persistLayers/restoreLayers`), 재오픈시 복원(쿼터초과 안전폐기, 없으면 평탄화 폴백). delP시 키 삭제.
 - **블렌드 모드(완료)**: 레이어별 `l.blend`(보통/곱하기/스크린/오버레이/어둡게/밝게/닷지/반전차)를 composite()의 globalCompositeOperation으로 적용, 패널 셀렉트. **레이어 이름변경**(✎). 둘다 영속.
+- **알파 잠금(완료, 🔓/🔒)**: `l.alphaLock`→레이어 ctx `globalCompositeOperation='source-atop'`(`applyLayerLock`, ensure/restore시 적용). 기존 불투명 픽셀 위에만 그려짐. **클리핑 마스크(완료, ⤓)**: `l.clip`→composite()에서 바로 아래 레이어 알파로 마스킹(temp 캔버스 destination-in, `_clipTmp` 재사용). 둘다 영속. ★레이어 시스템 완전체.
 - **내보내기(완료)**: PNG/JPG=합성+CONY 워터마크. **PDF=브라우저 인쇄 시트**(`exportPrintable`→#print-area: 제목+차트+자동범례+슬로건, `@media print`, 오프라인·모바일 OK, window.print).
 
 ## 최근 완료(main 병합) — 2026-06-21 세션
