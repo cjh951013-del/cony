@@ -475,6 +475,9 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
           <div class="sw-wrap" style="margin-bottom:5px">
             <div class="sw on" id="sw-grid"></div><span>격자(Grid)</span>
           </div>
+          <div class="sw-wrap" style="margin-bottom:5px">
+            <div class="sw" id="sw-nums"></div><span>코·단 번호 (좌하단=1)</span>
+          </div>
           <button class="ib" id="btn-anchor" style="width:100%;margin-bottom:6px;font-size:10px">◎ 기준점 잡기</button>
           <div class="sr2"><span>프레임</span>
             <select id="frame-sel">
@@ -754,6 +757,7 @@ let G={
   zoom:1,
   pan:{x:0,y:0},
   gridOn:true,
+  numbersOn:false,
   anchor:{x:600,y:600},anchorMode:false,
   frame:'circle',
   fRounds:6,
@@ -1038,8 +1042,20 @@ function drawBg(){
   ctx.fillStyle=G.bgColor;
   ctx.fillRect(0,0,CW,CH);
   if(G.gridOn) drawGrid(ctx);
+  if(G.numbersOn) drawNumbers(ctx);
   drawFrame(ctx);
   drawAnchor(ctx);
+}
+// 코·단 번호: 좌하단=1, 코(열)는 왼→오른쪽, 단(행)은 아래→위로 증가
+function drawNumbers(ctx){
+  const gs=40, nx=Math.floor(CW/gs), ny=Math.floor(CH/gs);
+  ctx.save();
+  ctx.fillStyle='rgba(120,120,200,0.6)';
+  ctx.font='600 14px sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  for(let c=0;c<nx;c++) ctx.fillText(String(c+1), c*gs+gs/2, CH-11);   // 코(열)
+  for(let r=0;r<ny;r++) ctx.fillText(String(r+1), 14, CH-(r*gs+gs/2)); // 단(행)
+  ctx.restore();
 }
 function snapToGrid(p){if(!G.gridOn)return p;const gs=40,a=G.anchor||{x:0,y:0};return{x:a.x+Math.round((p.x-a.x)/gs)*gs,y:a.y+Math.round((p.y-a.y)/gs)*gs};}
 function setAnchor(pos){G.anchor={x:pos.x,y:pos.y};G.anchorMode=false;const cw=$('cw');if(cw)cw.style.cursor='';const b=$('snap-badge');if(b)b.style.display='none';drawBg();}
@@ -1572,6 +1588,7 @@ function bindAll(){
   $('frame-sel').addEventListener('change',()=>{G.frame=$('frame-sel').value;drawBg();});
   $('frounds').addEventListener('input',()=>{G.fRounds=parseInt($('frounds').value);$('frv').textContent=G.fRounds;drawBg();});
   $('sw-grid').addEventListener('click',()=>{G.gridOn=!G.gridOn;$('sw-grid').classList.toggle('on',G.gridOn);drawBg();});
+  $('sw-nums').addEventListener('click',()=>{G.numbersOn=!G.numbersOn;$('sw-nums').classList.toggle('on',G.numbersOn);drawBg();});
   $('btn-anchor').addEventListener('click',()=>{G.anchorMode=true;const cw=$('cw');if(cw)cw.style.cursor='crosshair';const b=$('snap-badge');if(b){b.style.display='block';b.style.pointerEvents='none';b.textContent='◎ 기준점 위치를 탭하세요';}});
   $('sl-col').addEventListener('click',()=>{const c=$('sl').classList.toggle('collapsed');$('sl-col').textContent=c?'›':'‹';});
   $('sr-col').addEventListener('click',()=>{const c=$('sr').classList.toggle('collapsed');$('sr-col').textContent=c?'‹':'›';});
