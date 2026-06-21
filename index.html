@@ -737,6 +737,7 @@ let G={
   stitchOrder:{crochet:[...Array(12).keys()],knitting:[...Array(10).keys()]},
   stitchVisible:{crochet:new Array(12).fill(true),knitting:new Array(10).fill(true)},
   userYarns:[],
+  userSymbols:[],
   longPressTimer:null,
   dragSrcIdx:null,
   narrType:'ko',
@@ -769,6 +770,10 @@ function planChip(){
 
 /* ===================== CANVAS DRAW HELPERS ===================== */
 function drawSVGStitch(ctx,x,y,id,color,size,rot){
+  if(typeof id==='string'&&id.indexOf('cus_')===0){
+    const g=(G.userSymbols||[]).find(s=>s.id===id);
+    if(g){drawCustomGlyph(ctx,x,y,g,color,size,rot);return;}
+  }
   ctx.save();
   ctx.translate(x,y);
   if(rot) ctx.rotate(rot*Math.PI/180);
@@ -844,6 +849,54 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
       ctx.beginPath();ctx.arc(0,0,h*.5,0,Math.PI*2);ctx.stroke();
   }
   ctx.restore();
+}
+
+// 커스텀 기호 = 정규화 셀(좌표 -1..1 = ±h) 안의 요소 목록.
+//  el 종류: {t:'line',pts:[[x,y]..]} 폴리라인 / {t:'dot',x,y,r} 채운점 /
+//           {t:'circ',x,y,r} 원 / {t:'sym',id,x,y,s} 기존기호 삽입(조합)
+// 내부가 몇 개든 한 셀(size)로 정규화돼 표준기호와 같은 크기로 찍힌다.
+function drawCustomGlyph(ctx,x,y,glyph,color,size,rot){
+  ctx.save();
+  ctx.translate(x,y);
+  if(rot) ctx.rotate(rot*Math.PI/180);
+  ctx.strokeStyle=color;ctx.fillStyle=color;
+  ctx.lineWidth=Math.max(1.5,size/18);
+  ctx.lineCap='round';ctx.lineJoin='round';
+  const h=size/2,els=glyph.el||[];
+  els.forEach(e=>{
+    if(e.t==='line'&&e.pts&&e.pts.length){
+      ctx.beginPath();
+      e.pts.forEach((p,i)=>{i?ctx.lineTo(p[0]*h,p[1]*h):ctx.moveTo(p[0]*h,p[1]*h);});
+      ctx.stroke();
+    }else if(e.t==='dot'){
+      ctx.beginPath();ctx.arc(e.x*h,e.y*h,Math.max(1,(e.r||.12)*h),0,Math.PI*2);ctx.fill();
+    }else if(e.t==='circ'){
+      ctx.beginPath();ctx.arc(e.x*h,e.y*h,Math.max(1,(e.r||.4)*h),0,Math.PI*2);ctx.stroke();
+    }else if(e.t==='sym'&&e.id&&e.id!==glyph.id){
+      // 기존 기호를 셀 안에 축소 삽입(조합). 자기참조는 무한루프 방지로 제외.
+      drawSVGStitch(ctx,(e.x||0)*h,(e.y||0)*h,e.id,color,size*(e.s||.5),0);
+    }
+  });
+  ctx.restore();
+}
+// 커스텀 기호 추가/저장/로드 ──────────────────────────────
+function addCustomSymbol(name,el){
+  const id='cus_'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
+  const sym={id,name:name||'내 기호',el:el||[]};
+  G.userSymbols.push(sym);
+  persistUserSymbols();
+  return sym;
+}
+function deleteCustomSymbol(id){
+  G.userSymbols=G.userSymbols.filter(s=>s.id!==id);
+  if(G.stitch===id)G.stitch='ch';
+  persistUserSymbols();
+}
+function persistUserSymbols(){
+  try{localStorage.setItem('cony_usersymbols_v1',JSON.stringify(G.userSymbols));}catch(e){}
+}
+function loadUserSymbols(){
+  try{const s=localStorage.getItem('cony_usersymbols_v1');if(s){const a=JSON.parse(s);if(Array.isArray(a))G.userSymbols=a;}}catch(e){}
 }
 
 function drawStitchSVGIcon(container,id,size,color){
@@ -1018,6 +1071,29 @@ function renderShelf(){
     el.addEventListener('touchend',cancelLongPress);
     el.addEventListener('mouseleave',cancelLongPress);
     
+    list.appendChild(el);
+  });
+  // 커스텀(자작) 기호 — 표준 기호 뒤에 항상 함께 표시
+  (G.userSymbols||[]).forEach(s=>{
+    const el=document.createElement('div');
+    el.className='sc cus'+(s.id===G.stitch?' act':'');
+    el.dataset.cus=s.id;
+    const cvEl=document.createElement('canvas');
+    cvEl.width=cvEl.height=34;cvEl.className='sc-svg';
+    const col=G.toolColors[s.id]||G.color;
+    drawSVGStitch(cvEl.getContext('2d'),17,17,s.id,col,24,0);
+    const nm=document.createElement('div');nm.className='sc-nm';nm.textContent=s.name;
+    el.appendChild(cvEl);el.appendChild(nm);
+    el.addEventListener('click',()=>{
+      document.querySelectorAll('.sc').forEach(x=>x.classList.remove('act'));
+      el.classList.add('act');G.stitch=s.id;G.mode='stamp';setMode('stamp');
+    });
+    // 길게 누르기 = 삭제 확인
+    let delT=null;
+    const armDel=()=>{delT=setTimeout(()=>{if(confirm(`'${s.name}' 기호를 삭제할까요?`)){deleteCustomSymbol(s.id);renderShelf();}},650);};
+    const clrDel=()=>{if(delT){clearTimeout(delT);delT=null;}};
+    el.addEventListener('mousedown',armDel);el.addEventListener('touchstart',armDel,{passive:true});
+    el.addEventListener('mouseup',clrDel);el.addEventListener('touchend',clrDel);el.addEventListener('mouseleave',clrDel);
     list.appendChild(el);
   });
   renderToolColors();
@@ -1811,6 +1887,7 @@ function scheduleSH(){clearTimeout(shTm);shTm=setTimeout(saveH,800);}
 /* ===================== INIT ===================== */
 (function init(){
   loadPersisted();
+  loadUserSymbols();
   renderDash();
   // setup editor listeners
   setTimeout(()=>{
