@@ -369,6 +369,7 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
   <div id="morepop">
     <button class="mrow" id="btn-theme"><span class="mi">🌙</span><span>라이트 / 다크 모드</span></button>
     <button class="mrow" id="btn-panel-pos"><span class="mi">⇄</span><span>패널 위치 바꾸기</span></button>
+    <button class="mrow" id="btn-legend"><span class="mi">📋</span><span>기호 범례 보기</span></button>
     <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
     <button class="mrow d" id="btn-clr"><span class="mi">🗑</span><span>캔버스 초기화</span></button>
   </div>
@@ -635,6 +636,16 @@ canvas{position:absolute;top:0;left:0;transform-origin:top left;touch-action:non
   </div>
 </div>
 
+<!-- ===== MODAL: 범례(레전드) ===== -->
+<div class="mo" id="m-legend">
+  <div class="mc" style="max-width:340px">
+    <div class="mh"><h2>📋 기호 범례</h2><button class="mhx" onclick="closeM('m-legend')">✕</button></div>
+    <p style="font-size:11px;color:var(--text2);margin-bottom:8px">이 도안에 사용한 기호를 자동으로 모았어요.</p>
+    <div id="legend-list"></div>
+    <div class="mf"><button class="mb p" onclick="closeM('m-legend')">닫기</button></div>
+  </div>
+</div>
+
 <!-- ===== MODAL: 내 기호 만들기 ===== -->
 <div class="mo" id="m-sym">
   <div class="mc" style="max-width:360px">
@@ -758,6 +769,7 @@ let G={
   cur:null,
   mode:'stamp',
   stitch:'ch',
+  usedSymbols:[],
   color:'#ffffff',
   toolColors:{},
   bgColor:'#202024',
@@ -1173,10 +1185,16 @@ function applyTransform(){
 }
 
 /* ===================== DRAWING ===================== */
+function recordSymUse(id){if(id&&!G.usedSymbols.includes(id))G.usedSymbols.push(id);}
+function symName(id){
+  for(const t of ['crochet','knitting']){const s=STITCHES[t].find(x=>x.id===id);if(s)return s.name;}
+  const u=(G.userSymbols||[]).find(x=>x.id===id);return u?u.name+' (내 기호)':id;
+}
 function stampAt(x,y){
   const sz=G.stampSz||48;
   const col=G.toolColors[G.stitch]||G.color;
   drawSVGStitch(mainCtx,x,y,G.stitch,col,sz,G.rot);
+  recordSymUse(G.stitch);
 }
 
 /* ===================== HISTORY ===================== */
@@ -1194,7 +1212,25 @@ function saveH(){
 }
 function undo(){if(G.histIdx>0){G.histIdx--;mainCtx.putImageData(G.hist[G.histIdx],0,0);$('btn-undo').disabled=G.histIdx<=0;$('btn-redo').disabled=false;}}
 function redo(){if(G.histIdx<G.hist.length-1){G.histIdx++;mainCtx.putImageData(G.hist[G.histIdx],0,0);$('btn-redo').disabled=G.histIdx>=G.hist.length-1;$('btn-undo').disabled=false;}}
-function clearCv(){mainCtx.clearRect(0,0,CW,CH);}
+function clearCv(){mainCtx.clearRect(0,0,CW,CH);G.usedSymbols=[];}
+// 범례(레전드): 도안에 사용한 기호 목록을 모달에 자동 생성
+function openLegend(){
+  const box=$('legend-list');if(!box)return;
+  box.innerHTML='';
+  if(!G.usedSymbols.length){
+    box.innerHTML='<p style="font-size:12px;color:var(--text3)">아직 찍은 기호가 없어요. 기호를 도안에 찍으면 여기에 자동으로 정리됩니다.</p>';
+  }else{
+    G.usedSymbols.forEach(id=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)';
+      const cv=document.createElement('canvas');cv.width=cv.height=32;cv.style.flexShrink='0';
+      drawSVGStitch(cv.getContext('2d'),16,16,id,getComputedStyle(document.documentElement).getPropertyValue('--text')||'#333',24,0);
+      const nm=document.createElement('span');nm.style.cssText='font-size:13px;color:var(--text)';nm.textContent=symName(id);
+      row.appendChild(cv);row.appendChild(nm);box.appendChild(row);
+    });
+  }
+  openM('m-legend');
+}
 let ssTm;
 function setSS(){$('sst').textContent='💾 저장 중...';clearTimeout(ssTm);ssTm=setTimeout(()=>{$('sst').textContent='✓ 저장됨';},600);}
 
@@ -1655,6 +1691,7 @@ function bindAll(){
   $('topcol').addEventListener('click',e=>{e.stopPropagation();$('morepop').classList.remove('open');$('colpop').classList.toggle('open');});
   $('colpop-x').addEventListener('click',()=>$('colpop').classList.remove('open'));
   $('btn-more').addEventListener('click',e=>{e.stopPropagation();$('colpop').classList.remove('open');$('morepop').classList.toggle('open');});
+  $('btn-legend').addEventListener('click',()=>{$('morepop').classList.remove('open');openLegend();});
   $('btn-exp2').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-exp');});
   document.addEventListener('click',e=>{
     const cp=$('colpop');if(cp&&cp.classList.contains('open')&&!cp.contains(e.target)&&e.target.id!=='topcol')cp.classList.remove('open');
@@ -1930,6 +1967,7 @@ function stampShape(ctx,s,ghost){
   if(ghost)ctx.globalAlpha=0.55;
   for(const p of pts)drawSVGStitch(ctx,p.x,p.y,G.stitch,col,G.stampSz||48,G.rot);
   if(ghost)ctx.globalAlpha=1;
+  if(!ghost)recordSymUse(G.stitch);
 }
 function shapeAddStitch(d){if(!G.shape||G.mode!=='stamp')return;G.shape.n=Math.max(2,shapeStitchCount(G.shape)+d);showShapeBar();renderEdit();}
 function cycleShapeTypeBtn(){cycleShapeType();}
@@ -1979,6 +2017,7 @@ function stampPolyCtx(ctx,poly,ghost){
   if(ghost)ctx.globalAlpha=0.55;
   for(const p of pts)drawSVGStitch(ctx,p.x,p.y,G.stitch,col,G.stampSz||48,G.rot);
   if(ghost)ctx.globalAlpha=1;
+  if(!ghost)recordSymUse(G.stitch);
 }
 function renderPreview(){
   if(!prevCtx)return;
