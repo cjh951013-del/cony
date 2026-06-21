@@ -30,6 +30,15 @@
 - `drawCustomGlyph()` 렌더 + `drawSVGStitch`가 `cus_*` id를 위임(자기참조 가드). `addCustomSymbol/deleteCustomSymbol/persistUserSymbols/loadUserSymbols`(localStorage `cony_usersymbols_v1`, init에서 로드).
 - 팔레트(#stitch-list)에 표준 뒤로 `.sc.cus` 표시(탭=스탬프 선택, 길게=삭제). 편집기 모달 `#m-sym`(좌하단 ‘＋ 내 기호 만들기’): 정규화 캔버스에 선(폴리라인+✓선완료)·점·원·기호삽입(표준22종 조합) 탭으로 그림, 되돌리기/비우기/저장. `openSymEditor/drawSymEditor/symCanvasTap/bindSymEditor`.
 
+## 프로크리에이트 패리티(P1~P5) — 완료, main 병합 (2026-06-21)
+사용자 요청: "완전히 프로크리에이트처럼, 기존 PS 유저도 위화감 없이 + 새 기능". 기존 기능 다 가져오는 방향.
+- **P1 진짜 레이어**(1d3183f): 각 레이어=별도 오프스크린 캔버스(`l.cv/l.ctx`), `mainCtx`=활성 레이어 포인터(그리기 코드 그대로), `main-c`=`dispCtx` 표시전용, `composite()`가 가시성·투명도·순서 합성. **레이어 인식 글로벌 undo**(히스토리 항목 `{lid,data}`, `prevDataFor`로 해당 레이어 직전 스냅샷 복원). 패널: 썸네일·이름·투명도%·👁토글·선택, 활성레이어에 투명도 슬라이더+⬆⬇순서+🔻병합+🗑삭제. `composite()`는 모든 커밋/지우개·방안 라이브/링/텍스트/선택 리프트·붙이기·삭제/undo·redo/clear/restore에 연결.
+- **P2 스포이드**(0b0e63f): 도크 💧, `pickColorAt`=위 레이어부터 첫 불투명 픽셀색(없으면 배경), 추출 후 직전 모드 복귀(`G.prevMode`).
+- **P3 대칭 가이드**(a36637e): `G.symmetry`(v/h/quad/radial N), `symXf()` 변환목록을 strokePolyCtx·stampPolyCtx·stampShape·stampAt·fillCell에 적용(그리기·스탬프·도형·방안 전부 미러, 프리뷰 포함). 앵커 기준 대칭축 점선 가이드.
+- **P4 컬러 휠**(156bb06): 색상 팝오버에 HSB 디스크(각=색상,반경=채도)+명도 슬라이더+선택마커, `hsv2rgb/rgb2hsv`. **색 히스토리**(`G.colorHist`, 커밋시 누적·중복제거·최대10, 클릭 재선택).
+- **P5 캔버스 액션**(6b30be4): ⋯메뉴 좌우/상하 반전(전 레이어), 활성 레이어 지우기, 전체 초기화. **멀티레이어 히스토리**(`saveHMulti`→`{multi:[...]}`, undo/redo가 단일·멀티 항목 모두 처리). 캔버스 반전 undo로 전 레이어 복원.
+> ⚠️ 자동저장(snapshotCurrent/restoreCanvas)은 합성(평탄화) PNG로 저장·복원 → **레이어별 영속화는 미구현**(복원시 단일 레이어로 평탄화됨). 차후 작업.
+
 ## 최근 완료(main 병합) — 2026-06-21 세션
 - **코·단 번호매기기**(`G.numbersOn` 토글, `drawNumbers`, 좌하단=1). **표준기호 +10**(코바늘: fpdc/bpdc/cl/puff/shell/spike, 대바늘: p2tog/m1/rc/lc; `stitchOrder`는 배열길이서 동적). **범례 자동**(`recordSymUse`로 스탬프시 기록→`openLegend` 모달, ⋯메뉴). **방사 배치**(`G.radial` 토글=앵커 향해 자동회전 스탬프, `placeRing`=원형 N개; 가이드섹션 개수/반지름). **방안뜨기 모드**(도크 ▦, `fillCell`=40px 격자칸 색칠; onDown/Move/Up graph 분기).
 
