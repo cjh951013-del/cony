@@ -1959,7 +1959,7 @@ let persistTm;
 function schedulePersist(){clearTimeout(persistTm);persistTm=setTimeout(snapshotCurrent,1000);}
 // 레이어 영속화: 프로젝트별 키에 레이어 PNG+메타 저장(쿼터 초과시 안전 폐기)
 function serializeLayers(){
-  return G.layers.map(l=>({name:l.name,visible:l.visible!==false,opacity:(l.opacity==null?1:l.opacity),blend:l.blend||'source-over',alphaLock:!!l.alphaLock,clip:!!l.clip,png:l.cv?l.cv.toDataURL('image/png'):null}));
+  return G.layers.map(l=>({name:l.name,visible:l.visible!==false,opacity:(l.opacity==null?1:l.opacity),blend:l.blend||'source-over',alphaLock:!!l.alphaLock,clip:!!l.clip,isRef:!!l.isRef,png:l.cv?l.cv.toDataURL('image/png'):null}));
 }
 function persistLayers(){
   if(!G.cur)return;
@@ -1971,7 +1971,7 @@ function loadLayersData(id){
   return null;
 }
 function restoreLayers(data,done){
-  G.layers=data.map((d,i)=>({id:i+1,name:d.name||('레이어 '+(i+1)),visible:d.visible!==false,opacity:(d.opacity==null?1:d.opacity),blend:d.blend||'source-over',alphaLock:!!d.alphaLock,clip:!!d.clip}));
+  G.layers=data.map((d,i)=>({id:i+1,name:d.name||('레이어 '+(i+1)),visible:d.visible!==false,opacity:(d.opacity==null?1:d.opacity),blend:d.blend||'source-over',alphaLock:!!d.alphaLock,clip:!!d.clip,isRef:!!d.isRef}));
   G.activeL=G.layers[G.layers.length-1].id;
   ensureLayerCanvases();setActiveCtx();
   let pending=0;
@@ -2187,6 +2187,7 @@ function renderToolColors(){
 /* ===================== LAYERS ===================== */
 function toggleLayerVis(id){const l=layerById(id);if(l){l.visible=!l.visible;composite();renderLayers();}}
 function toggleAlphaLock(id){const l=layerById(id);if(l){l.alphaLock=!l.alphaLock;applyLayerLock(l);renderLayers();schedulePersist();}}
+function toggleRef(id){const l=layerById(id);if(!l)return;const wasRef=l.isRef;G.layers.forEach(x=>x.isRef=false);l.isRef=!wasRef;renderLayers();schedulePersist();if(l.isRef)showToast('참조 레이어: '+l.name+' — 이 경계를 따라 색을 채웁니다');else showToast('참조 레이어 해제');}
 function toggleClip(id){const l=layerById(id);if(l){l.clip=!l.clip;composite();renderLayers();schedulePersist();}}
 function setLayerBlend(id,b){const l=layerById(id);if(l){l.blend=b;composite();schedulePersist();}}
 function renameLayer(id){
@@ -2268,7 +2269,7 @@ function renderLayers(){
       const blendOpts=BLEND_MODES.map(m=>`<option value="${m[0]}"${(l.blend||'source-over')===m[0]?' selected':''}>${m[1]}</option>`).join('');
       ctr.innerHTML=`<input type="range" min="0" max="100" value="${Math.round((l.opacity==null?1:l.opacity)*100)}" class="lopr" title="투명도">
         <select class="lblend">${blendOpts}</select>
-        <div class="lbtns"><button data-a="lock">${l.alphaLock?'🔒':'🔓'}</button><button data-a="clip" title="아래 레이어로 클리핑" style="${l.clip?'color:var(--primary)':''}">⤓</button><button data-a="rename">✎</button><button data-a="up">⬆</button><button data-a="down">⬇</button><button data-a="merge">🔻</button><button data-a="del" class="d">🗑</button></div>`;
+        <div class="lbtns"><button data-a="lock">${l.alphaLock?'🔒':'🔓'}</button><button data-a="clip" title="클리핑" style="${l.clip?'color:var(--primary)':''}">⤓</button><button data-a="ref" title="참조 레이어" style="${l.isRef?'color:#38bdf8;border-color:#38bdf8':''}">Ref</button><button data-a="rename">✎</button><button data-a="up">⬆</button><button data-a="down">⬇</button><button data-a="merge">🔻</button><button data-a="del" class="d">🗑</button></div>`;
       const slider=ctr.querySelector('.lopr');
       slider.addEventListener('input',e=>{setLayerOpacity(l.id,e.target.value/100);const op=el.querySelector('.lop');if(op)op.textContent=e.target.value+'%';});
       slider.addEventListener('click',e=>e.stopPropagation());
@@ -2277,7 +2278,7 @@ function renderLayers(){
       bl.addEventListener('change',e=>{setLayerBlend(l.id,e.target.value);});
       ctr.querySelectorAll('.lbtns button').forEach(b=>b.addEventListener('click',e=>{
         e.stopPropagation();const a=b.dataset.a;
-        if(a==='lock')toggleAlphaLock(l.id);else if(a==='clip')toggleClip(l.id);else if(a==='rename')renameLayer(l.id);else if(a==='up')moveLayer(l.id,1);else if(a==='down')moveLayer(l.id,-1);
+        if(a==='lock')toggleAlphaLock(l.id);else if(a==='clip')toggleClip(l.id);else if(a==='ref')toggleRef(l.id);else if(a==='rename')renameLayer(l.id);else if(a==='up')moveLayer(l.id,1);else if(a==='down')moveLayer(l.id,-1);
         else if(a==='merge')mergeDown(l.id);else if(a==='del')deleteLayer(l.id);
       }));
       list.appendChild(ctr);
@@ -2429,24 +2430,30 @@ function floodFill(x0,y0){
   x0=Math.round(x0);y0=Math.round(y0);
   if(x0<0||y0<0||x0>=CW||y0>=CH)return;
   const imgD=mainCtx.getImageData(0,0,CW,CH),d=imgD.data;
+  // 참조 레이어: 경계 인식에 사용
+  const refL=G.layers.find(l=>l.isRef&&l.id!==G.activeL&&l.visible&&l.cv);
+  const refD=refL?refL.ctx.getImageData(0,0,CW,CH).data:null;
   const off=(y0*CW+x0)*4;
   const sr=d[off],sg=d[off+1],sb=d[off+2],sa=d[off+3];
   const [fr,fg,fb]=hex2rgb(G.color);const fa=Math.round(G.opacity*255);
   if(sr===fr&&sg===fg&&sb===fb&&sa===fa)return;
   const thr=G.fillThreshold!=null?G.fillThreshold:40;
-  function match(i){return Math.abs(d[i]-sr)+Math.abs(d[i+1]-sg)+Math.abs(d[i+2]-sb)+Math.abs(d[i+3]-sa)<=thr;}
+  function match(i,px,py){
+    if(refD&&refD[(py*CW+px)*4+3]>20)return false; // ref 경계는 통과 불가
+    return Math.abs(d[i]-sr)+Math.abs(d[i+1]-sg)+Math.abs(d[i+2]-sb)+Math.abs(d[i+3]-sa)<=thr;
+  }
   function fill(i){d[i]=fr;d[i+1]=fg;d[i+2]=fb;d[i+3]=fa;}
   const vis=new Uint8Array(CW*CH);
   const q=[x0,y0];vis[x0+y0*CW]=1;fill(off);
   let qi=0;
   while(qi<q.length){
     const x=q[qi++],y=q[qi++];
-    const nx=[x-1,y,x+1,y,x,y-1,x,y+1];
+    const neighbors=[x-1,y,x+1,y,x,y-1,x,y+1];
     for(let k=0;k<4;k++){
-      const px=nx[k*2],py=nx[k*2+1];
+      const px=neighbors[k*2],py=neighbors[k*2+1];
       if(px<0||py<0||px>=CW||py>=CH)continue;
       const ni=px+py*CW;if(vis[ni])continue;
-      if(match(ni*4)){vis[ni]=1;fill(ni*4);q.push(px,py);}
+      if(match(ni*4,px,py)){vis[ni]=1;fill(ni*4);q.push(px,py);}
     }
   }
   mainCtx.putImageData(imgD,0,0);composite();saveH();pushColorHist(G.color);
