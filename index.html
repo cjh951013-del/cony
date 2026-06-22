@@ -125,6 +125,9 @@ html[data-theme=light] #eh{background:linear-gradient(180deg,rgba(255,255,255,.8
 .pc-tb:hover{background:rgba(60,60,92,.85)}
 .pc-tb.act{background:var(--primary);border-color:var(--primary);color:#fff}
 .pc-tb.txt{font-size:12.5px;font-weight:600}
+.pc-ic{stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.pc-tb svg,.pc-sq svg,#tooldock .ib svg,.fbb svg{display:block;margin:auto}
+.pc-modes .tbtn svg{margin:0 auto}
 html[data-theme=light] .pc-tb{background:rgba(255,255,255,.72);border-color:rgba(0,0,0,.07);color:var(--text)}
 #topcol{-webkit-appearance:none;appearance:none;width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.5);box-shadow:inset 0 0 0 2px rgba(0,0,0,.25)}
 
@@ -994,6 +997,31 @@ function resetLayers(){ // 새 프로젝트: 단일 빈 레이어로 초기화
 
 /* ===================== UTILS ===================== */
 const $=id=>document.getElementById(id);
+/* ===== 프로크리에이트식 라인 아이콘 (이모지 대체) ===== */
+const ICONS={
+  wrench:'<path d="M14.8 6.2a3.7 3.7 0 0 0-4.9 4.7l-5 5a1.7 1.7 0 1 0 2.4 2.4l5-5a3.7 3.7 0 0 0 4.7-4.9l-2.2 2.2-2.1-.4-.4-2.1z"/>',
+  wand:'<path d="M6 18 14.5 9.5"/><path d="M16.5 3.2l.85 2.45 2.45.85-2.45.85-.85 2.45-.85-2.45L13.2 6.5l2.45-.85z"/><path d="M5.5 6.5l.4 1.2 1.2.4-1.2.4-.4 1.2-.4-1.2L3.4 8.1l1.2-.4z"/>',
+  marquee:'<rect x="4.5" y="4.5" width="15" height="15" rx="2.4" stroke-dasharray="2.4 2.8"/>',
+  move:'<path d="M12 3.5v17M3.5 12h17"/><path d="M12 3.5 9.7 6M12 3.5 14.3 6M12 20.5 9.7 18M12 20.5 14.3 18M3.5 12 6 9.7M3.5 12 6 14.3M20.5 12 18 9.7M20.5 12 18 14.3"/>',
+  brush:'<path d="M5 19.5s.6-3.6 2.5-5.4c1.4-1.3 3.2-1.1 4.2.1.9 1.1 1 2.8-.4 4.1-1.9 1.8-6.3 1.2-6.3 1.2z"/><path d="M11.5 13.6 19.2 6a1.9 1.9 0 0 0-2.7-2.7L9 11"/>',
+  eraser:'<path d="M8 18.5 4.7 15.2a1.6 1.6 0 0 1 0-2.3l7.2-7.2a1.6 1.6 0 0 1 2.3 0l3.3 3.3a1.6 1.6 0 0 1 0 2.3l-6.3 6.3z"/><path d="M8 18.5h9.5"/>',
+  layers:'<path d="M12 3.8 3.6 8.5 12 13.2l8.4-4.7z"/><path d="M4.6 12.3 3.6 13.5 12 18.2l8.4-4.7-1-1.2"/>',
+  dropper:'<path d="M15.2 4.8 19 8.6M17 6.7 8.7 15l-.9 3.5 3.5-.9 8.3-8.3a2 2 0 0 0-2.9-2.8z"/>',
+  undo:'<path d="M4.5 9.5H13a5.5 5.5 0 1 1 0 11h-2.5"/><path d="M4.5 9.5 8 6M4.5 9.5 8 13"/>',
+  redo:'<path d="M19.5 9.5H11a5.5 5.5 0 1 0 0 11h2.5"/><path d="M19.5 9.5 16 6M19.5 9.5 16 13"/>',
+  fit:'<path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/>',
+  stamp:'<rect x="5" y="5" width="14" height="14" rx="2.5"/><circle cx="12" cy="12" r="3.3"/>',
+  pen:'<path d="M5 19l1-3.5L15.5 6a1.8 1.8 0 0 1 2.6 2.6L8.5 18 5 19z"/>',
+  graph:'<rect x="4.5" y="4.5" width="15" height="15" rx="1.5"/><path d="M9.5 4.5v15M14.5 4.5v15M4.5 9.5h15M4.5 14.5h15"/>',
+  text:'<path d="M6 6h12M12 6v12M9.5 18h5"/>'
+};
+function svgIcon(name,sz){return '<svg class="pc-ic" viewBox="0 0 24 24" width="'+(sz||22)+'" height="'+(sz||22)+'">'+(ICONS[name]||'')+'</svg>';}
+function injectIcons(){
+  const map={'btn-more':'wrench','btn-adjust':'wand','btn-sel-top':'marquee','btn-trans':'move','btn-paint':'brush','btn-erase':'eraser','btn-layers':'layers','btn-modify':'dropper','btn-undo':'undo','btn-redo':'redo','btn-ctr':'fit'};
+  for(const id in map){const e=$(id);if(e)e.innerHTML=svgIcon(map[id], id==='btn-undo'||id==='btn-redo'?20:id==='btn-modify'?20:22);}
+  const lbl={stamp:'기호',draw:'펜',graph:'방안',text:'글자'}, ic={stamp:'stamp',draw:'pen',graph:'graph',text:'text'};
+  document.querySelectorAll('.pc-modes .tbtn[data-mode]').forEach(b=>{const m=b.dataset.mode;b.innerHTML=svgIcon(ic[m],19)+'<span>'+(lbl[m]||m)+'</span>';});
+}
 function openM(id){$(id).classList.add('open')}
 function closeM(id){$(id).classList.remove('open')}
 window.closeM=closeM;
@@ -2370,6 +2398,7 @@ function bindAll(){
   
   // AD STRIPS
   document.querySelectorAll('.ad-strip').forEach(el=>el.addEventListener('click',()=>alert('광고 클릭 → 외부 링크 연동 (애드센스 또는 제휴 링크)')));
+  injectIcons();
 }
 
 /* ===================== DRAW ENGINE (Procreate / Pinpino style) ===================== */
