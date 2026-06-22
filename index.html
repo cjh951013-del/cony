@@ -3604,7 +3604,7 @@ function bindAll(){
   $('fill-thr').addEventListener('input',()=>{G.fillThreshold=parseInt($('fill-thr').value);$('fill-thrv').textContent=G.fillThreshold;});
   document.querySelectorAll('.ssb').forEach(b=>b.addEventListener('click',()=>{
     G.selMode=b.dataset.sm;document.querySelectorAll('.ssb').forEach(x=>x.classList.toggle('act',x===b));
-    G.selStart=G.selEnd=null;G.selPath=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);$('sel-tb').style.display='none';
+    G.selStart=G.selEnd=null;G.selPath=null;stopMarchAnts();if(prevCtx)prevCtx.clearRect(0,0,CW,CH);$('sel-tb').style.display='none';
   }));
   
   // CANVAS EVENTS
@@ -3866,6 +3866,35 @@ function selRect(){
   if(G.selMode==='lasso'){if(!G.selPath||G.selPath.length<3)return null;let a=1e9,b=1e9,c=-1e9,d=-1e9;G.selPath.forEach(p=>{a=Math.min(a,p.x);b=Math.min(b,p.y);c=Math.max(c,p.x);d=Math.max(d,p.y);});const w=c-a,h=d-b;return(w<2||h<2)?null:{x:a,y:b,w,h};}
   if(!G.selStart||!G.selEnd)return null;const x=Math.min(G.selStart.x,G.selEnd.x),y=Math.min(G.selStart.y,G.selEnd.y),w=Math.abs(G.selEnd.x-G.selStart.x),h=Math.abs(G.selEnd.y-G.selStart.y);return(w<2||h<2)?null:{x,y,w,h};}
 // 선택 모양 경로를 ctx에 그림(offset 만큼 평행이동). 사각형은 false 반환(마스크 불필요)
+/* ===== 마칭 앤츠 선택 애니메이션 ===== */
+let _marchOff=0,_marchRaf=null;
+function drawSelOutline(){
+  if(!prevCtx||!G.selStart||G.isDrawing||G.float)return;
+  const r=selRect();if(!r)return;
+  prevCtx.save();
+  prevCtx.clearRect(0,0,CW,CH);
+  const lw=Math.max(1,1.5/G.zoom);
+  const ds=8/G.zoom,dg=5/G.zoom;
+  // 흰 선 (바깥)
+  prevCtx.strokeStyle='rgba(255,255,255,.9)';prevCtx.lineWidth=lw;
+  prevCtx.setLineDash([ds,dg]);prevCtx.lineDashOffset=-_marchOff;
+  prevCtx.beginPath();
+  if(!traceSel(prevCtx,r,0,0))prevCtx.rect(r.x,r.y,r.w,r.h);
+  prevCtx.stroke();
+  // 보라 선 (안)
+  prevCtx.strokeStyle='rgba(168,85,247,.85)';
+  prevCtx.setLineDash([ds,dg]);prevCtx.lineDashOffset=-_marchOff+(ds+dg)/2;
+  prevCtx.beginPath();
+  if(!traceSel(prevCtx,r,0,0))prevCtx.rect(r.x,r.y,r.w,r.h);
+  prevCtx.stroke();
+  prevCtx.restore();
+}
+function startMarchAnts(){
+  stopMarchAnts();
+  function tick(){_marchOff=(_marchOff+0.4)%((8+5)/1);drawSelOutline();_marchRaf=requestAnimationFrame(tick);}
+  _marchRaf=requestAnimationFrame(tick);
+}
+function stopMarchAnts(){if(_marchRaf){cancelAnimationFrame(_marchRaf);_marchRaf=null;}}
 function traceSel(ctx,r,ox,oy){
   ox=ox||0;oy=oy||0;
   if(G.selMode==='ellipse'){ctx.ellipse(r.x+r.w/2-ox,r.y+r.h/2-oy,r.w/2,r.h/2,0,0,7);return true;}
@@ -4060,7 +4089,7 @@ const QM_ACTIONS={
   paste:{qi:'📌',ql:'붙이기',fn:()=>pasteFloat()},
   dupl:{qi:'⧉',ql:'레이어 복제',fn:()=>{const ab=$('btn-dupl');if(ab)ab.click();}},
   sel:{qi:'⬚',ql:'전체 선택',fn:()=>{setMode('select');G.selStart={x:0,y:0};G.selEnd={x:CW,y:CH};if(prevCtx){prevCtx.clearRect(0,0,CW,CH);prevCtx.strokeStyle='rgba(168,85,247,.85)';prevCtx.lineWidth=1.2;prevCtx.setLineDash([6,4]);prevCtx.strokeRect(0,0,CW,CH);}const st=$('sel-tb');if(st)st.style.display='flex';showToast('전체 선택');}},
-  desel:{qi:'⊗',ql:'선택 해제',fn:()=>{G.selStart=G.selEnd=null;G.selPath=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);const st=$('sel-tb');if(st)st.style.display='none';showToast('선택 해제');}},
+  desel:{qi:'⊗',ql:'선택 해제',fn:()=>{G.selStart=G.selEnd=null;G.selPath=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);const st=$('sel-tb');if(st)st.style.display='none';stopMarchAnts();showToast('선택 해제');}},
   ref:{qi:'🖼',ql:'참조 이미지',fn:()=>{const rp=$('ref-panel');if(rp&&rp.classList.contains('show')){rp.classList.remove('show');}else{$('ref-file-inp').click();}}},
 };
 const QM_POS=[{top:3,left:83},{top:43,left:152},{top:123,left:152},{top:163,left:83},{top:123,left:14},{top:43,left:14}];
@@ -4646,6 +4675,7 @@ function updateMulti(e){
 function onDown(e){
   e.preventDefault();
   hideBrushCursor();
+  stopMarchAnts();
   if(e.touches&&e.touches.length>=2){
     cancelLpPick();
     if(G.isDrawing&&G.path&&G.path.length>=2&&(G.mode==='draw'||G.mode==='stamp')){enterSnap();return;}
@@ -4823,6 +4853,7 @@ function onUp(e){
       const r=selRect();
       const sc=$('sel-count');
       if(sc&&r){const gs=40;const w=Math.max(0,Math.floor(r.w/gs));const h=Math.max(0,Math.floor(r.h/gs));sc.textContent=w&&h?`${w}코×${h}단`:`${Math.max(w,h)}코`;}
+      startMarchAnts();
     }
   }
   else if(G.mode==='eraser'){composite();saveH();}
