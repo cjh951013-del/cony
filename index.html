@@ -582,7 +582,7 @@ body.ui-hidden #row-counter{display:none!important}
     <button class="mrow" id="btn-quickshape"><span class="mi">📐</span><span>길게 눌러 도형 고정: 켜짐</span></button>
     <button class="mrow" id="btn-legend"><span class="mi">📋</span><span>기호 범례 보기</span></button>
     <button class="mrow" id="btn-img"><span class="mi">🖼</span><span>이미지 가져오기 (따라 그리기)</span></button>
-    <button class="mrow" id="btn-ref"><span class="mi">📌</span><span>레퍼런스 이미지 (투명 오버레이)</span></button>
+    <button class="mrow" id="btn-refov"><span class="mi">📌</span><span>레퍼런스 오버레이 (투명)</span></button>
     <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
     <button class="mrow" id="btn-col-stat"><span class="mi">📊</span><span>색상 사용 통계</span></button>
     <button class="mrow" id="btn-recolor"><span class="mi">🎨</span><span>색상 교체 (Recolor)</span></button>
@@ -2659,7 +2659,7 @@ function endFloodThrDrag(){
 function initRefOverlay(){
   const ref=$('ref-overlay'),ctrl=$('ref-ctrl'),opSlider=$('ref-op'),opV=$('ref-opv'),refInput=$('ref-input');
   if(!ref||!ctrl||!refInput)return;
-  $('btn-ref').addEventListener('click',()=>{$('morepop').classList.remove('open');refInput.click();});
+  const refBtn=$('btn-refov');if(refBtn)refBtn.addEventListener('click',()=>{$('morepop').classList.remove('open');refInput.click();});
   refInput.addEventListener('change',e=>{
     const f=e.target.files&&e.target.files[0];if(!f)return;
     const url=URL.createObjectURL(f);ref.src=url;ref.style.display='block';ref.style.opacity='0.4';
@@ -3624,6 +3624,34 @@ function bindAll(){
   bindColorDrop();
   initRefOverlay();
   initRefPanel();
+  // 캔버스에 이미지 파일 드래그&드롭 → 새 레이어로 가져오기 (Procreate-style)
+  const cwDrop=$('cw');
+  if(cwDrop){
+    cwDrop.addEventListener('dragover',e=>{
+      if(e.dataTransfer&&e.dataTransfer.types&&[...e.dataTransfer.types].includes('Files')){
+        e.preventDefault();e.dataTransfer.dropEffect='copy';
+        cwDrop.style.outline='3px solid var(--primary)';
+      }
+    });
+    cwDrop.addEventListener('dragleave',()=>{cwDrop.style.outline='';});
+    cwDrop.addEventListener('drop',e=>{
+      e.preventDefault();cwDrop.style.outline='';
+      const files=e.dataTransfer&&e.dataTransfer.files;
+      if(files&&files[0]&&files[0].type.startsWith('image/')){importImageFile(files[0]);showToast('이미지를 새 레이어로 가져오는 중...');}
+    });
+  }
+  // Ctrl+V / Cmd+V 클립보드 이미지 붙여넣기 → 새 레이어
+  document.addEventListener('paste',e=>{
+    if(G.screen!=='ed')return;
+    const items=e.clipboardData&&e.clipboardData.items;
+    if(!items)return;
+    for(const item of items){
+      if(item.type.startsWith('image/')){
+        e.preventDefault();const f=item.getAsFile();if(f)importImageFile(f);showToast('클립보드 이미지를 새 레이어로 붙여넣기');
+        break;
+      }
+    }
+  });
 }
 
 /* ===================== DRAW ENGINE (Procreate / Pinpino style) ===================== */
