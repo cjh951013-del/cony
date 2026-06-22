@@ -2828,7 +2828,13 @@ function showBrushCursor(screenX,screenY){
   const cwr=($('cw')||document.body).getBoundingClientRect();
   const sz=(G.mode==='stamp'?G.stampSz*G.zoom:G.mode==='eraser'?G.brushSz*4*G.zoom:G.brushSz*G.zoom);
   const d=Math.max(4,Math.round(sz*2));
-  _bcEl.style.cssText='display:block;width:'+d+'px;height:'+d+'px;left:'+(screenX-cwr.left)+'px;top:'+(screenY-cwr.top)+'px;';
+  // 모드별 커서 색상: 지우개=빨간 점선, 스머지=보라, 기본=흰 원
+  const isErase=G.mode==='eraser',isSmudge=G.mode==='smudge';
+  const col=isErase?'rgba(255,100,100,.88)':isSmudge?'rgba(180,120,255,.88)':'rgba(255,255,255,.88)';
+  const dash=isErase?'border-style:dashed;':'';
+  // 불투명도 낮으면 커서도 반투명
+  const op=G.opacity<1?`opacity:${Math.max(0.35,G.opacity)};`:'';
+  _bcEl.style.cssText=`display:block;width:${d}px;height:${d}px;left:${screenX-cwr.left}px;top:${screenY-cwr.top}px;border-color:${col};${dash}${op}`;
 }
 function hideBrushCursor(){if(!_bcEl)_bcEl=$('brush-cursor');if(_bcEl)_bcEl.style.display='none';}
 
