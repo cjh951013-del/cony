@@ -563,6 +563,8 @@ body.ui-hidden #row-counter{display:none!important}
     <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
     <button class="mrow" id="btn-fliph"><span class="mi">⇋</span><span>좌우 반전</span></button>
     <button class="mrow" id="btn-flipv"><span class="mi">⤲</span><span>상하 반전</span></button>
+    <button class="mrow" id="btn-rotcw"><span class="mi">↻</span><span>캔버스 90° 시계방향 회전</span></button>
+    <button class="mrow" id="btn-rotccw"><span class="mi">↺</span><span>캔버스 90° 반시계방향 회전</span></button>
     <button class="mrow" id="btn-clrlayer"><span class="mi">🧽</span><span>활성 레이어 지우기</span></button>
     <button class="mrow d" id="btn-clr"><span class="mi">🗑</span><span>전체 초기화</span></button>
   </div>
@@ -812,6 +814,21 @@ body.ui-hidden #row-counter{display:none!important}
           <div class="rr" style="margin-top:4px"><span style="font-size:9px;min-width:50px">채우기 허용값</span><input type="range" id="fill-thr" min="0" max="200" value="40"><span class="rv" id="fill-thrv">40</span></div>
         </div>
 
+        <div class="cg">
+          <div class="cgl">그라디언트 채우기</div>
+          <div style="display:flex;gap:3px;margin-bottom:5px">
+            <button class="ib grad-dir act" data-dir="tb" style="flex:1;font-size:10px">↓ 세로</button>
+            <button class="ib grad-dir" data-dir="lr" style="flex:1;font-size:10px">→ 가로</button>
+            <button class="ib grad-dir" data-dir="diag" style="flex:1;font-size:10px">↘ 대각</button>
+          </div>
+          <div class="rr" style="margin-bottom:4px">
+            <span style="font-size:9px;min-width:36px">끝색</span>
+            <input type="color" id="grad-col2" value="#000000" style="width:40px;height:24px;border:none;padding:0;background:none;cursor:pointer">
+            <label style="font-size:9px;color:var(--text3)">투명</label>
+            <input type="checkbox" id="grad-transp" checked style="margin:0">
+          </div>
+          <button class="ib" id="btn-grad-apply" style="width:100%;font-size:10px;background:var(--primary);border-color:var(--primary);color:#fff">⬛ 그라디언트 적용</button>
+        </div>
         <div class="cg">
           <div class="cgl">도안 내보내기</div>
           <button class="fb2" id="btn-exp">📦 PDF / PNG / JPG 내보내기</button>
@@ -1760,6 +1777,15 @@ function importImageFile(file){
 function flipActiveLayer(dir){flipLayerCv(activeLayer(),dir);composite();renderLayers();saveH();}
 function clearActiveLayer(){if(mainCtx)mainCtx.clearRect(0,0,CW,CH);composite();renderLayers();saveH();}
 function clearAllLayers(){G.layers.forEach(l=>l.ctx&&l.ctx.clearRect(0,0,CW,CH));G.usedSymbols=[];composite();renderLayers();saveHMulti();}
+function rotateCanvas(dir){
+  G.layers.forEach(l=>{
+    const tmp=document.createElement('canvas');tmp.width=CW;tmp.height=CH;
+    const tc=tmp.getContext('2d');
+    tc.save();tc.translate(CW/2,CH/2);tc.rotate(dir==='cw'?Math.PI/2:-Math.PI/2);tc.drawImage(l.cv,-CW/2,-CH/2);tc.restore();
+    l.ctx.clearRect(0,0,CW,CH);l.ctx.drawImage(tmp,0,0);
+  });
+  composite();renderLayers();saveHMulti();
+}
 function clearCv(){if(mainCtx)mainCtx.clearRect(0,0,CW,CH);G.usedSymbols=[];composite();}
 // 범례(레전드): 도안에 사용한 기호 목록을 모달에 자동 생성
 function openLegend(){
@@ -2618,6 +2644,8 @@ function bindAll(){
   $('btn-clr').addEventListener('click',()=>{$('morepop').classList.remove('open');if(confirm('모든 레이어를 비울까요? (전체 초기화)')){clearAllLayers();}});
   $('btn-fliph').addEventListener('click',()=>{$('morepop').classList.remove('open');flipCanvas('h');});
   $('btn-flipv').addEventListener('click',()=>{$('morepop').classList.remove('open');flipCanvas('v');});
+  $('btn-rotcw').addEventListener('click',()=>{$('morepop').classList.remove('open');rotateCanvas('cw');});
+  $('btn-rotccw').addEventListener('click',()=>{$('morepop').classList.remove('open');rotateCanvas('ccw');});
   $('btn-clrlayer').addEventListener('click',()=>{$('morepop').classList.remove('open');clearActiveLayer();});
   $('btn-ctr').addEventListener('click',()=>{fitToScreen();});
   $('btn-pro').addEventListener('click',()=>openM('m-pro'));
@@ -2847,6 +2875,25 @@ function bindAll(){
   // 모노라인 + 채우기 허용값
   $('sw-monoline').addEventListener('click',()=>{G.brushMonoline=!G.brushMonoline;$('sw-monoline').classList.toggle('on',G.brushMonoline);});
   $('sw-spray').addEventListener('click',()=>{G.brushSpray=!G.brushSpray;$('sw-spray').classList.toggle('on',G.brushSpray);});
+  let _gradDir='tb';
+  document.querySelectorAll('.grad-dir').forEach(b=>b.addEventListener('click',()=>{_gradDir=b.dataset.dir;document.querySelectorAll('.grad-dir').forEach(x=>x.classList.toggle('act',x===b));}));
+  $('btn-grad-apply').addEventListener('click',()=>{
+    if(!mainCtx)return;
+    const transp=$('grad-transp').checked;
+    const c2=transp?'rgba(0,0,0,0)':$('grad-col2').value;
+    const r=selRect();
+    const x0=r?r.x:0,y0=r?r.y:0,x1=r?r.x+r.w:CW,y1=r?r.y+r.h:CH;
+    let grd;
+    if(_gradDir==='tb')grd=mainCtx.createLinearGradient(x0,y0,x0,y1);
+    else if(_gradDir==='lr')grd=mainCtx.createLinearGradient(x0,y0,x1,y0);
+    else grd=mainCtx.createLinearGradient(x0,y0,x1,y1);
+    grd.addColorStop(0,G.color);grd.addColorStop(1,c2);
+    mainCtx.save();mainCtx.globalAlpha=G.opacity;mainCtx.fillStyle=grd;
+    if(r){mainCtx.beginPath();traceSel(mainCtx,r,0,0);mainCtx.fill();}
+    else mainCtx.fillRect(0,0,CW,CH);
+    mainCtx.restore();composite();saveH();pushColorHist(G.color);
+    showToast('그라디언트 적용 완료');
+  });
   $('fill-thr').addEventListener('input',()=>{G.fillThreshold=parseInt($('fill-thr').value);$('fill-thrv').textContent=G.fillThreshold;});
   document.querySelectorAll('.ssb').forEach(b=>b.addEventListener('click',()=>{
     G.selMode=b.dataset.sm;document.querySelectorAll('.ssb').forEach(x=>x.classList.toggle('act',x===b));
