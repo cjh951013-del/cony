@@ -2038,6 +2038,11 @@ function prevDataFor(lid,beforeIdx){
     else if(e.lid===lid)return e.data;}
   return null;
 }
+function _urFlash(col){
+  let fl=$('_ur-flash');
+  if(!fl){fl=document.createElement('div');fl.id='_ur-flash';fl.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:41;opacity:0;transition:opacity .08s';const cw=$('cw');if(cw)cw.appendChild(fl);else return;}
+  fl.style.background=col;fl.style.opacity='.22';setTimeout(()=>{fl.style.transition='opacity .22s';fl.style.opacity='0';},80);
+}
 function undo(){
   if(G.histIdx<=0){showToast('더 이상 실행취소 없음');return;}
   const cur=G.hist[G.histIdx];
@@ -2045,7 +2050,7 @@ function undo(){
   affected.forEach(lid=>{const prev=prevDataFor(lid,G.histIdx-1),l=layerById(lid);if(l){if(prev)l.ctx.putImageData(prev,0,0);else l.ctx.clearRect(0,0,CW,CH);}});
   if(!cur.multi){G.activeL=cur.lid;setActiveCtx();}
   G.histIdx--;composite();renderLayers();setUndoBtns();
-  showToast('실행 취소');
+  _urFlash('#000');showToast('실행 취소');
 }
 function redo(){
   if(G.histIdx>=G.hist.length-1){showToast('더 이상 다시실행 없음');return;}
@@ -2053,7 +2058,7 @@ function redo(){
   if(e.multi){e.multi.forEach(s=>{const l=layerById(s.lid);if(l)l.ctx.putImageData(s.data,0,0);});}
   else{const l=layerById(e.lid);if(l){l.ctx.putImageData(e.data,0,0);G.activeL=e.lid;setActiveCtx();}}
   composite();renderLayers();setUndoBtns();
-  showToast('다시 실행');
+  _urFlash('#fff');showToast('다시 실행');
 }
 // 캔버스/레이어 액션
 function flipLayerCv(l,dir){
