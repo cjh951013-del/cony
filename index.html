@@ -544,6 +544,7 @@ body.ui-hidden #row-counter{display:none!important}
       <button class="pc-tb" id="btn-paint" title="기호·펜">✏️</button>
       <button class="pc-tb" id="btn-smudge" title="문지르기"></button>
       <button class="pc-tb" id="btn-liquify" title="리퀴파이 (픽셀 밀기)"></button>
+      <button class="pc-tb" id="btn-grad" title="그라디언트 채우기 (드래그)"></button>
       <button class="pc-tb" id="btn-clone" title="복제 도장">⊕</button>
       <button class="pc-tb" id="btn-erase" title="지우개">🩹</button>
       <button class="pc-tb" id="btn-qm" title="빠른 메뉴">⚡</button>
@@ -1349,11 +1350,12 @@ const ICONS={
   pen:'<path d="M5 19l1-3.5L15.5 6a1.8 1.8 0 0 1 2.6 2.6L8.5 18 5 19z"/>',
   graph:'<rect x="4.5" y="4.5" width="15" height="15" rx="1.5"/><path d="M9.5 4.5v15M14.5 4.5v15M4.5 9.5h15M4.5 14.5h15"/>',
   text:'<path d="M6 6h12M12 6v12M9.5 18h5"/>',
-  qmenu:'<circle cx="12" cy="12" r="2.2"/><path d="M12 4v3.2M12 16.8V20M4 12h3.2M16.8 12H20M6.3 6.3l2.3 2.3M15.4 15.4l2.3 2.3M17.7 6.3l-2.3 2.3M8.6 15.4l-2.3 2.3"/>'
+  qmenu:'<circle cx="12" cy="12" r="2.2"/><path d="M12 4v3.2M12 16.8V20M4 12h3.2M16.8 12H20M6.3 6.3l2.3 2.3M15.4 15.4l2.3 2.3M17.7 6.3l-2.3 2.3M8.6 15.4l-2.3 2.3"/>',
+  gradient:'<defs><linearGradient id="gi" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a855f7"/><stop offset="100%" style="stop-color:transparent"/></linearGradient></defs><rect x="4.5" y="4.5" width="15" height="15" rx="2.5" fill="url(#gi)" stroke="currentColor" stroke-width="1.5" fill-opacity="0.7"/><line x1="5" y1="19" x2="19" y2="5" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3,2"/>'
 };
 function svgIcon(name,sz){return '<svg class="pc-ic" viewBox="0 0 24 24" width="'+(sz||22)+'" height="'+(sz||22)+'">'+(ICONS[name]||'')+'</svg>';}
 function injectIcons(){
-  const map={'btn-more':'wrench','btn-adjust':'wand','btn-sel-top':'marquee','btn-trans':'move','btn-paint':'brush','btn-smudge':'smudge','btn-liquify':'liquify','btn-erase':'eraser','btn-qm':'qmenu','btn-layers':'layers','btn-modify':'dropper','btn-undo':'undo','btn-redo':'redo','btn-ctr':'fit'};
+  const map={'btn-more':'wrench','btn-adjust':'wand','btn-sel-top':'marquee','btn-trans':'move','btn-paint':'brush','btn-smudge':'smudge','btn-liquify':'liquify','btn-grad':'gradient','btn-erase':'eraser','btn-qm':'qmenu','btn-layers':'layers','btn-modify':'dropper','btn-undo':'undo','btn-redo':'redo','btn-ctr':'fit'};
   for(const id in map){const e=$(id);if(e)e.innerHTML=svgIcon(map[id], id==='btn-undo'||id==='btn-redo'?20:id==='btn-modify'?20:22);}
   const lbl={stamp:'기호',draw:'펜',graph:'방안',text:'글자'}, ic={stamp:'stamp',draw:'pen',graph:'graph',text:'text'};
   document.querySelectorAll('.pc-modes .tbtn[data-mode]').forEach(b=>{const m=b.dataset.mode;b.innerHTML=svgIcon(ic[m],19)+'<span>'+(lbl[m]||m)+'</span>';});
@@ -3056,7 +3058,7 @@ function setMode(m){
   if(G.float)commitFloat();
   if(m==='pick'&&G.mode!=='pick')G.prevMode=G.mode;
   if(['stamp','draw','graph','text'].includes(m)){G.prevPaint=m;G.prevDraw=m;}
-  else if(m==='eraser'||m==='smudge'||m==='liquify'){if(!G.prevDraw)G.prevDraw=G.prevPaint||'stamp';}
+  else if(m==='eraser'||m==='smudge'||m==='liquify'||m==='gradient'){if(!G.prevDraw)G.prevDraw=G.prevPaint||'stamp';}
   G.mode=m;
   document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
   // 상단 바 도구 버튼 하이라이트 동기화 (프로크리에이트식)
@@ -3064,6 +3066,7 @@ function setMode(m){
   setAct('btn-paint',['stamp','draw','graph','text'].includes(m));
   setAct('btn-smudge',m==='smudge');
   setAct('btn-liquify',m==='liquify');
+  setAct('btn-grad',m==='gradient');
   setAct('btn-clone',m==='clone');
   setAct('btn-erase',m==='eraser');
   setAct('btn-modify',m==='pick');
@@ -3073,7 +3076,7 @@ function setMode(m){
   {const b=$('brush-cg');if(b)b.style.display=(m==='draw'||m==='eraser'||m==='text')?'block':'none';}
   {const s=$('stamp-cg');if(s)s.style.display=m==='stamp'?'block':'none';}
   const cw=$('cw');
-  if(cw)cw.style.cursor=m==='eraser'?'cell':m==='text'?'text':m==='pick'?'copy':m==='select'||m==='selection'?'default':m==='clone'?'cell':m==='liquify'?'grab':'crosshair';
+  if(cw)cw.style.cursor=m==='eraser'?'cell':m==='text'?'text':m==='pick'?'copy':m==='select'||m==='selection'?'default':m==='clone'?'cell':m==='liquify'?'grab':m==='gradient'?'crosshair':'crosshair';
   if(m!=='clone'){const ci=$('clone-src-ind');if(ci)ci.style.display='none';}
   const ss=$('sel-shape');if(ss)ss.classList.toggle('show',m==='select'||m==='selection');
 }
@@ -3159,6 +3162,7 @@ function bindAll(){
   $('btn-paint').addEventListener('click',()=>{if(!PAINT_MODES.includes(G.mode))setMode(G.prevPaint||'stamp');togglePanel('sl');});
   $('btn-smudge').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode(G.mode==='smudge'?(G.prevDraw||'stamp'):'smudge');});
   $('btn-liquify').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode(G.mode==='liquify'?(G.prevDraw||'stamp'):'liquify');if(G.mode==='liquify')showToast('리퀴파이: 드래그해서 픽셀을 밀어보세요');});
+  $('btn-grad').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode(G.mode==='gradient'?(G.prevDraw||'stamp'):'gradient');if(G.mode==='gradient')showToast('그라디언트: 드래그해서 방향·범위 설정');});
   $('btn-clone').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');if(G.mode==='clone'){G.cloneSrc=null;_cloneCanvas=null;setMode(G.prevDraw||'stamp');}else{G.cloneSrc=null;_cloneCanvas=null;setMode('clone');showToast('캔버스에 탭해 복제 원본을 설정하세요');}});
   $('btn-erase').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode(G.mode==='eraser'?(G.prevDraw||'stamp'):'eraser');});
   $('btn-modify').addEventListener('click',()=>{closePanels();setMode('pick');});
@@ -3895,7 +3899,21 @@ function applyAdjustments(brightness,contrast,hueShift,saturation,blur,noise,blo
 }
 function floatRotHandle(f){const cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0,d=f.h/2+Math.max(26,f.h*0.3);return{x:cx+d*Math.sin(r),y:cy-d*Math.cos(r),cx,cy};}
 function insideFloat(f,p){const cx=f.x+f.w/2,cy=f.y+f.h/2,r=-(f.rot||0),dx=p.x-cx,dy=p.y-cy,lx=dx*Math.cos(r)-dy*Math.sin(r),ly=dx*Math.sin(r)+dy*Math.cos(r);return Math.abs(lx)<=f.w/2&&Math.abs(ly)<=f.h/2;}
-function renderFloat(){if(!prevCtx)return;prevCtx.clearRect(0,0,CW,CH);const f=G.float;if(!f)return;const cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;prevCtx.save();prevCtx.translate(cx,cy);prevCtx.rotate(r);prevCtx.drawImage(f.cv,-f.w/2,-f.h/2);prevCtx.strokeStyle='rgba(168,85,247,.9)';prevCtx.lineWidth=Math.max(1,1.5/G.zoom);prevCtx.setLineDash([6/G.zoom,4/G.zoom]);prevCtx.strokeRect(-f.w/2,-f.h/2,f.w,f.h);prevCtx.restore();const h=floatRotHandle(f);prevCtx.save();prevCtx.setLineDash([]);prevCtx.strokeStyle='rgba(34,197,94,.9)';prevCtx.lineWidth=Math.max(1,1.5/G.zoom);prevCtx.beginPath();prevCtx.moveTo(cx,cy);prevCtx.lineTo(h.x,h.y);prevCtx.stroke();prevCtx.beginPath();prevCtx.arc(h.x,h.y,Math.max(5,8/G.zoom),0,7);prevCtx.fillStyle='#22c55e';prevCtx.fill();prevCtx.lineWidth=Math.max(1,2/G.zoom);prevCtx.strokeStyle='#fff';prevCtx.stroke();prevCtx.restore();}
+function renderFloat(){
+  if(!prevCtx)return;prevCtx.clearRect(0,0,CW,CH);const f=G.float;if(!f)return;
+  const cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;
+  // 정렬 스냅 가이드라인 (이동 중일 때, Procreate-style)
+  if(f.dragging&&!(f.rot)){
+    const tol=8/G.zoom;
+    prevCtx.save();prevCtx.strokeStyle='rgba(0,210,255,.72)';prevCtx.lineWidth=1/G.zoom;prevCtx.setLineDash([6/G.zoom,4/G.zoom]);
+    [[CW/2,'v'],[CW/3,'v'],[CW*2/3,'v']].forEach(([v])=>{if(Math.abs(cx-v)<tol){prevCtx.beginPath();prevCtx.moveTo(v,0);prevCtx.lineTo(v,CH);prevCtx.stroke();}});
+    [[CH/2,'h'],[CH/3,'h'],[CH*2/3,'h']].forEach(([v])=>{if(Math.abs(cy-v)<tol){prevCtx.beginPath();prevCtx.moveTo(0,v);prevCtx.lineTo(CW,v);prevCtx.stroke();}});
+    prevCtx.restore();
+  }
+  prevCtx.save();prevCtx.translate(cx,cy);prevCtx.rotate(r);prevCtx.drawImage(f.cv,-f.w/2,-f.h/2);
+  prevCtx.strokeStyle='rgba(168,85,247,.9)';prevCtx.lineWidth=Math.max(1,1.5/G.zoom);prevCtx.setLineDash([6/G.zoom,4/G.zoom]);prevCtx.strokeRect(-f.w/2,-f.h/2,f.w,f.h);prevCtx.restore();
+  const h=floatRotHandle(f);prevCtx.save();prevCtx.setLineDash([]);prevCtx.strokeStyle='rgba(34,197,94,.9)';prevCtx.lineWidth=Math.max(1,1.5/G.zoom);prevCtx.beginPath();prevCtx.moveTo(cx,cy);prevCtx.lineTo(h.x,h.y);prevCtx.stroke();prevCtx.beginPath();prevCtx.arc(h.x,h.y,Math.max(5,8/G.zoom),0,7);prevCtx.fillStyle='#22c55e';prevCtx.fill();prevCtx.lineWidth=Math.max(1,2/G.zoom);prevCtx.strokeStyle='#fff';prevCtx.stroke();prevCtx.restore();
+}
 function liftToFloat(){const r=selRect();if(!r)return;const data=mainCtx.getImageData(r.x,r.y,r.w,r.h);const cv=applySelMask(clipToCanvas(data),r);clearSelectionRegion(r);composite();G.float={cv,x:r.x,y:r.y,w:r.w,h:r.h,dragging:false};$('sel-tb').style.display='none';renderFloat();saveH();}
 function pasteFloat(){if(!G.clipboard)return;const r=selRect();const x=r?r.x:Math.round(CW/2-G.clipboard.width/2),y=r?r.y:Math.round(CH/2-G.clipboard.height/2);G.float={cv:clipToCanvas(G.clipboard),x,y,w:G.clipboard.width,h:G.clipboard.height,dragging:false};$('sel-tb').style.display='none';renderFloat();}
 function commitFloat(){if(!G.float)return;const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;mainCtx.save();mainCtx.translate(cx,cy);mainCtx.rotate(r);mainCtx.drawImage(f.cv,-f.w/2,-f.h/2);mainCtx.restore();G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();saveH();}
@@ -4266,6 +4284,7 @@ function onDown(e){
       _cloneDragStart=pos;
     }
   }
+  else if(G.mode==='gradient'){G.gradStart=pos;}
   else if(G.mode==='selection'||G.mode==='select'){
     if(G.float){const f=G.float,h=floatRotHandle(f);if(Math.hypot(pos.x-h.x,pos.y-h.y)<Math.max(14,18/G.zoom)){f.rotating=true;}else if(insideFloat(f,pos)){f.dragging=true;f.dx=pos.x-f.x;f.dy=pos.y-f.y;}else{commitFloat();G.selStart=pos;G.selEnd=pos;G.selPath=(G.selMode==='lasso')?[pos]:null;$('sel-tb').style.display='none';}}
     else{G.selStart=pos;G.selEnd=pos;G.selPath=(G.selMode==='lasso')?[pos]:null;$('sel-tb').style.display='none';}
@@ -4311,6 +4330,16 @@ function onMove(e){
   }
   else if(G.mode==='smudge'){if(G.lastPos){smudgeStep(G.lastPos.x,G.lastPos.y,pos.x,pos.y);}G.lastPos=pos;composite();}
   else if(G.mode==='liquify'){if(G.lastPos){liquifyStep(pos.x,pos.y,pos.x-G.lastPos.x,pos.y-G.lastPos.y);}G.lastPos=pos;composite();}
+  else if(G.mode==='gradient'){
+    if(G.gradStart&&G.isDrawing&&prevCtx){
+      prevCtx.clearRect(0,0,CW,CH);prevCtx.save();
+      prevCtx.strokeStyle='rgba(255,255,255,.75)';prevCtx.lineWidth=Math.max(1,1.5/G.zoom);prevCtx.setLineDash([6/G.zoom,4/G.zoom]);
+      prevCtx.beginPath();prevCtx.moveTo(G.gradStart.x,G.gradStart.y);prevCtx.lineTo(pos.x,pos.y);prevCtx.stroke();
+      prevCtx.setLineDash([]);prevCtx.fillStyle='rgba(255,255,255,.8)';
+      prevCtx.beginPath();prevCtx.arc(G.gradStart.x,G.gradStart.y,4/G.zoom,0,7);prevCtx.fill();
+      prevCtx.restore();
+    }
+  }
   else if(G.mode==='clone'){
     if(G.cloneSrc&&_cloneDragStart){
       const offset={x:pos.x-_cloneDragStart.x,y:pos.y-_cloneDragStart.y};
@@ -4320,7 +4349,12 @@ function onMove(e){
   }
   else if(G.mode==='selection'||G.mode==='select'){
     if(G.float&&G.float.rotating){const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2;f.rot=Math.atan2(pos.y-cy,pos.x-cx)+Math.PI/2;renderFloat();}
-    else if(G.float&&G.float.dragging){G.float.x=pos.x-G.float.dx;G.float.y=pos.y-G.float.dy;renderFloat();}
+    else if(G.float&&G.float.dragging){
+      G.float.x=pos.x-G.float.dx;G.float.y=pos.y-G.float.dy;
+      // 중앙·1/3 스냅 (Procreate alignment snap)
+      if(!(G.float.rot)){const tol=8/G.zoom,fcx=G.float.x+G.float.w/2,fcy=G.float.y+G.float.h/2;[[CW/2],[CW/3],[CW*2/3]].forEach(([v])=>{if(Math.abs(fcx-v)<tol)G.float.x=v-G.float.w/2;});[[CH/2],[CH/3],[CH*2/3]].forEach(([v])=>{if(Math.abs(fcy-v)<tol)G.float.y=v-G.float.h/2;});}
+      renderFloat();
+    }
     else if(G.selStart){
       G.selEnd=pos;if(G.selMode==='lasso'&&G.selPath)G.selPath.push(pos);
       prevCtx.clearRect(0,0,CW,CH);
@@ -4383,6 +4417,22 @@ function onUp(e){
   else if(G.mode==='eraser'){composite();saveH();}
   else if(G.mode==='smudge'){composite();saveH();}
   else if(G.mode==='liquify'){composite();saveH();}
+  else if(G.mode==='gradient'){
+    if(G.gradStart&&mainCtx){
+      const {x:gx1,y:gy1}=G.gradStart,{x:gx2,y:gy2}=pos;
+      const dx=gx2-gx1,dy=gy2-gy1;if(Math.hypot(dx,dy)>2){
+        const grad=mainCtx.createLinearGradient(gx1,gy1,gx2,gy2);
+        const [rr,gg,bb]=hex2rgb(G.color);
+        grad.addColorStop(0,`rgba(${rr},${gg},${bb},${G.opacity})`);
+        grad.addColorStop(1,`rgba(${rr},${gg},${bb},0)`);
+        mainCtx.save();mainCtx.globalCompositeOperation='source-over';
+        const sr=selRect();if(sr){mainCtx.beginPath();mainCtx.rect(sr.x,sr.y,sr.w,sr.h);mainCtx.clip();}
+        mainCtx.fillStyle=grad;mainCtx.fillRect(0,0,CW,CH);mainCtx.restore();
+        composite();saveH();pushColorHist(G.color);
+      }
+    }
+    G.gradStart=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);
+  }
   else if(G.mode==='clone'){if(_cloneDragStart){_cloneDragStart=null;composite();saveH();}}
   else if(G.mode==='graph'){composite();saveH();pushColorHist(G.color);}
 }
