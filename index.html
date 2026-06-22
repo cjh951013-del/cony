@@ -1555,19 +1555,21 @@ function prevDataFor(lid,beforeIdx){
   return null;
 }
 function undo(){
-  if(G.histIdx<=0)return;
+  if(G.histIdx<=0){showToast('더 이상 실행취소 없음');return;}
   const cur=G.hist[G.histIdx];
   const affected=cur.multi?cur.multi.map(x=>x.lid):[cur.lid];
   affected.forEach(lid=>{const prev=prevDataFor(lid,G.histIdx-1),l=layerById(lid);if(l){if(prev)l.ctx.putImageData(prev,0,0);else l.ctx.clearRect(0,0,CW,CH);}});
   if(!cur.multi){G.activeL=cur.lid;setActiveCtx();}
   G.histIdx--;composite();renderLayers();setUndoBtns();
+  showToast('실행 취소');
 }
 function redo(){
-  if(G.histIdx>=G.hist.length-1)return;
+  if(G.histIdx>=G.hist.length-1){showToast('더 이상 다시실행 없음');return;}
   G.histIdx++;const e=G.hist[G.histIdx];
   if(e.multi){e.multi.forEach(s=>{const l=layerById(s.lid);if(l)l.ctx.putImageData(s.data,0,0);});}
   else{const l=layerById(e.lid);if(l){l.ctx.putImageData(e.data,0,0);G.activeL=e.lid;setActiveCtx();}}
   composite();renderLayers();setUndoBtns();
+  showToast('다시 실행');
 }
 // 캔버스/레이어 액션
 function flipLayerCv(l,dir){
@@ -2850,6 +2852,13 @@ function showBrushCursor(screenX,screenY){
 function hideBrushCursor(){if(!_bcEl)_bcEl=$('brush-cursor');if(_bcEl)_bcEl.style.display='none';}
 
 /* ===== 핀치 줌 HUD ===== */
+let _toastTm=null;
+function showToast(msg,dur){
+  let el=$('_toast');
+  if(!el){el=document.createElement('div');el.id='_toast';el.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);background:rgba(30,30,30,.82);color:#fff;padding:6px 18px;border-radius:18px;font-size:13px;font-weight:600;pointer-events:none;z-index:1200;opacity:0;transition:opacity .18s;-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);white-space:nowrap';document.body.appendChild(el);}
+  el.textContent=msg;el.style.opacity='1';
+  clearTimeout(_toastTm);_toastTm=setTimeout(()=>{el.style.opacity='0';},dur||900);
+}
 let _zHudTm=null;
 function showZoomHud(){
   const h=$('zoom-hud');if(!h)return;
