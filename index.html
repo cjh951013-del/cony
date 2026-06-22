@@ -473,6 +473,7 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
     </div>
     <div class="er">
       <button class="pc-tb" id="btn-paint" title="기호·펜">✏️</button>
+      <button class="pc-tb" id="btn-smudge" title="문지르기"></button>
       <button class="pc-tb" id="btn-erase" title="지우개">🩹</button>
       <button class="pc-tb" id="btn-layers" title="레이어">▦</button>
       <button id="topcol" title="색상 선택"></button>
@@ -1021,6 +1022,7 @@ const ICONS={
   move:'<path d="M12 3.5v17M3.5 12h17"/><path d="M12 3.5 9.7 6M12 3.5 14.3 6M12 20.5 9.7 18M12 20.5 14.3 18M3.5 12 6 9.7M3.5 12 6 14.3M20.5 12 18 9.7M20.5 12 18 14.3"/>',
   brush:'<path d="M5 19.5s.6-3.6 2.5-5.4c1.4-1.3 3.2-1.1 4.2.1.9 1.1 1 2.8-.4 4.1-1.9 1.8-6.3 1.2-6.3 1.2z"/><path d="M11.5 13.6 19.2 6a1.9 1.9 0 0 0-2.7-2.7L9 11"/>',
   eraser:'<path d="M8 18.5 4.7 15.2a1.6 1.6 0 0 1 0-2.3l7.2-7.2a1.6 1.6 0 0 1 2.3 0l3.3 3.3a1.6 1.6 0 0 1 0 2.3l-6.3 6.3z"/><path d="M8 18.5h9.5"/>',
+  smudge:'<path d="M5 9.5q3.5-2.5 7 0 3.5 2.5 7 0"/><path d="M5 12q3.5-2.5 7 0 3.5 2.5 7 0"/><path d="M5 14.5q3.5-2.5 7 0 3.5 2.5 7 0"/>',
   layers:'<path d="M12 3.8 3.6 8.5 12 13.2l8.4-4.7z"/><path d="M4.6 12.3 3.6 13.5 12 18.2l8.4-4.7-1-1.2"/>',
   dropper:'<path d="M15.2 4.8 19 8.6M17 6.7 8.7 15l-.9 3.5 3.5-.9 8.3-8.3a2 2 0 0 0-2.9-2.8z"/>',
   undo:'<path d="M4.5 9.5H13a5.5 5.5 0 1 1 0 11h-2.5"/><path d="M4.5 9.5 8 6M4.5 9.5 8 13"/>',
@@ -1033,7 +1035,7 @@ const ICONS={
 };
 function svgIcon(name,sz){return '<svg class="pc-ic" viewBox="0 0 24 24" width="'+(sz||22)+'" height="'+(sz||22)+'">'+(ICONS[name]||'')+'</svg>';}
 function injectIcons(){
-  const map={'btn-more':'wrench','btn-adjust':'wand','btn-sel-top':'marquee','btn-trans':'move','btn-paint':'brush','btn-erase':'eraser','btn-layers':'layers','btn-modify':'dropper','btn-undo':'undo','btn-redo':'redo','btn-ctr':'fit'};
+  const map={'btn-more':'wrench','btn-adjust':'wand','btn-sel-top':'marquee','btn-trans':'move','btn-paint':'brush','btn-smudge':'smudge','btn-erase':'eraser','btn-layers':'layers','btn-modify':'dropper','btn-undo':'undo','btn-redo':'redo','btn-ctr':'fit'};
   for(const id in map){const e=$(id);if(e)e.innerHTML=svgIcon(map[id], id==='btn-undo'||id==='btn-redo'?20:id==='btn-modify'?20:22);}
   const lbl={stamp:'기호',draw:'펜',graph:'방안',text:'글자'}, ic={stamp:'stamp',draw:'pen',graph:'graph',text:'text'};
   document.querySelectorAll('.pc-modes .tbtn[data-mode]').forEach(b=>{const m=b.dataset.mode;b.innerHTML=svgIcon(ic[m],19)+'<span>'+(lbl[m]||m)+'</span>';});
@@ -1909,6 +1911,39 @@ function setColor(c){
   const tc=$('topcol');if(tc)tc.style.background=c;
   renderShelf();
 }
+/* ===== Smudge (문지르기) — 이전 위치 픽셀을 현재 위치에 혼합 ===== */
+function smudgeStep(px,py,nx,ny){
+  if(px===nx&&py===ny)return;
+  const r=Math.max(4,Math.round(G.brushSz*1.2));
+  const r2=r*r;
+  const sx0=Math.max(0,Math.round(px-r)),sy0=Math.max(0,Math.round(py-r));
+  const sw=Math.min(r*2,CW-sx0),sh=Math.min(r*2,CH-sy0);
+  const nx0=Math.max(0,Math.round(nx-r)),ny0=Math.max(0,Math.round(ny-r));
+  const nw=Math.min(r*2,CW-nx0),nh=Math.min(r*2,CH-ny0);
+  if(sw<=0||sh<=0||nw<=0||nh<=0)return;
+  const srcD=mainCtx.getImageData(sx0,sy0,sw,sh);
+  const dstD=mainCtx.getImageData(nx0,ny0,nw,nh);
+  const sd=srcD.data,dd=dstD.data;
+  const str=0.65;
+  for(let y=0;y<nh;y++){
+    for(let x=0;x<nw;x++){
+      const cx=nx0+x,cy=ny0+y;
+      const d2=(cx-nx)*(cx-nx)+(cy-ny)*(cy-ny);
+      if(d2>=r2)continue;
+      const falloff=(1-Math.sqrt(d2)/r)*str;
+      const di=(y*nw+x)*4;
+      const scx=cx+(px-nx),scy=cy+(py-ny);
+      const six=scx-sx0,siy=scy-sy0;
+      if(six<0||siy<0||six>=sw||siy>=sh)continue;
+      const si=(siy*sw+six)*4;
+      dd[di]  =((dd[di]  *(1-falloff))+(sd[si]  *falloff))|0;
+      dd[di+1]=((dd[di+1]*(1-falloff))+(sd[si+1]*falloff))|0;
+      dd[di+2]=((dd[di+2]*(1-falloff))+(sd[si+2]*falloff))|0;
+      dd[di+3]=((dd[di+3]*(1-falloff))+(sd[si+3]*falloff))|0;
+    }
+  }
+  mainCtx.putImageData(dstD,nx0,ny0);
+}
 /* ===== Flood Fill (bucket) — 4-연결 BFS ===== */
 function floodFill(x0,y0){
   if(!mainCtx)return;
@@ -2245,6 +2280,7 @@ function setMode(m){
   // 상단 바 도구 버튼 하이라이트 동기화 (프로크리에이트식)
   const setAct=(id,on)=>{const e=$(id);if(e)e.classList.toggle('act',!!on);};
   setAct('btn-paint',['stamp','draw','graph','text'].includes(m));
+  setAct('btn-smudge',m==='smudge');
   setAct('btn-erase',m==='eraser');
   setAct('btn-modify',m==='pick');
   setAct('btn-sel-top',m==='select');
@@ -2319,6 +2355,7 @@ function bindAll(){
   $('sr-col').addEventListener('click',()=>$('sr').classList.remove('show'));
   const PAINT_MODES=['stamp','draw','graph','text'];
   $('btn-paint').addEventListener('click',()=>{if(!PAINT_MODES.includes(G.mode))setMode(G.prevPaint||'stamp');togglePanel('sl');});
+  $('btn-smudge').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode('smudge');});
   $('btn-erase').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode('eraser');});
   $('btn-modify').addEventListener('click',()=>{closePanels();setMode('pick');});
   $('btn-layers').addEventListener('click',()=>togglePanel('sr','layers'));
@@ -2856,7 +2893,7 @@ function onMove(e){
   // 데스크탑: 브러시 커서 프리뷰 (비그리기 상태)
   if(!G.isDrawing&&!e.touches){
     const raw=getRaw(e);
-    if(['draw','stamp','eraser','graph'].includes(G.mode))showBrushCursor(raw.x,raw.y);
+    if(['draw','stamp','eraser','smudge','graph'].includes(G.mode))showBrushCursor(raw.x,raw.y);
     else hideBrushCursor();
     return;
   }
@@ -2873,6 +2910,7 @@ function onMove(e){
     renderPreview();
   }else if(G.mode==='graph'){fillCell(pos);composite();}
   else if(G.mode==='eraser'){mainCtx.clearRect(pos.x-G.brushSz*2,pos.y-G.brushSz*2,G.brushSz*4,G.brushSz*4);composite();}
+  else if(G.mode==='smudge'){if(G.lastPos){smudgeStep(G.lastPos.x,G.lastPos.y,pos.x,pos.y);}G.lastPos=pos;composite();}
   else if(G.mode==='selection'||G.mode==='select'){
     if(G.float&&G.float.rotating){const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2;f.rot=Math.atan2(pos.y-cy,pos.x-cx)+Math.PI/2;renderFloat();}
     else if(G.float&&G.float.dragging){G.float.x=pos.x-G.float.dx;G.float.y=pos.y-G.float.dy;renderFloat();}
@@ -2910,6 +2948,7 @@ function onUp(e){
     else if(G.selStart){$('sel-tb').style.display='flex';}
   }
   else if(G.mode==='eraser'){composite();saveH();}
+  else if(G.mode==='smudge'){composite();saveH();}
   else if(G.mode==='graph'){composite();saveH();pushColorHist(G.color);}
 }
 function onWheel(e){e.preventDefault();G.zoom=Math.max(.2,Math.min(4,G.zoom+(e.deltaY>0?-.1:.1)));applyTransform();}
