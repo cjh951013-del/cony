@@ -437,6 +437,23 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
 .tc-nm{font-size:10px;color:var(--text2);flex:1}
 .tc-swatch{width:18px;height:18px;border-radius:50%;border:1px solid var(--border);cursor:pointer}
 
+/* ===== 하단 컬러 히스토리 바 (Procreate-style recent colors) ===== */
+#col-hist-bar{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  z-index:25;display:flex;align-items:center;gap:5px;padding:5px 10px;
+  background:rgba(18,18,34,.82);border:1px solid rgba(255,255,255,.1);border-radius:24px;
+  -webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);
+  box-shadow:0 4px 18px rgba(0,0,0,.35);pointer-events:auto;user-select:none}
+.chb-item{width:26px;height:26px;border-radius:50%;border:2px solid transparent;
+  cursor:pointer;flex-shrink:0;transition:transform .12s,border-color .12s,box-shadow .12s;
+  box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.chb-item:hover{transform:scale(1.2)}
+.chb-item.cur{border-color:rgba(255,255,255,.92);box-shadow:0 0 0 3px rgba(168,85,247,.45)}
+#chb-cur{width:30px;height:30px;border-radius:50%;border:2.5px solid rgba(255,255,255,.85);
+  cursor:pointer;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.5);transition:transform .12s}
+#chb-cur:hover{transform:scale(1.12)}
+.chb-sep{width:1px;height:18px;background:rgba(255,255,255,.15);margin:0 2px;flex-shrink:0}
+body.ui-hidden #col-hist-bar{display:none!important}
+html[data-theme=light] #col-hist-bar{background:rgba(240,240,252,.92);border-color:rgba(0,0,0,.1)}
 /* ===== QuickMenu (Procreate-style radial) ===== */
 #qmenu{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;pointer-events:none}
 #qmenu.open{display:flex;pointer-events:auto}
@@ -620,6 +637,12 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
       <div class="fb">
         <button class="fbb" id="btn-ctr" title="화면 중앙">⊕</button>
         <button class="fbb" id="btn-narr" title="서술도안 보기">📝</button>
+      </div>
+      <!-- 하단 컬러 히스토리 바 -->
+      <div id="col-hist-bar">
+        <div id="chb-cur" title="현재 색상 (탭 → 색상 패널 열기)"></div>
+        <div class="chb-sep"></div>
+        <div id="chb-list" style="display:flex;gap:5px"></div>
       </div>
     </main>
 
@@ -1973,6 +1996,7 @@ function setColor(c){
   document.querySelectorAll('#cpal .ci,#colpop-pal .ci').forEach(x=>x.classList.toggle('act',x.dataset.c===c));
   const tc=$('topcol');if(tc)tc.style.background=c;
   renderShelf();
+  renderColHistBar();
 }
 /* ===== Smudge (문지르기) — 이전 위치 픽셀을 현재 위치에 혼합 ===== */
 function smudgeStep(px,py,nx,ny){
@@ -2129,6 +2153,19 @@ function pushColorHist(c){
   if(!c)return;if(!G.colorHist)G.colorHist=[];
   G.colorHist=G.colorHist.filter(x=>x!==c);G.colorHist.unshift(c);
   if(G.colorHist.length>10)G.colorHist.pop();
+  renderColHistBar();
+}
+function renderColHistBar(){
+  const cur=$('chb-cur');if(cur)cur.style.background=G.color;
+  const list=$('chb-list');if(!list)return;list.innerHTML='';
+  const hist=(G.colorHist||[]).slice(0,7);
+  hist.forEach(c=>{
+    const el=document.createElement('div');
+    el.className='chb-item'+(c===G.color?' cur':'');
+    el.style.background=c;el.title=c;
+    el.addEventListener('click',()=>{setColor(c);pushColorHist(c);syncWheelFromColor&&syncWheelFromColor();});
+    list.appendChild(el);
+  });
 }
 function renderColorHist(){
   const box=$('colpop-hist');if(!box)return;box.innerHTML='';
@@ -2328,7 +2365,7 @@ function openP(id){
   G.cur=p;$('pn').value=p.name;G.frame=p.frame||'circle';$('frame-sel').value=G.frame;
   G.anchor={x:CW/2,y:CH/2};G.anchorMode=false;
   resetLayers();G.usedSymbols=[];
-  drawBg();renderShelf();renderLayers();renderPalettes();
+  drawBg();renderShelf();renderLayers();renderPalettes();renderColHistBar();
   G.hist=[];G.histIdx=-1;$('btn-undo').disabled=true;$('btn-redo').disabled=true;
   $('sr').classList.add('hide');
   showScreen('ed');
@@ -2341,7 +2378,7 @@ function showScreen(s){
       const bgC=$('bg-c'),mc=$('main-c'),pc=$('prev-c');
       [bgC,mc,pc].forEach(c=>{c.width=CW;c.height=CH;});
       ensureLayerCanvases();setActiveCtx();
-      drawBg();fitToScreen();restoreCanvas();
+      drawBg();fitToScreen();restoreCanvas();renderColHistBar();
       setMode(G.mode||'stamp'); // 상단 도구 버튼 하이라이트 초기화
       if(!G.hintShown){G.hintShown=true;const h=$('gesture-hint');if(h){h.classList.add('show');setTimeout(()=>h.classList.remove('show'),5200);}}
     },50);
@@ -2452,6 +2489,9 @@ function bindAll(){
   cw.addEventListener('pointermove',e=>{if(cwDrag)wheelPick(e);});
   window.addEventListener('pointerup',()=>{if(cwDrag){cwDrag=false;pushColorHist(G.color);renderColorHist();}});
   $('cw-val').addEventListener('input',()=>{cwState.v=parseInt($('cw-val').value)/100;$('cw-val-v').textContent=$('cw-val').value;const rgb=hsv2rgb(cwState.h,cwState.s,cwState.v);setColor(rgb2hex(rgb[0],rgb[1],rgb[2]));drawColorWheel();});
+  // 하단 컬러 히스토리 바: 현재색 원 클릭 → 컬러 팝업 열기
+  const chbCur=$('chb-cur');if(chbCur)chbCur.addEventListener('click',e=>{e.stopPropagation();$('morepop').classList.remove('open');const op=$('colpop').classList.toggle('open');if(op){syncWheelFromColor();renderColorHist();}});
+  renderColHistBar();
   $('btn-more').addEventListener('click',e=>{e.stopPropagation();$('colpop').classList.remove('open');$('morepop').classList.toggle('open');});
   $('btn-quickshape').addEventListener('click',()=>{G.quickShape=!G.quickShape;const t=$('btn-quickshape').querySelector('span:last-child');if(t)t.textContent='길게 눌러 도형 고정: '+(G.quickShape?'켜짐':'꺼짐');});
   $('btn-legend').addEventListener('click',()=>{$('morepop').classList.remove('open');openLegend();});
@@ -2918,7 +2958,10 @@ function showBrushCursor(screenX,screenY){
   const dash=isErase?'border-style:dashed;':'';
   // 불투명도 낮으면 커서도 반투명
   const op=G.opacity<1?`opacity:${Math.max(0.35,G.opacity)};`:'';
-  _bcEl.style.cssText=`display:block;width:${d}px;height:${d}px;left:${screenX-cwr.left}px;top:${screenY-cwr.top}px;border-color:${col};${dash}${op}`;
+  // 부드러움 표현: 외부 글로우 (shadowBlur 연동)
+  const soft=(G.mode==='draw'||G.mode==='smudge')?(G.brushSoftness||0)/100:0;
+  const glow=soft>0?`box-shadow:0 0 ${Math.round(d*soft*0.6)}px ${Math.round(d*soft*0.25)}px ${col.replace('.88',String(soft*0.55))},0 0 0 1.5px rgba(0,0,0,.45);`:'box-shadow:0 0 0 1.5px rgba(0,0,0,.55);';
+  _bcEl.style.cssText=`display:block;width:${d}px;height:${d}px;left:${screenX-cwr.left}px;top:${screenY-cwr.top}px;border-color:${col};${dash}${op}${glow}`;
 }
 function hideBrushCursor(){if(!_bcEl)_bcEl=$('brush-cursor');if(_bcEl)_bcEl.style.display='none';}
 
