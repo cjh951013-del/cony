@@ -2867,6 +2867,14 @@ function snapRot(r){
   return r;
 }
 
+/* ===== 연속 Undo/Redo (두/세 손가락 길게 누르기, 프로크리에이트식) ===== */
+let _cuTm=null,_cuIv=null;
+function stopContinuousUndoRedo(){clearTimeout(_cuTm);clearInterval(_cuIv);_cuTm=_cuIv=null;}
+function startContinuousUndoRedo(n){
+  stopContinuousUndoRedo();
+  const fn=n>=3?redo:undo;
+  _cuTm=setTimeout(()=>{fn();_cuIv=setInterval(fn,90);},380);
+}
 /* ===== 팬 관성 (프로크리에이트 momentum scroll) ===== */
 let _inertiaRaf=null;
 function cancelInertia(){if(_inertiaRaf){cancelAnimationFrame(_inertiaRaf);_inertiaRaf=null;}}
@@ -2929,13 +2937,16 @@ function toggleUIHidden(){
 function centroidT(ts){let x=0,y=0;for(const t of ts){x+=t.clientX;y+=t.clientY;}return{x:x/ts.length,y:y/ts.length};}
 function spreadT(ts){if(ts.length===2)return Math.hypot(ts[0].clientX-ts[1].clientX,ts[0].clientY-ts[1].clientY);const c=centroidT(ts);let s=0;for(const t of ts)s+=Math.hypot(t.clientX-c.x,t.clientY-c.y);return s/ts.length;}
 function startMulti(e){
-  cancelInertia();
+  cancelInertia();stopContinuousUndoRedo();
   const ts=[...e.touches];const c=centroidT(ts);
-  G.multi={c0:c,d0:spreadT(ts),cl:c,t0:Date.now(),n:ts.length,moved:0,
+  const n=ts.length;
+  G.multi={c0:c,d0:spreadT(ts),cl:c,t0:Date.now(),n,moved:0,
     z0:G.zoom,p0:{x:G.pan.x,y:G.pan.y},
-    a0:ts.length>=2?Math.atan2(ts[1].clientY-ts[0].clientY,ts[1].clientX-ts[0].clientX):0,
+    a0:n>=2?Math.atan2(ts[1].clientY-ts[0].clientY,ts[1].clientX-ts[0].clientX):0,
     vr0:G.viewRot||0,
     hist:[{c,t:Date.now()}]};
+  // 두/세 손가락 길게 누르면 연속 undo/redo 대기 (이동 없을 때만)
+  if(n===2||n===3)startContinuousUndoRedo(n);
 }
 function updateMulti(e){
   const ts=[...e.touches];if(ts.length<2)return;if(!G.multi){startMulti(e);return;}
@@ -2970,6 +2981,8 @@ function updateMulti(e){
   G.multi.moved+=Math.hypot(dx,dy);G.multi.cl=c;
   // 속도 계산용 히스토리 (최근 4개 유지)
   const hist=G.multi.hist;hist.push({c,t:Date.now()});if(hist.length>4)hist.shift();
+  // 이동 시 연속 undo/redo 취소
+  if(G.multi.moved>10)stopContinuousUndoRedo();
 }
 
 /* ===================== CANVAS INTERACTION ===================== */
@@ -3053,7 +3066,7 @@ function onMove(e){
   }
 }
 function onUp(e){
-  cancelLpPick();
+  cancelLpPick();stopContinuousUndoRedo();
   if(G.multi){
     if(!e.touches||e.touches.length<2){
       const dt=Date.now()-G.multi.t0;
