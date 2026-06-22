@@ -436,6 +436,35 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
 .tc-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
 .tc-nm{font-size:10px;color:var(--text2);flex:1}
 .tc-swatch{width:18px;height:18px;border-radius:50%;border:1px solid var(--border);cursor:pointer}
+
+/* ===== QuickMenu (Procreate-style radial) ===== */
+#qmenu{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;pointer-events:none}
+#qmenu.open{display:flex;pointer-events:auto}
+#qmenu .qm-bg{position:absolute;inset:0;background:rgba(0,0,0,.38);-webkit-backdrop-filter:blur(2.5px);backdrop-filter:blur(2.5px)}
+.qm-ring{position:relative;width:220px;height:220px;flex-shrink:0;z-index:1}
+.qm-item{position:absolute;width:56px;height:56px;border-radius:50%;
+  background:rgba(28,28,48,.94);border:1.5px solid rgba(255,255,255,.14);
+  color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.5);
+  transform:scale(0);transition:transform .22s cubic-bezier(.34,1.56,.64,1),background .12s;pointer-events:none;user-select:none}
+#qmenu.open .qm-item{transform:scale(1);pointer-events:auto}
+#qmenu.open .qm-item:nth-child(1){transition-delay:.02s}
+#qmenu.open .qm-item:nth-child(2){transition-delay:.04s}
+#qmenu.open .qm-item:nth-child(3){transition-delay:.06s}
+#qmenu.open .qm-item:nth-child(4){transition-delay:.08s}
+#qmenu.open .qm-item:nth-child(5){transition-delay:.10s}
+#qmenu.open .qm-item:nth-child(6){transition-delay:.12s}
+.qm-item:active,.qm-item:hover{background:var(--primary);border-color:var(--primary)}
+.qm-item .qi{font-size:18px;line-height:1}
+.qm-item .ql{font-size:7.5px;color:rgba(255,255,255,.68);text-align:center;white-space:nowrap;line-height:1.2}
+.qm-center{position:absolute;width:44px;height:44px;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(0);border-radius:50%;
+  background:rgba(48,48,76,.94);border:1.5px solid rgba(255,255,255,.16);
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4);color:var(--text2);
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1),background .12s;pointer-events:none}
+#qmenu.open .qm-center{transform:translate(-50%,-50%) scale(1);pointer-events:auto;transition-delay:.14s}
+.qm-center:hover{background:var(--danger);color:#fff}
 </style>
 </head>
 <body>
@@ -476,6 +505,7 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
       <button class="pc-tb" id="btn-paint" title="기호·펜">✏️</button>
       <button class="pc-tb" id="btn-smudge" title="문지르기"></button>
       <button class="pc-tb" id="btn-erase" title="지우개">🩹</button>
+      <button class="pc-tb" id="btn-qm" title="빠른 메뉴">⚡</button>
       <button class="pc-tb" id="btn-layers" title="레이어">▦</button>
       <button id="topcol" title="색상 선택"></button>
     </div>
@@ -504,6 +534,21 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
     <div id="colpop-hist" class="cpal" style="margin-bottom:8px"></div>
     <div class="cph" style="margin-bottom:5px"><span style="font-size:10px;color:var(--text3)">팔레트</span></div>
     <div class="cpal" id="colpop-pal"></div>
+  </div>
+
+  <!-- QuickMenu (Procreate radial) -->
+  <div id="qmenu" role="dialog" aria-modal="true">
+    <div class="qm-bg" id="qm-bg"></div>
+    <div class="qm-ring">
+      <!-- 6 slots at R=80 from center (110,110) in 220×220 box -->
+      <div class="qm-item" data-qm="undo"  style="top:3px;left:83px" ><span class="qi">↩</span><span class="ql">실행취소</span></div>
+      <div class="qm-item" data-qm="redo"  style="top:43px;left:152px"><span class="qi">↪</span><span class="ql">다시실행</span></div>
+      <div class="qm-item" data-qm="clrl"  style="top:123px;left:152px"><span class="qi">🧽</span><span class="ql">레이어지우기</span></div>
+      <div class="qm-item" data-qm="pick"  style="top:163px;left:83px"><span class="qi">💧</span><span class="ql">색 추출</span></div>
+      <div class="qm-item" data-qm="center"style="top:123px;left:14px" ><span class="qi">⊞</span><span class="ql">화면맞추기</span></div>
+      <div class="qm-item" data-qm="addl"  style="top:43px;left:14px"  ><span class="qi">＋</span><span class="ql">새 레이어</span></div>
+      <button class="qm-center" id="qm-close" aria-label="닫기">✕</button>
+    </div>
   </div>
 
   <div id="eb">
@@ -592,6 +637,8 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
         <div class="cg" id="brush-cg" style="display:none">
           <div class="cgl">크기</div>
           <div class="rr"><input type="range" id="bsz" min="1" max="30" value="3"><span class="rv" id="bszv">3px</span></div>
+          <div class="cgl">부드러움</div>
+          <div class="rr"><input type="range" id="bsft" min="0" max="100" value="0" step="5"><span class="rv" id="bsftv">0%</span></div>
         </div>
 
         <div class="cg" id="stamp-cg">
@@ -937,6 +984,7 @@ let G={
   toolColors:{},
   bgColor:'#202024',
   brushSz:3,
+  brushSoftness:0,
   stampSz:48,
   rot:0,
   viewRot:0,
@@ -1033,11 +1081,12 @@ const ICONS={
   stamp:'<rect x="5" y="5" width="14" height="14" rx="2.5"/><circle cx="12" cy="12" r="3.3"/>',
   pen:'<path d="M5 19l1-3.5L15.5 6a1.8 1.8 0 0 1 2.6 2.6L8.5 18 5 19z"/>',
   graph:'<rect x="4.5" y="4.5" width="15" height="15" rx="1.5"/><path d="M9.5 4.5v15M14.5 4.5v15M4.5 9.5h15M4.5 14.5h15"/>',
-  text:'<path d="M6 6h12M12 6v12M9.5 18h5"/>'
+  text:'<path d="M6 6h12M12 6v12M9.5 18h5"/>',
+  qmenu:'<circle cx="12" cy="12" r="2.2"/><path d="M12 4v3.2M12 16.8V20M4 12h3.2M16.8 12H20M6.3 6.3l2.3 2.3M15.4 15.4l2.3 2.3M17.7 6.3l-2.3 2.3M8.6 15.4l-2.3 2.3"/>'
 };
 function svgIcon(name,sz){return '<svg class="pc-ic" viewBox="0 0 24 24" width="'+(sz||22)+'" height="'+(sz||22)+'">'+(ICONS[name]||'')+'</svg>';}
 function injectIcons(){
-  const map={'btn-more':'wrench','btn-adjust':'wand','btn-sel-top':'marquee','btn-trans':'move','btn-paint':'brush','btn-smudge':'smudge','btn-erase':'eraser','btn-layers':'layers','btn-modify':'dropper','btn-undo':'undo','btn-redo':'redo','btn-ctr':'fit'};
+  const map={'btn-more':'wrench','btn-adjust':'wand','btn-sel-top':'marquee','btn-trans':'move','btn-paint':'brush','btn-smudge':'smudge','btn-erase':'eraser','btn-qm':'qmenu','btn-layers':'layers','btn-modify':'dropper','btn-undo':'undo','btn-redo':'redo','btn-ctr':'fit'};
   for(const id in map){const e=$(id);if(e)e.innerHTML=svgIcon(map[id], id==='btn-undo'||id==='btn-redo'?20:id==='btn-modify'?20:22);}
   const lbl={stamp:'기호',draw:'펜',graph:'방안',text:'글자'}, ic={stamp:'stamp',draw:'pen',graph:'graph',text:'text'};
   document.querySelectorAll('.pc-modes .tbtn[data-mode]').forEach(b=>{const m=b.dataset.mode;b.innerHTML=svgIcon(ic[m],19)+'<span>'+(lbl[m]||m)+'</span>';});
@@ -2426,6 +2475,24 @@ function bindAll(){
     clearTimeout(_bszHudTm);_bszHudTm=setTimeout(()=>h.style.opacity='0',1000);
   }
   $('size-rail').addEventListener('input',()=>{const v=parseInt($('size-rail').value);if(G.mode==='stamp'){G.stampSz=v;}else{G.brushSz=Math.min(30,v);const b=$('bsz');if(b)b.value=G.brushSz;const bv=$('bszv');if(bv)bv.textContent=G.brushSz+'px';}const sv=$('size-rail-v');if(sv)sv.textContent=v;showBszHud(v);});
+  $('bsft').addEventListener('input',()=>{G.brushSoftness=parseInt($('bsft').value);$('bsftv').textContent=G.brushSoftness+'%';});
+  // QuickMenu
+  function openQMenu(){const el=$('qmenu');if(el)el.classList.add('open');}
+  function closeQMenu(){const el=$('qmenu');if(el)el.classList.remove('open');}
+  $('btn-qm').addEventListener('click',e=>{e.stopPropagation();closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');openQMenu();});
+  $('qm-bg').addEventListener('click',closeQMenu);
+  $('qm-close').addEventListener('click',closeQMenu);
+  document.querySelectorAll('.qm-item').forEach(item=>{
+    item.addEventListener('click',()=>{
+      const a=item.dataset.qm;closeQMenu();
+      if(a==='undo')undo();
+      else if(a==='redo')redo();
+      else if(a==='clrl')clearActiveLayer();
+      else if(a==='pick')setMode('pick');
+      else if(a==='center')fitToScreen();
+      else if(a==='addl'){const ab=$('btn-addl');if(ab)ab.click();}
+    });
+  });
   $('btn-exp').addEventListener('click',()=>openM('m-exp'));
   $('btn-narr').addEventListener('click',()=>{
     if(!isPro()){openM('m-pro');return;}
@@ -2559,6 +2626,7 @@ function bindAll(){
     if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'){e.preventDefault();e.shiftKey?redo():undo();}
     if((e.ctrlKey||e.metaKey)&&e.code==='KeyY'){e.preventDefault();redo();}
     if(G.isDrawing&&G.path&&G.path.length>=2&&(e.code==='ShiftLeft'||e.code==='ShiftRight'))enterSnap();
+    if(e.code==='Escape'){const qm=$('qmenu');if(qm&&qm.classList.contains('open')){qm.classList.remove('open');return;}}
     if(G.editing){
       if(e.code==='Enter'){e.preventDefault();commitShape();}
       else if(e.code==='Escape')cancelShape();
@@ -2763,6 +2831,8 @@ function strokePolyCtx(ctx,poly){
   if(!poly||poly.length<1)return;
   const oa=ctx.globalAlpha;
   ctx.strokeStyle=G.color;ctx.lineCap='round';ctx.lineJoin='round';ctx.setLineDash([]);
+  const soft=(G.brushSoftness||0)/100;
+  if(soft>0){ctx.shadowColor=G.color;ctx.shadowBlur=G.brushSz*soft*2.2;}
   const hasTimes=poly[0]&&poly[0].t!=null;
   const N=poly.length;
   symXf().forEach(T=>{
@@ -2812,6 +2882,7 @@ function strokePolyCtx(ctx,poly){
     // 마지막 구간
     ctx.lineWidth=widths[N-1];ctx.beginPath();ctx.moveTo(mids[N-2].x,mids[N-2].y);ctx.lineTo(pts[N-1].x,pts[N-1].y);ctx.stroke();
   });
+  ctx.shadowBlur=0;ctx.shadowColor='transparent';
   ctx.globalAlpha=oa;
 }
 function snapPts(arr){if(!G.gridOn)return arr;const out=[];let last=null;for(const p of arr){const s=snapToGrid(p);if(!last||Math.abs(s.x-last.x)>0.5||Math.abs(s.y-last.y)>0.5)out.push(s);last=s;}return out;}
