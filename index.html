@@ -1946,6 +1946,22 @@ function smudgeStep(px,py,nx,ny){
   }
   mainCtx.putImageData(dstD,nx0,ny0);
 }
+/* ===== 원형 지우개 — destination-out, 경로 보간 ===== */
+function eraseCircle(ctx,x,y,r){
+  ctx.save();ctx.globalCompositeOperation='destination-out';
+  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle='#000';ctx.fill();ctx.restore();
+}
+function erasePath(ctx,px,py,nx,ny,r){
+  // 두 점 사이를 지름 간격으로 보간하여 갭 없이 지움
+  const dist=Math.hypot(nx-px,ny-py);
+  if(dist<1){eraseCircle(ctx,nx,ny,r);return;}
+  const steps=Math.max(1,Math.ceil(dist/(r*0.8)));
+  for(let i=0;i<=steps;i++){
+    const t=i/steps;
+    eraseCircle(ctx,px+(nx-px)*t,py+(ny-py)*t,r);
+  }
+}
 /* ===== Flood Fill (bucket) — 4-연결 BFS ===== */
 function floodFill(x0,y0){
   if(!mainCtx)return;
@@ -2937,7 +2953,7 @@ function onDown(e){
   }
   else if(G.mode==='graph'){fillCell(pos);composite();}
   else if(G.mode==='eraser'){
-    mainCtx.clearRect(pos.x-G.brushSz*2,pos.y-G.brushSz*2,G.brushSz*4,G.brushSz*4);composite();
+    eraseCircle(mainCtx,pos.x,pos.y,G.brushSz*2);composite();
     if(e.touches)startLpPick(e);
   }
   else if(G.mode==='selection'||G.mode==='select'){
@@ -2970,7 +2986,11 @@ function onMove(e){
     if(dist2(pos,last)>=MIN_PT){G.path.push({...pos,t:Date.now()});if(dist2(pos,last)>HOLD_TOL&&!G.editing)armHold();}
     renderPreview();
   }else if(G.mode==='graph'){fillCell(pos);composite();}
-  else if(G.mode==='eraser'){mainCtx.clearRect(pos.x-G.brushSz*2,pos.y-G.brushSz*2,G.brushSz*4,G.brushSz*4);composite();}
+  else if(G.mode==='eraser'){
+    if(G.lastPos)erasePath(mainCtx,G.lastPos.x,G.lastPos.y,pos.x,pos.y,G.brushSz*2);
+    else eraseCircle(mainCtx,pos.x,pos.y,G.brushSz*2);
+    G.lastPos=pos;composite();
+  }
   else if(G.mode==='smudge'){if(G.lastPos){smudgeStep(G.lastPos.x,G.lastPos.y,pos.x,pos.y);}G.lastPos=pos;composite();}
   else if(G.mode==='selection'||G.mode==='select'){
     if(G.float&&G.float.rotating){const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2;f.rot=Math.atan2(pos.y-cy,pos.x-cx)+Math.PI/2;renderFloat();}
