@@ -936,6 +936,7 @@ let G={
   brushSz:3,
   stampSz:48,
   rot:0,
+  viewRot:0,
   zoom:1,
   pan:{x:0,y:0},
   gridOn:true,
@@ -1402,27 +1403,43 @@ function drawFrame(ctx){
 
 /* ===================== CANVAS COORDS ===================== */
 function getPos(e){
-  const cv=$('main-c');
-  const rect=cv.getBoundingClientRect();
-  const s=1/G.zoom;
-  let cx,cy;
-  if(e.touches&&e.touches.length>0){
-    cx=(e.touches[0].clientX-rect.left)*s;
-    cy=(e.touches[0].clientY-rect.top)*s;
-  }else{
-    cx=(e.clientX-rect.left)*s;
-    cy=(e.clientY-rect.top)*s;
+  let tx,ty;
+  if(e.touches&&e.touches.length>0){tx=e.touches[0].clientX;ty=e.touches[0].clientY;}
+  else{tx=e.clientX;ty=e.clientY;}
+  const r=G.viewRot||0;
+  if(!r){
+    const cv=$('main-c'),rect=cv.getBoundingClientRect(),s=1/G.zoom;
+    return{x:(tx-rect.left)*s,y:(ty-rect.top)*s};
   }
-  return {x:cx,y:cy};
+  // 회전 역변환: #cw 중심 기준으로 역회전 후 pan/zoom 역적용
+  const cwEl=$('cw'),cwR=cwEl.getBoundingClientRect();
+  const wcx=cwR.left+cwEl.clientWidth/2,wcy=cwR.top+cwEl.clientHeight/2;
+  const dx=tx-wcx,dy=ty-wcy;
+  const cos=Math.cos(-r),sin=Math.sin(-r);
+  const ux=dx*cos-dy*sin,uy=dx*sin+dy*cos;
+  const lx=ux+cwEl.clientWidth/2,ly=uy+cwEl.clientHeight/2;
+  return{x:(lx-G.pan.x)/G.zoom,y:(ly-G.pan.y)/G.zoom};
 }
 function getRaw(e){
   return e.touches&&e.touches.length>0?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY};
 }
 function applyTransform(){
-  ['bg-c','main-c','prev-c'].forEach(id=>{
-    const c=$(id);
-    c.style.transform=`translate(${G.pan.x}px,${G.pan.y}px) scale(${G.zoom})`;
-  });
+  const r=G.viewRot||0;
+  if(r){
+    const cwEl=$('cw');
+    const wW=cwEl?cwEl.clientWidth:0,wH=cwEl?cwEl.clientHeight:0;
+    // 캔버스를 #cw 중심 기준으로 회전: translate(wW/2,wH/2) rotate(r) translate(pan-wW/2,pan-wH/2) scale(zoom)
+    const tx=G.pan.x-wW/2,ty=G.pan.y-wH/2;
+    ['bg-c','main-c','prev-c'].forEach(id=>{
+      const c=$(id);if(!c)return;
+      c.style.transform=`translate(${wW/2}px,${wH/2}px) rotate(${r}rad) translate(${tx}px,${ty}px) scale(${G.zoom})`;
+    });
+  }else{
+    ['bg-c','main-c','prev-c'].forEach(id=>{
+      const c=$(id);if(!c)return;
+      c.style.transform=`translate(${G.pan.x}px,${G.pan.y}px) scale(${G.zoom})`;
+    });
+  }
   const zt=$('zt');if(zt)zt.textContent=Math.round(G.zoom*100)+'%';
 }
 // 전체 캔버스(1200×1200)를 화면(#cw)에 꽉 차게 맞추고 가운데 정렬 — 폰/태블릿 필수
@@ -1432,7 +1449,7 @@ function fitToScreen(){
   if(vw<2||vh<2)return;
   const m=Math.max(8,Math.min(vw,vh)*0.04);
   const z=Math.max(0.08,Math.min(8,Math.min((vw-2*m)/CW,(vh-2*m)/CH)));
-  G.zoom=z;
+  G.zoom=z;G.viewRot=0;
   G.pan={x:(vw-CW*z)/2,y:(vh-CH*z)/2};
   applyTransform();
 }
@@ -2762,22 +2779,37 @@ function toggleUIHidden(){
 /* ===================== MULTITOUCH (Procreate-style nav) ===================== */
 function centroidT(ts){let x=0,y=0;for(const t of ts){x+=t.clientX;y+=t.clientY;}return{x:x/ts.length,y:y/ts.length};}
 function spreadT(ts){if(ts.length===2)return Math.hypot(ts[0].clientX-ts[1].clientX,ts[0].clientY-ts[1].clientY);const c=centroidT(ts);let s=0;for(const t of ts)s+=Math.hypot(t.clientX-c.x,t.clientY-c.y);return s/ts.length;}
-function startMulti(e){const ts=[...e.touches];const c=centroidT(ts);G.multi={c0:c,d0:spreadT(ts),cl:c,t0:Date.now(),n:ts.length,moved:0,z0:G.zoom,p0:{x:G.pan.x,y:G.pan.y}};}
+function startMulti(e){
+  const ts=[...e.touches];const c=centroidT(ts);
+  G.multi={c0:c,d0:spreadT(ts),cl:c,t0:Date.now(),n:ts.length,moved:0,
+    z0:G.zoom,p0:{x:G.pan.x,y:G.pan.y},
+    a0:ts.length>=2?Math.atan2(ts[1].clientY-ts[0].clientY,ts[1].clientX-ts[0].clientX):0,
+    vr0:G.viewRot||0};
+}
 function updateMulti(e){
   const ts=[...e.touches];if(ts.length<2)return;if(!G.multi){startMulti(e);return;}
+  const cwEl=$('cw'),cwR=cwEl?cwEl.getBoundingClientRect():{left:0,top:0};
+  const wW=cwEl?cwEl.clientWidth:0,wH=cwEl?cwEl.clientHeight:0;
   const c=centroidT(ts),d=spreadT(ts),cl=G.multi.cl;
   const dx=c.x-cl.x,dy=c.y-cl.y;
-  G.pan={x:G.pan.x+dx,y:G.pan.y+dy};
-  if(G.multi.d0>0&&d>0){
-    const newZ=Math.max(.2,Math.min(8,G.multi.z0*(d/G.multi.d0)));
-    if(Math.abs(newZ-G.zoom)>5e-4){
-      const r=newZ/G.zoom;
-      const cwr=($('cw')||document.body).getBoundingClientRect();
-      const cx=c.x-cwr.left,cy=c.y-cwr.top;
-      G.pan={x:cx-(cx-G.pan.x)*r,y:cy-(cy-G.pan.y)*r};
-      G.zoom=newZ;showZoomHud();
-    }
-  }
+  // 절대 제스처 시작 기준으로 zoom·rotation·pan을 한번에 계산 (누적 오차 없음)
+  const newZ=G.multi.d0>0&&d>0?Math.max(.2,Math.min(8,G.multi.z0*(d/G.multi.d0))):G.zoom;
+  const a=Math.atan2(ts[1].clientY-ts[0].clientY,ts[1].clientX-ts[0].clientX);
+  const newRot=G.multi.vr0+(a-G.multi.a0);
+  const r0=G.multi.vr0,z0=G.multi.z0;
+  // #cw 로컬 좌표에서 제스처 시작 시 중심점 아래 있던 캔버스 픽셀 역산
+  const c0_lx=G.multi.c0.x-cwR.left,c0_ly=G.multi.c0.y-cwR.top;
+  const tx0=G.multi.p0.x-wW/2,ty0=G.multi.p0.y-wH/2;
+  const A=(c0_lx-wW/2)*Math.cos(r0)+(c0_ly-wH/2)*Math.sin(r0);
+  const B=-(c0_lx-wW/2)*Math.sin(r0)+(c0_ly-wH/2)*Math.cos(r0);
+  const pxnZ=(A-tx0)*(newZ/z0),pynZ=(B-ty0)*(newZ/z0);
+  // 현재 중심점 위치에 해당 캔버스 픽셀이 오도록 pan 계산
+  const c_lx=c.x-cwR.left,c_ly=c.y-cwR.top;
+  const new_tx=(c_lx-wW/2)*Math.cos(newRot)+(c_ly-wH/2)*Math.sin(newRot)-pxnZ;
+  const new_ty=-(c_lx-wW/2)*Math.sin(newRot)+(c_ly-wH/2)*Math.cos(newRot)-pynZ;
+  G.pan={x:new_tx+wW/2,y:new_ty+wH/2};
+  if(Math.abs(newZ-G.zoom)>5e-4){G.zoom=newZ;showZoomHud();}
+  G.viewRot=newRot;
   applyTransform();
   G.multi.moved+=Math.hypot(dx,dy);G.multi.cl=c;
 }
@@ -2860,7 +2892,7 @@ function onUp(e){
   if(G.multi){
     if(!e.touches||e.touches.length<2){
       const dt=Date.now()-G.multi.t0;
-      const tap=dt<300&&G.multi.moved<14&&Math.abs(G.zoom-G.multi.z0)<0.04;
+      const tap=dt<300&&G.multi.moved<14&&Math.abs(G.zoom-G.multi.z0)<0.04&&Math.abs(G.viewRot-G.multi.vr0)<0.08;
       const n=G.multi.n;G.multi=null;
       if(tap){if(G.editing){cancelShape();}else if(n>=4){toggleUIHidden();}else if(n>=3){redo();}else{undo();}}
     }
