@@ -2758,6 +2758,14 @@ function strokePolyCtx(ctx,poly){
       }
       widths[0]=widths[1];
     }
+    // 시작/끝 테이퍼 (프로크리에이트 브러시 특유의 필압감)
+    if(N>3){
+      const T=Math.min(Math.floor(N*0.18)+2,7);
+      for(let i=0;i<N;i++){
+        const ti=Math.min(1,i/T),to=Math.min(1,(N-1-i)/T);
+        widths[i]*=Math.min(ti,to);
+      }
+    }
     ctx.globalAlpha=oa*G.opacity;
     if(N<2){
       // 점 하나
