@@ -2266,7 +2266,12 @@ function renderLayers(){
       _dragLayerId=null;composite();renderLayers();saveH();
     });
     const th=document.createElement('canvas');th.width=th.height=34;th.className='lth';
-    if(l.cv)th.getContext('2d').drawImage(l.cv,0,0,34,34);
+    {const tc=th.getContext('2d');
+      // 체크무늬 배경 (투명도 시각화)
+      for(let ty=0;ty<34;ty+=6)for(let tx=0;tx<34;tx+=6){tc.fillStyle=(Math.floor(tx/6)+Math.floor(ty/6))%2===0?'#ccc':'#eee';tc.fillRect(tx,ty,6,6);}
+      if(l.cv)tc.drawImage(l.cv,0,0,34,34);
+      if(l.isRef){tc.strokeStyle='#38bdf8';tc.lineWidth=2.5;tc.strokeRect(1,1,32,32);}
+    }
     const info=document.createElement('div');info.className='linfo';
     info.innerHTML=`<div class="lname" data-lid="${l.id}" title="더블탭으로 이름 변경">${l.name}</div><div class="lop">${Math.round((l.opacity==null?1:l.opacity)*100)}%</div>`;
     info.querySelector('.lname').addEventListener('dblclick',e=>{e.stopPropagation();renameLayer(l.id);});
@@ -2436,11 +2441,16 @@ function erasePath(ctx,px,py,nx,ny,r){
   }
 }
 /* ===== Flood Fill (bucket) — 4-연결 BFS ===== */
-function floodFill(x0,y0){
+let _preFloodSnap=null,_floodFillPos=null;
+function floodFill(x0,y0,thrOverride){
   if(!mainCtx)return;
   x0=Math.round(x0);y0=Math.round(y0);
   if(x0<0||y0<0||x0>=CW||y0>=CH)return;
-  const imgD=mainCtx.getImageData(0,0,CW,CH),d=imgD.data;
+  // 드래그 임계값 모드: 원본 스냅샷 사용
+  const baseData=_preFloodSnap||mainCtx.getImageData(0,0,CW,CH);
+  if(!_preFloodSnap)_preFloodSnap=baseData;
+  _floodFillPos={x:x0,y:y0};
+  const imgD=new ImageData(new Uint8ClampedArray(baseData.data),CW,CH),d=imgD.data;
   // 참조 레이어: 경계 인식에 사용
   const refL=G.layers.find(l=>l.isRef&&l.id!==G.activeL&&l.visible&&l.cv);
   const refD=refL?refL.ctx.getImageData(0,0,CW,CH).data:null;
@@ -2448,7 +2458,7 @@ function floodFill(x0,y0){
   const sr=d[off],sg=d[off+1],sb=d[off+2],sa=d[off+3];
   const [fr,fg,fb]=hex2rgb(G.color);const fa=Math.round(G.opacity*255);
   if(sr===fr&&sg===fg&&sb===fb&&sa===fa)return;
-  const thr=G.fillThreshold!=null?G.fillThreshold:40;
+  const thr=thrOverride!=null?thrOverride:(G.fillThreshold!=null?G.fillThreshold:40);
   function match(i,px,py){
     if(refD&&refD[(py*CW+px)*4+3]>20)return false; // ref 경계는 통과 불가
     return Math.abs(d[i]-sr)+Math.abs(d[i+1]-sg)+Math.abs(d[i+2]-sb)+Math.abs(d[i+3]-sa)<=thr;
@@ -2467,7 +2477,30 @@ function floodFill(x0,y0){
       if(match(ni*4,px,py)){vis[ni]=1;fill(ni*4);q.push(px,py);}
     }
   }
-  mainCtx.putImageData(imgD,0,0);composite();saveH();pushColorHist(G.color);
+  mainCtx.putImageData(imgD,0,0);composite();
+  if(thrOverride==null){saveH();pushColorHist(G.color);_preFloodSnap=null;_floodFillPos=null;}
+}
+/* ===== ColorDrop 임계값 드래그 (Procreate-style: 드롭 후 수평 드래그로 조정) ===== */
+let _cdThrDrag=false,_cdThrX0=0,_cdThrBase=40;
+function startFloodThrDrag(clientX){
+  if(!_preFloodSnap||!_floodFillPos)return;
+  _cdThrDrag=true;_cdThrX0=clientX;_cdThrBase=G.fillThreshold||40;
+  showBszHud(Math.round(_cdThrBase/2)+'%');
+}
+function updateFloodThrDrag(clientX){
+  if(!_cdThrDrag||!_floodFillPos)return;
+  const dx=clientX-_cdThrX0;
+  const newThr=Math.max(0,Math.min(255,Math.round(_cdThrBase+dx*1.2)));
+  G.fillThreshold=newThr;
+  const ftEl=$('fill-thr');if(ftEl)ftEl.value=Math.min(200,newThr);
+  const ftv=$('fill-thrv');if(ftv)ftv.textContent=Math.min(200,newThr);
+  floodFill(_floodFillPos.x,_floodFillPos.y,newThr);
+  showBszHud(Math.round(newThr/2.55)+'%');
+}
+function endFloodThrDrag(){
+  if(!_cdThrDrag)return;_cdThrDrag=false;
+  if(_floodFillPos){saveH();pushColorHist(G.color);}
+  _preFloodSnap=null;_floodFillPos=null;hideBrushCursor();
 }
 /* ===== 레퍼런스 이미지 오버레이 ===== */
 function initRefOverlay(){
@@ -2530,6 +2563,12 @@ function bindColorDrop(){
           const canvasX=(e.clientX-r.left-G.pan.x)/G.zoom;
           const canvasY=(e.clientY-r.top-G.pan.y)/G.zoom;
           floodFill(canvasX,canvasY);
+          // 임계값 드래그 모드 활성화 — 수평 드래그로 조정 가능
+          startFloodThrDrag(e.clientX);
+          const onMove=(ev)=>updateFloodThrDrag(ev.clientX);
+          const onUp=()=>{endFloodThrDrag();document.removeEventListener('pointermove',onMove);document.removeEventListener('pointerup',onUp);};
+          document.addEventListener('pointermove',onMove);
+          document.addEventListener('pointerup',onUp);
         }
       }
     }
