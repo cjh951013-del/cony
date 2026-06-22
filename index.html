@@ -3526,6 +3526,30 @@ function bindAll(){
   mc.addEventListener('mouseleave',e=>{hideBrushCursor();onUp(e);});
   mc.addEventListener('touchstart',onDown,{passive:false});mc.addEventListener('touchmove',onMove,{passive:false});mc.addEventListener('touchend',onUp);
   mc.addEventListener('wheel',onWheel,{passive:false});
+  // 펜(스타일러스) 압력 캡처 — PointerEvent.pressure (0~1, 마우스=0.5 제외)
+  let _penPressure=0,_edgeSwipeX=null,_edgeSwipeY=null;
+  mc.addEventListener('pointermove',e=>{if(e.pointerType==='pen')_penPressure=e.pressure;},{passive:true});
+  mc.addEventListener('pointerdown',e=>{_penPressure=(e.pointerType==='pen')?e.pressure:0;});
+  mc.addEventListener('pointerup',()=>{_penPressure=0;});
+  // 패널 엣지 스와이프 (프로크리에이트: 왼쪽 가장자리 스와이프 → 기호 패널 / 오른쪽 → 레이어)
+  const cwEl2=$('cw');
+  if(cwEl2){cwEl2.addEventListener('touchstart',e=>{
+    const t=e.touches[0];const r=cwEl2.getBoundingClientRect();
+    const lx=t.clientX-r.left;
+    if(lx<28){_edgeSwipeX=t.clientX;_edgeSwipeY=t.clientY;_edgeSwipeY._side='left';}
+    else if(lx>r.width-28){_edgeSwipeX=t.clientX;_edgeSwipeY=t.clientY;_edgeSwipeY._side='right';}
+    else{_edgeSwipeX=null;}
+  },{passive:true});
+  cwEl2.addEventListener('touchend',e=>{
+    if(_edgeSwipeX===null)return;
+    const t=e.changedTouches[0];const dx=t.clientX-_edgeSwipeX,dy=Math.abs(t.clientY-_edgeSwipeY);
+    const side=_edgeSwipeY&&_edgeSwipeY._side;
+    if(Math.abs(dx)>55&&dy<Math.abs(dx)*0.7&&e.touches.length===0){
+      if(side==='left'){togglePanel('sl');showToast(dx>0?'기호 패널 열기':'기호 패널 닫기');}
+      else if(side==='right'){togglePanel('sr','layers');showToast(dx<0?'레이어 열기':'레이어 닫기');}
+    }
+    _edgeSwipeX=null;
+  },{passive:true});}
   mc.addEventListener('dblclick',onDblClick);
   // 화면 회전/리사이즈 시 다시 맞춤(그리는 중에는 보류)
   let rezTm=null;
@@ -4485,7 +4509,7 @@ function onMove(e){
     }else{
       const last=G.path[G.path.length-1];
       // draw 모드는 StreamLine 0.38 — 입력 안정화로 떨림 제거 (프로크리에이트 StreamLine)
-      const fv=(e.touches&&e.touches[0]&&e.touches[0].force>0)?e.touches[0].force:0;
+      const fv=_penPressure>0?_penPressure:(e.touches&&e.touches[0]&&e.touches[0].force>0)?e.touches[0].force:0;
       const slFac=1-(G.streamLine||0.38);
       const spos=G.mode==='draw'?{x:last.x+(pos.x-last.x)*slFac,y:last.y+(pos.y-last.y)*slFac,t:Date.now(),f:fv}:{...pos,t:Date.now(),f:fv};
       if(dist2(spos,last)>=MIN_PT){G.path.push(spos);if(dist2(spos,last)>HOLD_TOL&&!G.editing)armHold();}
