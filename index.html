@@ -504,6 +504,25 @@ body.ui-hidden #row-counter{display:none!important}
   transition:transform .18s cubic-bezier(.34,1.56,.64,1),background .12s;pointer-events:none}
 #qmenu.open .qm-center{transform:translate(-50%,-50%) scale(1);pointer-events:auto;transition-delay:.14s}
 .qm-center:hover{background:var(--danger);color:#fff}
+/* QuickMenu 슬롯 커스터마이즈 피커 */
+#qm-picker{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#qm-picker.open{display:flex}
+.qmp-box{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:16px;max-width:300px;width:88vw}
+.qmp-title{font-size:11px;color:var(--text2);margin-bottom:10px;text-align:center;font-weight:600}
+.qmp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.qmp-act{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px;border-radius:12px;border:1.5px solid var(--border);background:var(--panel2);cursor:pointer;font-size:18px;color:var(--text)}
+.qmp-act:active,.qmp-act:hover{background:rgba(168,85,247,.2);border-color:var(--primary);color:var(--primary)}
+.qmp-act span{font-size:7.5px;color:var(--text2);text-align:center;line-height:1.2}
+.qmp-cancel{width:100%;margin-top:10px;padding:7px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);cursor:pointer;font-size:11px}
+/* 레퍼런스 이미지 패널 */
+#ref-panel{position:absolute;right:10px;bottom:80px;width:175px;background:var(--panel);border:1px solid var(--border);border-radius:12px;z-index:30;display:none;box-shadow:0 4px 18px rgba(0,0,0,.4);overflow:hidden}
+#ref-panel.show{display:block}
+#ref-hdr{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;cursor:move;background:var(--panel2);border-bottom:1px solid var(--border)}
+#ref-hdr-btns{display:flex;gap:3px;align-items:center}
+.ref-hbtn{background:none;border:none;color:var(--text2);cursor:pointer;font-size:11px;padding:2px 4px;border-radius:4px;line-height:1}
+.ref-hbtn:hover{color:var(--text)}
+#ref-img{width:100%;object-fit:contain;max-height:200px;display:block;transition:opacity .2s}
+#ref-panel.minimized #ref-img{display:none}
 </style>
 </head>
 <body>
@@ -546,6 +565,7 @@ body.ui-hidden #row-counter{display:none!important}
       <button class="pc-tb" id="btn-liquify" title="리퀴파이 (픽셀 밀기)"></button>
       <button class="pc-tb" id="btn-grad" title="그라디언트 채우기 (드래그)"></button>
       <button class="pc-tb" id="btn-clone" title="복제 도장">⊕</button>
+      <button class="pc-tb" id="btn-ref" title="레퍼런스 이미지">🖼</button>
       <button class="pc-tb" id="btn-erase" title="지우개">🩹</button>
       <button class="pc-tb" id="btn-qm" title="빠른 메뉴">⚡</button>
       <button class="pc-tb" id="btn-layers" title="레이어">▦</button>
@@ -609,14 +629,17 @@ body.ui-hidden #row-counter{display:none!important}
   <div id="qmenu" role="dialog" aria-modal="true">
     <div class="qm-bg" id="qm-bg"></div>
     <div class="qm-ring">
-      <!-- 6 slots at R=80 from center (110,110) in 220×220 box -->
-      <div class="qm-item" data-qm="undo"  style="top:3px;left:83px" ><span class="qi">↩</span><span class="ql">실행취소</span></div>
-      <div class="qm-item" data-qm="redo"  style="top:43px;left:152px"><span class="qi">↪</span><span class="ql">다시실행</span></div>
-      <div class="qm-item" data-qm="clrl"  style="top:123px;left:152px"><span class="qi">🧽</span><span class="ql">레이어지우기</span></div>
-      <div class="qm-item" data-qm="pick"  style="top:163px;left:83px"><span class="qi">💧</span><span class="ql">색 추출</span></div>
-      <div class="qm-item" data-qm="center"style="top:123px;left:14px" ><span class="qi">⊞</span><span class="ql">화면맞추기</span></div>
-      <div class="qm-item" data-qm="addl"  style="top:43px;left:14px"  ><span class="qi">＋</span><span class="ql">새 레이어</span></div>
+      <!-- slots rendered dynamically by renderQMenu() -->
       <button class="qm-center" id="qm-close" aria-label="닫기">✕</button>
+    </div>
+  </div>
+
+  <!-- QuickMenu 슬롯 커스터마이즈 피커 -->
+  <div id="qm-picker">
+    <div class="qmp-box">
+      <div class="qmp-title" id="qmp-title">슬롯 변경 — 길게 눌러 편집</div>
+      <div class="qmp-grid" id="qmp-grid"></div>
+      <button class="qmp-cancel" id="qmp-cancel">취소</button>
     </div>
   </div>
 
@@ -654,6 +677,19 @@ body.ui-hidden #row-counter{display:none!important}
       <div id="zoom-hud">100%</div>
       <div id="rot-hud">0°</div>
       <div id="lp-ring"></div>
+      <!-- 레퍼런스 이미지 패널 -->
+      <div id="ref-panel">
+        <div id="ref-hdr">
+          <span style="font-size:9px;color:var(--text2)">참조 이미지</span>
+          <div id="ref-hdr-btns">
+            <input type="range" id="ref-opa" min="10" max="100" value="60" style="width:44px;height:14px;cursor:pointer" title="불투명도">
+            <button class="ref-hbtn" id="ref-min" title="최소화">_</button>
+            <button class="ref-hbtn" id="ref-close-btn" title="닫기">✕</button>
+          </div>
+        </div>
+        <img id="ref-img" alt="참조 이미지" style="opacity:.6">
+      </div>
+      <input type="file" id="ref-file-inp" accept="image/*" style="display:none">
       <div id="color-drop-ghost"></div>
       <aside id="tooldock">
         <div class="pc-sld"><span class="ic">✦</span><input type="range" id="size-rail" min="1" max="60" value="48" title="크기(브러시/기호)"><span id="size-rail-v">48</span></div>
@@ -899,6 +935,7 @@ body.ui-hidden #row-counter{display:none!important}
           </div>
           <button class="ib" id="btn-adj-apply" style="width:100%;margin-top:4px;font-size:10px;background:var(--primary);border-color:var(--primary);color:#fff">✓ 적용</button>
           <button class="ib" id="btn-adj-reset" style="width:100%;margin-top:3px;font-size:10px">↺ 초기화</button>
+          <button class="ib" id="btn-adj-before" style="width:100%;margin-top:3px;font-size:10px;touch-action:none">👁 누르면 원본 미리보기</button>
         </div>
 
         <div class="cg" id="brush-opts-cg">
@@ -1300,6 +1337,7 @@ let G={
   narrType:'ko',
   quickShape:true,
   opacity:1,
+  qmSlots:['undo','redo','clrl','pick','center','addl'],
 };
 
 let bgCtx,mainCtx,prevCtx,dispCtx;
@@ -3254,17 +3292,10 @@ function bindAll(){
   $('btn-qm').addEventListener('click',e=>{e.stopPropagation();closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');openQMenu();});
   $('qm-bg').addEventListener('click',closeQMenu);
   $('qm-close').addEventListener('click',closeQMenu);
-  document.querySelectorAll('.qm-item').forEach(item=>{
-    item.addEventListener('click',()=>{
-      const a=item.dataset.qm;closeQMenu();
-      if(a==='undo')undo();
-      else if(a==='redo')redo();
-      else if(a==='clrl')clearActiveLayer();
-      else if(a==='pick')setMode('pick');
-      else if(a==='center')fitToScreen();
-      else if(a==='addl'){const ab=$('btn-addl');if(ab)ab.click();}
-    });
-  });
+  $('qmp-cancel').addEventListener('click',()=>$('qm-picker').classList.remove('open'));
+  // localStorage에서 슬롯 복원
+  try{const s=localStorage.getItem('qmSlots');if(s){const parsed=JSON.parse(s);if(Array.isArray(parsed)&&parsed.length===6)G.qmSlots=parsed;}}catch(e){}
+  renderQMenu();
   $('btn-exp').addEventListener('click',()=>openM('m-exp'));
   $('btn-narr').addEventListener('click',()=>{
     if(!isPro()){openM('m-pro');return;}
@@ -3423,6 +3454,15 @@ function bindAll(){
     if(_adjSnap&&mainCtx){mainCtx.putImageData(_adjSnap,0,0);composite();_adjSnap=null;}
     adjResetUI();
   });
+  // Before/After 비교 (Procreate: 누르고 있으면 원본, 떼면 조정 적용 상태)
+  const _adjBefore=$('btn-adj-before');
+  if(_adjBefore){
+    const restoreAdj=()=>{if(!_adjSnap||!mainCtx)return;const v=adjVals();applyAdjustments(v.br,v.ct,v.hu,v.sa,v.bl,v.no,v.bm,false);};
+    _adjBefore.addEventListener('pointerdown',e=>{e.preventDefault();if(!_adjSnap||!mainCtx)return;mainCtx.putImageData(_adjSnap,0,0);composite();});
+    _adjBefore.addEventListener('pointerup',restoreAdj);
+    _adjBefore.addEventListener('pointerleave',restoreAdj);
+    _adjBefore.addEventListener('pointercancel',restoreAdj);
+  }
   $('btn-gmap').addEventListener('click',()=>{const a=$('gmap-a').value,b=$('gmap-b').value;applyGradientMap(a,b);});
   // Color Balance tabs & sliders
   function cbLoadTone(t){
@@ -3520,6 +3560,7 @@ function bindAll(){
   injectIcons();
   bindColorDrop();
   initRefOverlay();
+  initRefPanel();
 }
 
 /* ===================== DRAW ENGINE (Procreate / Pinpino style) ===================== */
@@ -3842,6 +3883,84 @@ function applyGradientMap(colorA,colorB){
     d[i]=Math.round(ar+(br-ar)*lum);d[i+1]=Math.round(ag+(bg-ag)*lum);d[i+2]=Math.round(ab+(bb-ab)*lum);
   }
   mainCtx.putImageData(imgD,0,0);composite();saveH();showToast('그라디언트 맵 적용 완료');
+}
+/* ===== QuickMenu 슬롯 커스터마이즈 ===== */
+const QM_ACTIONS={
+  undo:{qi:'↩',ql:'실행취소',fn:()=>undo()},
+  redo:{qi:'↪',ql:'다시실행',fn:()=>redo()},
+  clrl:{qi:'🧽',ql:'레이어 지우기',fn:()=>clearActiveLayer()},
+  pick:{qi:'💧',ql:'색 추출',fn:()=>setMode('pick')},
+  center:{qi:'⊞',ql:'화면 맞추기',fn:()=>fitToScreen()},
+  addl:{qi:'＋',ql:'새 레이어',fn:()=>{const ab=$('btn-addl');if(ab)ab.click();}},
+  fliph:{qi:'↔',ql:'수평 반전',fn:()=>{if(!mainCtx)return;const s=document.createElement('canvas');s.width=CW;s.height=CH;s.getContext('2d').putImageData(mainCtx.getImageData(0,0,CW,CH),0,0);const t=document.createElement('canvas');t.width=CW;t.height=CH;const tc=t.getContext('2d');tc.translate(CW,0);tc.scale(-1,1);tc.drawImage(s,0,0);mainCtx.clearRect(0,0,CW,CH);mainCtx.drawImage(t,0,0);composite();saveH();showToast('수평 반전');}},
+  flipv:{qi:'↕',ql:'수직 반전',fn:()=>{if(!mainCtx)return;const s=document.createElement('canvas');s.width=CW;s.height=CH;s.getContext('2d').putImageData(mainCtx.getImageData(0,0,CW,CH),0,0);const t=document.createElement('canvas');t.width=CW;t.height=CH;const tc=t.getContext('2d');tc.translate(0,CH);tc.scale(1,-1);tc.drawImage(s,0,0);mainCtx.clearRect(0,0,CW,CH);mainCtx.drawImage(t,0,0);composite();saveH();showToast('수직 반전');}},
+  copy:{qi:'📋',ql:'레이어 복사',fn:()=>{if(!mainCtx)return;G.clipboard=mainCtx.getImageData(0,0,CW,CH);showToast('레이어 복사됨');}},
+  paste:{qi:'📌',ql:'붙이기',fn:()=>pasteFloat()},
+  dupl:{qi:'⧉',ql:'레이어 복제',fn:()=>{const ab=$('btn-dupl');if(ab)ab.click();}},
+  sel:{qi:'⬚',ql:'전체 선택',fn:()=>{setMode('select');G.selStart={x:0,y:0};G.selEnd={x:CW,y:CH};if(prevCtx){prevCtx.clearRect(0,0,CW,CH);prevCtx.strokeStyle='rgba(168,85,247,.85)';prevCtx.lineWidth=1.2;prevCtx.setLineDash([6,4]);prevCtx.strokeRect(0,0,CW,CH);}const st=$('sel-tb');if(st)st.style.display='flex';showToast('전체 선택');}},
+  desel:{qi:'⊗',ql:'선택 해제',fn:()=>{G.selStart=G.selEnd=null;G.selPath=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);const st=$('sel-tb');if(st)st.style.display='none';showToast('선택 해제');}},
+  ref:{qi:'🖼',ql:'참조 이미지',fn:()=>{const rp=$('ref-panel');if(rp&&rp.classList.contains('show')){rp.classList.remove('show');}else{$('ref-file-inp').click();}}},
+};
+const QM_POS=[{top:3,left:83},{top:43,left:152},{top:123,left:152},{top:163,left:83},{top:123,left:14},{top:43,left:14}];
+let _qmPickSlot=-1;
+function renderQMenu(){
+  const ring=document.querySelector('#qmenu .qm-ring');if(!ring)return;
+  const closeBtn=$('qm-close');
+  ring.querySelectorAll('.qm-item').forEach(el=>el.remove());
+  const slots=G.qmSlots||['undo','redo','clrl','pick','center','addl'];
+  slots.forEach((act,i)=>{
+    const info=QM_ACTIONS[act]||{qi:'?',ql:act};
+    const el=document.createElement('div');el.className='qm-item';el.dataset.qm=act;el.dataset.qmIdx=i;
+    el.style.cssText=`top:${QM_POS[i].top}px;left:${QM_POS[i].left}px`;
+    el.innerHTML=`<span class="qi">${info.qi}</span><span class="ql">${info.ql}</span>`;
+    ring.insertBefore(el,closeBtn);
+  });
+  bindQMenuItems();
+}
+function bindQMenuItems(){
+  document.querySelectorAll('.qm-item').forEach(item=>{
+    let _lp=null,_moved=false;
+    item.addEventListener('pointerdown',e=>{_moved=false;_lp=setTimeout(()=>{_lp=null;openQMPicker(parseInt(item.dataset.qmIdx)||0);},600);});
+    item.addEventListener('pointermove',()=>{if(_lp){_moved=true;clearTimeout(_lp);_lp=null;}});
+    item.addEventListener('pointerup',()=>{if(_lp){clearTimeout(_lp);_lp=null;if(!_moved){const a=item.dataset.qm;closeQMenu();if(QM_ACTIONS[a])QM_ACTIONS[a].fn();}}});
+    item.addEventListener('pointercancel',()=>{if(_lp){clearTimeout(_lp);_lp=null;}});
+  });
+}
+function openQMPicker(idx){
+  _qmPickSlot=idx;closeQMenu();
+  const grid=$('qmp-grid');grid.innerHTML='';
+  const title=$('qmp-title');if(title)title.textContent=`슬롯 ${idx+1} 변경 (길게 눌러 편집)`;
+  Object.entries(QM_ACTIONS).forEach(([id,info])=>{
+    const btn=document.createElement('button');btn.className='qmp-act';btn.dataset.act=id;
+    btn.innerHTML=`${info.qi}<span>${info.ql}</span>`;
+    btn.addEventListener('click',()=>{
+      if(_qmPickSlot>=0&&_qmPickSlot<G.qmSlots.length){G.qmSlots[_qmPickSlot]=id;try{localStorage.setItem('qmSlots',JSON.stringify(G.qmSlots));}catch(e){}}
+      renderQMenu();$('qm-picker').classList.remove('open');showToast(`슬롯 ${_qmPickSlot+1} → ${info.ql}`);
+    });
+    grid.appendChild(btn);
+  });
+  $('qm-picker').classList.add('open');
+}
+/* ===== 레퍼런스 이미지 패널 ===== */
+function initRefPanel(){
+  const rp=$('ref-panel'),rh=$('ref-hdr'),ri=$('ref-img'),ro=$('ref-opa');
+  if(!rp)return;
+  let dx=0,dy=0,dragging=false,ox=0,oy=0;
+  rh.addEventListener('pointerdown',e=>{dragging=true;rh.setPointerCapture(e.pointerId);ox=rp.offsetLeft-(e.clientX-dx);oy=rp.offsetTop-(e.clientY-dy);dx=e.clientX;dy=e.clientY;});
+  rh.addEventListener('pointermove',e=>{if(!dragging)return;rp.style.right='auto';rp.style.bottom='auto';rp.style.left=(e.clientX+ox)+'px';rp.style.top=(e.clientY+oy)+'px';});
+  rh.addEventListener('pointerup',()=>{dragging=false;});
+  ro.addEventListener('input',()=>{if(ri)ri.style.opacity=ro.value/100;});
+  $('ref-min').addEventListener('click',()=>rp.classList.toggle('minimized'));
+  $('ref-close-btn').addEventListener('click',()=>rp.classList.remove('show'));
+  $('ref-file-inp').addEventListener('change',e=>{
+    const f=e.target.files[0];if(!f)return;
+    const url=URL.createObjectURL(f);ri.onload=()=>{URL.revokeObjectURL(url);rp.classList.add('show');rp.classList.remove('minimized');ri.style.opacity=ro.value/100;};
+    ri.src=url;e.target.value='';
+  });
+  $('btn-ref').addEventListener('click',()=>{
+    if(rp.classList.contains('show')){rp.classList.toggle('minimized');}
+    else{$('ref-file-inp').click();}
+  });
 }
 let _cbState={shad:{cr:0,mg:0,yb:0},mid:{cr:0,mg:0,yb:0},high:{cr:0,mg:0,yb:0}};
 let _cbTone='shad';
