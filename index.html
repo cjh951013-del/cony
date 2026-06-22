@@ -561,6 +561,7 @@ body.ui-hidden #row-counter{display:none!important}
     <button class="mrow" id="btn-img"><span class="mi">🖼</span><span>이미지 가져오기 (따라 그리기)</span></button>
     <button class="mrow" id="btn-ref"><span class="mi">📌</span><span>레퍼런스 이미지 (투명 오버레이)</span></button>
     <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
+    <button class="mrow" id="btn-col-stat"><span class="mi">📊</span><span>색상 사용 통계</span></button>
     <button class="mrow" id="btn-tile-prev"><span class="mi">⊞</span><span>패턴 반복 미리보기</span></button>
     <button class="mrow" id="btn-resize"><span class="mi">⤢</span><span>캔버스 크기 조정</span></button>
     <button class="mrow" id="btn-fliph"><span class="mi">⇋</span><span>좌우 반전</span></button>
@@ -898,6 +899,15 @@ body.ui-hidden #row-counter{display:none!important}
     </aside>
   </div>
   <footer id="ea" id="ad2">📢 [광고] 실시간 뜨개 코칭 커뮤니티 "포근실방" 지금 가입하기 →</footer>
+</div>
+
+<!-- ===== MODAL: 색상 사용 통계 ===== -->
+<div class="mo" id="m-colstat">
+  <div class="mc" style="max-width:380px">
+    <div class="mh"><h2>색상 사용 통계</h2><button class="mhx" onclick="closeM('m-colstat')">✕</button></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">모든 레이어 합산 / 격자 크기 40px 기준</div>
+    <div id="colstat-list" style="max-height:60vh;overflow-y:auto"></div>
+  </div>
 </div>
 
 <!-- ===== MODAL: 패턴 반복 미리보기 ===== -->
@@ -2574,6 +2584,40 @@ function buildColorPicker(container){
   cin.addEventListener('input',()=>setColor(cin.value));
   container.appendChild(cin);
 }
+function analyzeColorUsage(){
+  const box=$('colstat-list');if(!box)return;
+  box.innerHTML='<div style="font-size:11px;color:var(--text3)">분석 중...</div>';
+  requestAnimationFrame(()=>{
+    const gs=40,buckets={};
+    // 모든 레이어를 임시 캔버스에 합성
+    const tmp=document.createElement('canvas');tmp.width=CW;tmp.height=CH;
+    const tc=tmp.getContext('2d');
+    tc.fillStyle=G.bgColor||'#fff';tc.fillRect(0,0,CW,CH);
+    G.layers.forEach(l=>{if(l.visible&&l.cv){tc.globalAlpha=(l.opacity==null?1:l.opacity);tc.globalCompositeOperation=l.blend||'source-over';tc.drawImage(l.cv,0,0);}});
+    tc.globalAlpha=1;tc.globalCompositeOperation='source-over';
+    const imgD=tc.getImageData(0,0,CW,CH);const d=imgD.data;
+    let totalNonEmpty=0;
+    for(let gy=0;gy<Math.ceil(CH/gs);gy++)for(let gx=0;gx<Math.ceil(CW/gs);gx++){
+      // 격자 셀 중앙 픽셀 샘플
+      const px=Math.min(CW-1,gx*gs+gs/2)|0,py=Math.min(CH-1,gy*gs+gs/2)|0;
+      const idx=(py*CW+px)*4;
+      const r=d[idx],g=d[idx+1],b=d[idx+2],a=d[idx+3];
+      if(a<32)continue;
+      const hex=rgb2hex(r,g,b);
+      buckets[hex]=(buckets[hex]||0)+1;totalNonEmpty++;
+    }
+    const sorted=Object.entries(buckets).sort((a,b)=>b[1]-a[1]).slice(0,20);
+    box.innerHTML='';
+    if(!sorted.length){box.innerHTML='<div style="font-size:11px;color:var(--text3)">사용된 색상 없음</div>';return;}
+    const total=Math.max(1,totalNonEmpty);
+    sorted.forEach(([hex,cnt])=>{
+      const pct=Math.round(cnt/total*100);
+      const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)';
+      row.innerHTML=`<div style="width:24px;height:24px;border-radius:4px;border:1px solid var(--border);flex-shrink:0;background:${hex}"></div><span style="font-family:monospace;font-size:11px;flex-shrink:0">${hex}</span><div style="flex:1;background:var(--panel2);border-radius:4px;overflow:hidden;height:8px"><div style="width:${pct}%;background:${hex};height:100%;min-width:2px;border-radius:4px"></div></div><span style="font-size:10px;color:var(--text2);flex-shrink:0">${cnt}칸 (${pct}%)</span><button style="font-size:9px;padding:1px 5px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);cursor:pointer" onclick="setColor('${hex}');syncWheelFromColor&&syncWheelFromColor();closeM('m-colstat')">선택</button>`;
+      box.appendChild(row);
+    });
+  });
+}
 function renderTilePreview(){
   const tc=$('tile-canvas');if(!tc)return;
   const n=parseInt(($('tile-n')||{}).value||3);
@@ -2857,6 +2901,7 @@ function bindAll(){
   $('btn-rotcw').addEventListener('click',()=>{$('morepop').classList.remove('open');rotateCanvas('cw');});
   $('btn-rotccw').addEventListener('click',()=>{$('morepop').classList.remove('open');rotateCanvas('ccw');});
   $('btn-clrlayer').addEventListener('click',()=>{$('morepop').classList.remove('open');clearActiveLayer();});
+  $('btn-col-stat').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-colstat');analyzeColorUsage();});
   $('btn-tile-prev').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-tile');renderTilePreview();});
   $('btn-tile-refresh').addEventListener('click',()=>renderTilePreview());
   $('tile-n').addEventListener('change',()=>renderTilePreview());
