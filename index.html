@@ -137,6 +137,8 @@ html[data-theme=light] #eh{background:linear-gradient(180deg,rgba(255,255,255,.8
 #lp-ring{position:absolute;pointer-events:none;border:2.5px solid var(--primary);border-radius:50%;width:52px;height:52px;transform:translate(-50%,-50%) scale(0);display:none;z-index:36;transition:transform .55s ease,opacity .55s ease;opacity:0}
 #lp-ring.arm{display:block;transform:translate(-50%,-50%) scale(1);opacity:.9}
 #lp-ring.fire{opacity:0;transform:translate(-50%,-50%) scale(1.7)}
+/* ColorDrop 드래그 고스트 */
+#color-drop-ghost{position:fixed;width:42px;height:42px;border-radius:50%;border:3px solid rgba(255,255,255,.9);box-shadow:0 4px 20px rgba(0,0,0,.55);pointer-events:none;display:none;z-index:999;transform:translate(-50%,-50%);transition:transform .1s}
 html[data-theme=light] .pc-tb{background:rgba(255,255,255,.72);border-color:rgba(0,0,0,.07);color:var(--text)}
 #topcol{-webkit-appearance:none;appearance:none;width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.5);box-shadow:inset 0 0 0 2px rgba(0,0,0,.25)}
 
@@ -534,6 +536,7 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
       <div id="brush-cursor"></div>
       <div id="zoom-hud">100%</div>
       <div id="lp-ring"></div>
+      <div id="color-drop-ghost"></div>
       <aside id="tooldock">
         <div class="pc-sld"><span class="ic">✦</span><input type="range" id="size-rail" min="1" max="60" value="48" title="크기(브러시/기호)"><span id="size-rail-v">48</span></div>
         <button class="pc-sq" id="btn-modify" title="스포이드(색 추출)">💧</button>
@@ -1889,6 +1892,68 @@ function setColor(c){
   const tc=$('topcol');if(tc)tc.style.background=c;
   renderShelf();
 }
+/* ===== Flood Fill (bucket) — 4-연결 BFS ===== */
+function floodFill(x0,y0){
+  if(!mainCtx)return;
+  x0=Math.round(x0);y0=Math.round(y0);
+  if(x0<0||y0<0||x0>=CW||y0>=CH)return;
+  const imgD=mainCtx.getImageData(0,0,CW,CH),d=imgD.data;
+  const off=(y0*CW+x0)*4;
+  const sr=d[off],sg=d[off+1],sb=d[off+2],sa=d[off+3];
+  const [fr,fg,fb]=hex2rgb(G.color);const fa=Math.round(G.opacity*255);
+  if(sr===fr&&sg===fg&&sb===fb&&sa===fa)return;
+  const thr=40;
+  function match(i){return Math.abs(d[i]-sr)+Math.abs(d[i+1]-sg)+Math.abs(d[i+2]-sb)+Math.abs(d[i+3]-sa)<=thr;}
+  function fill(i){d[i]=fr;d[i+1]=fg;d[i+2]=fb;d[i+3]=fa;}
+  const vis=new Uint8Array(CW*CH);
+  const q=[x0,y0];vis[x0+y0*CW]=1;fill(off);
+  let qi=0;
+  while(qi<q.length){
+    const x=q[qi++],y=q[qi++];
+    const nx=[x-1,y,x+1,y,x,y-1,x,y+1];
+    for(let k=0;k<4;k++){
+      const px=nx[k*2],py=nx[k*2+1];
+      if(px<0||py<0||px>=CW||py>=CH)continue;
+      const ni=px+py*CW;if(vis[ni])continue;
+      if(match(ni*4)){vis[ni]=1;fill(ni*4);q.push(px,py);}
+    }
+  }
+  mainCtx.putImageData(imgD,0,0);composite();saveH();pushColorHist(G.color);
+}
+/* ===== ColorDrop: topcol 드래그 → 캔버스에 떨어뜨리면 flood fill ===== */
+let _cdDown=false,_cdDragging=false,_cdDown0=null,_cdDidDrag=false,_cdGhostEl=null;
+function _cdGhost(){if(!_cdGhostEl)_cdGhostEl=$('color-drop-ghost');return _cdGhostEl;}
+function bindColorDrop(){
+  const btn=$('topcol');if(!btn)return;
+  btn.addEventListener('pointerdown',e=>{
+    _cdDown=true;_cdDragging=false;_cdDown0={x:e.clientX,y:e.clientY};
+    try{btn.setPointerCapture(e.pointerId);}catch(_){}
+  });
+  btn.addEventListener('pointermove',e=>{
+    if(!_cdDown)return;
+    if(!_cdDragging&&Math.hypot(e.clientX-_cdDown0.x,e.clientY-_cdDown0.y)>8){
+      _cdDragging=true;
+      const g=_cdGhost();if(g){g.style.background=G.color;g.style.display='block';}
+    }
+    if(_cdDragging){const g=_cdGhost();if(g){g.style.left=e.clientX+'px';g.style.top=e.clientY+'px';}}
+  });
+  btn.addEventListener('pointerup',e=>{
+    if(!_cdDown)return;_cdDown=false;
+    if(_cdDragging){
+      _cdDragging=false;_cdDidDrag=true;
+      const g=_cdGhost();if(g)g.style.display='none';
+      const cwEl=$('cw');
+      if(cwEl&&G.screen==='ed'){
+        const r=cwEl.getBoundingClientRect();
+        if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){
+          const canvasX=(e.clientX-r.left-G.pan.x)/G.zoom;
+          const canvasY=(e.clientY-r.top-G.pan.y)/G.zoom;
+          floodFill(canvasX,canvasY);
+        }
+      }
+    }
+  });}
+
 /* ===== 컬러 휠(HSB 디스크) + 색 히스토리 ===== */
 function hsv2rgb(h,s,v){h/=360;let r,g,b;const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);
   switch(i%6){case 0:r=v,g=t,b=p;break;case 1:r=q,g=v,b=p;break;case 2:r=p,g=v,b=t;break;case 3:r=p,g=q,b=v;break;case 4:r=t,g=p,b=v;break;default:r=v,g=p,b=q;}
@@ -2244,7 +2309,7 @@ function bindAll(){
   $('btn-sel-top').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode('select');});
   $('btn-trans').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode('selection');});
   $('op-rail').addEventListener('input',()=>{const v=parseInt($('op-rail').value);G.opacity=v/100;const sv=$('op-rail-v');if(sv)sv.textContent=v;});
-  $('topcol').addEventListener('click',e=>{e.stopPropagation();$('morepop').classList.remove('open');const op=$('colpop').classList.toggle('open');if(op){syncWheelFromColor();renderColorHist();}});
+  $('topcol').addEventListener('click',e=>{if(_cdDidDrag){_cdDidDrag=false;return;}e.stopPropagation();$('morepop').classList.remove('open');const op=$('colpop').classList.toggle('open');if(op){syncWheelFromColor();renderColorHist();}});
   $('colpop-x').addEventListener('click',()=>$('colpop').classList.remove('open'));
   // 컬러 휠 + 명도 슬라이더
   let cwDrag=false;
@@ -2412,6 +2477,7 @@ function bindAll(){
   // AD STRIPS
   document.querySelectorAll('.ad-strip').forEach(el=>el.addEventListener('click',()=>alert('광고 클릭 → 외부 링크 연동 (애드센스 또는 제휴 링크)')));
   injectIcons();
+  bindColorDrop();
 }
 
 /* ===================== DRAW ENGINE (Procreate / Pinpino style) ===================== */
