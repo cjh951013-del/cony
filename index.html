@@ -561,6 +561,7 @@ body.ui-hidden #row-counter{display:none!important}
     <button class="mrow" id="btn-img"><span class="mi">🖼</span><span>이미지 가져오기 (따라 그리기)</span></button>
     <button class="mrow" id="btn-ref"><span class="mi">📌</span><span>레퍼런스 이미지 (투명 오버레이)</span></button>
     <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
+    <button class="mrow" id="btn-tile-prev"><span class="mi">⊞</span><span>패턴 반복 미리보기</span></button>
     <button class="mrow" id="btn-resize"><span class="mi">⤢</span><span>캔버스 크기 조정</span></button>
     <button class="mrow" id="btn-fliph"><span class="mi">⇋</span><span>좌우 반전</span></button>
     <button class="mrow" id="btn-flipv"><span class="mi">⤲</span><span>상하 반전</span></button>
@@ -887,6 +888,24 @@ body.ui-hidden #row-counter{display:none!important}
     </aside>
   </div>
   <footer id="ea" id="ad2">📢 [광고] 실시간 뜨개 코칭 커뮤니티 "포근실방" 지금 가입하기 →</footer>
+</div>
+
+<!-- ===== MODAL: 패턴 반복 미리보기 ===== -->
+<div class="mo" id="m-tile">
+  <div class="mc" style="max-width:90vw;max-height:90vh">
+    <div class="mh"><h2>패턴 반복 미리보기</h2><button class="mhx" onclick="closeM('m-tile')">✕</button></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+      <label style="font-size:11px;color:var(--text2)">반복:</label>
+      <select id="tile-n" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:11px;border-radius:5px;padding:3px 6px">
+        <option value="2">2×2</option>
+        <option value="3" selected>3×3</option>
+        <option value="4">4×4</option>
+        <option value="5">5×5</option>
+      </select>
+      <button class="ib" id="btn-tile-refresh" style="font-size:10px;padding:3px 10px">↺ 갱신</button>
+    </div>
+    <canvas id="tile-canvas" style="max-width:100%;max-height:70vh;border:1px solid var(--border);border-radius:6px;display:block"></canvas>
+  </div>
 </div>
 
 <!-- ===== MODAL: 캔버스 크기 조정 ===== -->
@@ -2531,6 +2550,18 @@ function buildColorPicker(container){
   cin.addEventListener('input',()=>setColor(cin.value));
   container.appendChild(cin);
 }
+function renderTilePreview(){
+  const tc=$('tile-canvas');if(!tc)return;
+  const n=parseInt(($('tile-n')||{}).value||3);
+  tc.width=CW*n;tc.height=CH*n;
+  const ctx=tc.getContext('2d');
+  ctx.fillStyle=G.bgColor||'#fff';ctx.fillRect(0,0,tc.width,tc.height);
+  for(let ry=0;ry<n;ry++)for(let rx=0;rx<n;rx++){
+    if(bgCtx)ctx.drawImage(bgCtx.canvas,rx*CW,ry*CH);
+    G.layers.forEach(l=>{if(l.visible&&l.cv){ctx.globalAlpha=(l.opacity==null?1:l.opacity);ctx.globalCompositeOperation=l.blend||'source-over';ctx.drawImage(l.cv,rx*CW,ry*CH);}});
+    ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+  }
+}
 function renderHarmony(){
   const box=$('harmony-pal');if(!box)return;
   box.innerHTML='';
@@ -2802,6 +2833,9 @@ function bindAll(){
   $('btn-rotcw').addEventListener('click',()=>{$('morepop').classList.remove('open');rotateCanvas('cw');});
   $('btn-rotccw').addEventListener('click',()=>{$('morepop').classList.remove('open');rotateCanvas('ccw');});
   $('btn-clrlayer').addEventListener('click',()=>{$('morepop').classList.remove('open');clearActiveLayer();});
+  $('btn-tile-prev').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-tile');renderTilePreview();});
+  $('btn-tile-refresh').addEventListener('click',()=>renderTilePreview());
+  $('tile-n').addEventListener('change',()=>renderTilePreview());
   $('btn-resize').addEventListener('click',()=>{$('morepop').classList.remove('open');$('rz-w').value=CW;$('rz-h').value=CH;openM('m-resize');});
   $('btn-resize-ok').addEventListener('click',()=>{const nw=parseInt($('rz-w').value),nh=parseInt($('rz-h').value);if(!nw||!nh)return;resizeCanvas(nw,nh,$('rz-anchor').checked);closeM('m-resize');});
   $('btn-ctr').addEventListener('click',()=>{fitToScreen();});
