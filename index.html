@@ -766,6 +766,9 @@ html[data-theme=light] #col-hist-bar{background:rgba(240,240,252,.92);border-col
           <div class="sw-wrap">
             <div class="sw" id="sw-monoline"></div><span>모노라인 (균일 선폭)</span>
           </div>
+          <div class="sw-wrap">
+            <div class="sw" id="sw-spray"></div><span>스프레이 (분무기)</span>
+          </div>
           <div class="rr" style="margin-top:4px"><span style="font-size:9px;min-width:50px">채우기 허용값</span><input type="range" id="fill-thr" min="0" max="200" value="40"><span class="rv" id="fill-thrv">40</span></div>
         </div>
 
@@ -1045,6 +1048,7 @@ let G={
   brushSz:3,
   brushSoftness:0,
   brushMonoline:false,
+  brushSpray:false,
   fillThreshold:40,
   stampSz:48,
   rot:0,
@@ -2691,6 +2695,7 @@ function bindAll(){
   $('btn-adj-reset').addEventListener('click',()=>{['adj-br','adj-ct','adj-hu','adj-bl'].forEach(id=>{$(id).value=0;});$('adj-brv').textContent='0';$('adj-ctv').textContent='0';$('adj-huv').textContent='0°';$('adj-blv').textContent='0';});
   // 모노라인 + 채우기 허용값
   $('sw-monoline').addEventListener('click',()=>{G.brushMonoline=!G.brushMonoline;$('sw-monoline').classList.toggle('on',G.brushMonoline);});
+  $('sw-spray').addEventListener('click',()=>{G.brushSpray=!G.brushSpray;$('sw-spray').classList.toggle('on',G.brushSpray);});
   $('fill-thr').addEventListener('input',()=>{G.fillThreshold=parseInt($('fill-thr').value);$('fill-thrv').textContent=G.fillThreshold;});
   document.querySelectorAll('.ssb').forEach(b=>b.addEventListener('click',()=>{
     G.selMode=b.dataset.sm;document.querySelectorAll('.ssb').forEach(x=>x.classList.toggle('act',x===b));
@@ -2965,6 +2970,22 @@ function renderFloat(){if(!prevCtx)return;prevCtx.clearRect(0,0,CW,CH);const f=G
 function liftToFloat(){const r=selRect();if(!r)return;const data=mainCtx.getImageData(r.x,r.y,r.w,r.h);const cv=applySelMask(clipToCanvas(data),r);clearSelectionRegion(r);composite();G.float={cv,x:r.x,y:r.y,w:r.w,h:r.h,dragging:false};$('sel-tb').style.display='none';renderFloat();saveH();}
 function pasteFloat(){if(!G.clipboard)return;const r=selRect();const x=r?r.x:Math.round(CW/2-G.clipboard.width/2),y=r?r.y:Math.round(CH/2-G.clipboard.height/2);G.float={cv:clipToCanvas(G.clipboard),x,y,w:G.clipboard.width,h:G.clipboard.height,dragging:false};$('sel-tb').style.display='none';renderFloat();}
 function commitFloat(){if(!G.float)return;const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;mainCtx.save();mainCtx.translate(cx,cy);mainCtx.rotate(r);mainCtx.drawImage(f.cv,-f.w/2,-f.h/2);mainCtx.restore();G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();saveH();}
+let _sprayIv=null;
+function sprayAt(pos){
+  if(!mainCtx||!pos)return;
+  const r=Math.max(4,G.brushSz*2);
+  const count=Math.round(r*0.9+8);
+  mainCtx.save();mainCtx.fillStyle=G.color;
+  for(let i=0;i<count;i++){
+    const ang=Math.random()*Math.PI*2;
+    const d=Math.sqrt(Math.random())*r;
+    const x=pos.x+Math.cos(ang)*d,y=pos.y+Math.sin(ang)*d;
+    const dr=0.4+Math.random()*0.9;
+    mainCtx.globalAlpha=G.opacity*(0.3+Math.random()*0.7);
+    mainCtx.beginPath();mainCtx.arc(x,y,dr,0,Math.PI*2);mainCtx.fill();
+  }
+  mainCtx.restore();
+}
 function strokePolyCtx(ctx,poly){
   if(!poly||poly.length<1)return;
   const oa=ctx.globalAlpha;
@@ -3048,12 +3069,13 @@ let _bcEl=null;
 function showBrushCursor(screenX,screenY){
   if(!_bcEl)_bcEl=$('brush-cursor');if(!_bcEl)return;
   const cwr=($('cw')||document.body).getBoundingClientRect();
-  const sz=(G.mode==='stamp'?G.stampSz*G.zoom:G.mode==='eraser'?G.brushSz*4*G.zoom:G.brushSz*G.zoom);
+  const isSpray=G.mode==='draw'&&G.brushSpray;
+  const sz=(G.mode==='stamp'?G.stampSz*G.zoom:G.mode==='eraser'?G.brushSz*4*G.zoom:isSpray?G.brushSz*4*G.zoom:G.brushSz*G.zoom);
   const d=Math.max(4,Math.round(sz*2));
-  // 모드별 커서 색상: 지우개=빨간 점선, 스머지=보라, 기본=흰 원
+  // 모드별 커서 색상: 지우개=빨간 점선, 스머지=보라, 스프레이=점선, 기본=흰 원
   const isErase=G.mode==='eraser',isSmudge=G.mode==='smudge';
-  const col=isErase?'rgba(255,100,100,.88)':isSmudge?'rgba(180,120,255,.88)':'rgba(255,255,255,.88)';
-  const dash=isErase?'border-style:dashed;':'';
+  const col=isErase?'rgba(255,100,100,.88)':isSmudge?'rgba(180,120,255,.88)':isSpray?'rgba(120,220,255,.88)':'rgba(255,255,255,.88)';
+  const dash=isErase||isSpray?'border-style:dashed;':'';
   // 불투명도 낮으면 커서도 반투명
   const op=G.opacity<1?`opacity:${Math.max(0.35,G.opacity)};`:'';
   // 부드러움 표현: 외부 글로우 (shadowBlur 연동)
@@ -3255,7 +3277,12 @@ function onDown(e){
   }
   G.isDrawing=true;G.lastPos=pos;
   if(G.mode==='stamp'||G.mode==='draw'){
-    G.path=[{...pos,t:Date.now()}];G.snap=null;renderPreview();armHold();
+    if(G.brushSpray&&G.mode==='draw'){
+      sprayAt(pos);composite();
+      _sprayIv=setInterval(()=>{if(G.isDrawing&&G.lastPos){sprayAt(G.lastPos);composite();}},50);
+    }else{
+      G.path=[{...pos,t:Date.now()}];G.snap=null;renderPreview();armHold();
+    }
     if(e.touches)startLpPick(e);
   }
   else if(G.mode==='graph'){fillCell(pos);composite();}
@@ -3289,11 +3316,15 @@ function onMove(e){
   }
   const pos=getPos(e);
   if(G.mode==='stamp'||G.mode==='draw'){
-    const last=G.path[G.path.length-1];
-    // draw 모드는 StreamLine 0.38 — 입력 안정화로 떨림 제거 (프로크리에이트 StreamLine)
-    const spos=G.mode==='draw'?{x:last.x+(pos.x-last.x)*0.62,y:last.y+(pos.y-last.y)*0.62,t:Date.now()}:{...pos,t:Date.now()};
-    if(dist2(spos,last)>=MIN_PT){G.path.push(spos);if(dist2(spos,last)>HOLD_TOL&&!G.editing)armHold();}
-    renderPreview();
+    if(G.brushSpray&&G.mode==='draw'){
+      G.lastPos=pos;sprayAt(pos);composite();
+    }else{
+      const last=G.path[G.path.length-1];
+      // draw 모드는 StreamLine 0.38 — 입력 안정화로 떨림 제거 (프로크리에이트 StreamLine)
+      const spos=G.mode==='draw'?{x:last.x+(pos.x-last.x)*0.62,y:last.y+(pos.y-last.y)*0.62,t:Date.now()}:{...pos,t:Date.now()};
+      if(dist2(spos,last)>=MIN_PT){G.path.push(spos);if(dist2(spos,last)>HOLD_TOL&&!G.editing)armHold();}
+      renderPreview();
+    }
   }else if(G.mode==='graph'){fillCell(pos);composite();}
   else if(G.mode==='eraser'){
     if(G.lastPos)erasePath(mainCtx,G.lastPos.x,G.lastPos.y,pos.x,pos.y,G.brushSz*2);
@@ -3337,8 +3368,13 @@ function onUp(e){
   if(G.isPanning){G.isPanning=false;return;}
   if(!G.isDrawing)return;G.isDrawing=false;
   if(G.mode==='stamp'||G.mode==='draw'){
-    if(G.path)commitStroke();
-    endStroke();composite();saveH();pushColorHist(G.color);
+    if(G.brushSpray&&G.mode==='draw'){
+      clearInterval(_sprayIv);_sprayIv=null;
+      composite();saveH();pushColorHist(G.color);
+    }else{
+      if(G.path)commitStroke();
+      endStroke();composite();saveH();pushColorHist(G.color);
+    }
   }
   else if(G.mode==='selection'||G.mode==='select'){
     if(G.float){G.float.dragging=false;G.float.rotating=false;}
