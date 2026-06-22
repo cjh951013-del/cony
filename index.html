@@ -617,12 +617,15 @@ html[data-theme=light] #col-hist-bar{background:rgba(240,240,252,.92);border-col
         <button class="ssb" data-sm="ellipse" title="타원 선택">⬭</button>
         <button class="ssb" data-sm="lasso" title="올가미 선택">✎</button>
       </div>
-      <div id="sel-tb">
-        <button class="selb" id="sel-cp">📋 복사</button>
-        <button class="selb" id="sel-pa">📌 붙이기</button>
-        <button class="selb" id="sel-fl">🎨 채우기</button>
-        <button class="selb d" id="sel-dl">🗑 지우기</button>
-        <button class="selb" id="sel-mv">✥ 이동</button>
+      <div id="sel-tb" style="flex-direction:column;align-items:center;gap:4px">
+        <span id="sel-count" style="font-size:10px;color:var(--primary);font-weight:700;min-width:60px;text-align:center"></span>
+        <div style="display:flex;gap:5px">
+          <button class="selb" id="sel-cp">📋 복사</button>
+          <button class="selb" id="sel-pa">📌 붙이기</button>
+          <button class="selb" id="sel-fl">🎨 채우기</button>
+          <button class="selb d" id="sel-dl">🗑 지우기</button>
+          <button class="selb" id="sel-mv">✥ 이동</button>
+        </div>
       </div>
       <div id="shape-bar">
         <button class="sb-name" id="shape-cycle" title="다른 모양으로"><span id="shape-type">직선</span><span class="sb-caret">⇄</span></button>
@@ -3339,7 +3342,12 @@ function onUp(e){
   }
   else if(G.mode==='selection'||G.mode==='select'){
     if(G.float){G.float.dragging=false;G.float.rotating=false;}
-    else if(G.selStart){$('sel-tb').style.display='flex';}
+    else if(G.selStart){
+      $('sel-tb').style.display='flex';
+      const r=selRect();
+      const sc=$('sel-count');
+      if(sc&&r){const gs=40;const w=Math.max(0,Math.floor(r.w/gs));const h=Math.max(0,Math.floor(r.h/gs));sc.textContent=w&&h?`${w}코×${h}단`:`${Math.max(w,h)}코`;}
+    }
   }
   else if(G.mode==='eraser'){composite();saveH();}
   else if(G.mode==='smudge'){composite();saveH();}
