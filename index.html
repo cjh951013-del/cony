@@ -1471,6 +1471,16 @@ function symXf(){
   return fns;
 }
 // 스포이드: 보이는 레이어를 위에서부터 훑어 첫 불투명 픽셀 색을 집음(없으면 배경색)
+function sampleColorAt(p){
+  const x=Math.round(p.x),y=Math.round(p.y);
+  if(x<0||y<0||x>=CW||y>=CH)return null;
+  for(let i=G.layers.length-1;i>=0;i--){
+    const l=G.layers[i];if(!l.visible||!l.ctx)continue;
+    let d;try{d=l.ctx.getImageData(x,y,1,1).data;}catch(e){continue;}
+    if(d[3]>8)return '#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join('');
+  }
+  return G.bgColor||'#ffffff';
+}
 function pickColorAt(p){
   const x=Math.round(p.x),y=Math.round(p.y);
   if(x<0||y<0||x>=CW||y>=CH)return;
@@ -2894,6 +2904,7 @@ function startInertia(vx,vy){
 }
 /* ===== 길게 누르기 스포이드 (600ms, 프로크리에이트 long-press eyedropper) ===== */
 let _lpTm=null,_lpRaw=null,_lpRingEl=null;
+let _lpPreviewIv=null;
 function startLpPick(e){
   if(G.mode==='pick'||G.mode==='selection'||G.mode==='select'||G.editing||G.anchorMode)return;
   const raw=getRaw(e);_lpRaw=raw;
@@ -2901,16 +2912,28 @@ function startLpPick(e){
   if(_lpRingEl){
     const cwr=($('cw')||document.body).getBoundingClientRect();
     _lpRingEl.style.left=(raw.x-cwr.left)+'px';_lpRingEl.style.top=(raw.y-cwr.top)+'px';
+    _lpRingEl.style.borderColor='';
     _lpRingEl.className='';void _lpRingEl.offsetWidth;_lpRingEl.classList.add('arm');
   }
+  // 링을 샘플 색상으로 실시간 업데이트 (Procreate 컬러 프리뷰)
+  _lpPreviewIv=setInterval(()=>{
+    if(!_lpRaw||!_lpRingEl)return;
+    const pos=getPos({clientX:_lpRaw.x,clientY:_lpRaw.y,touches:[{clientX:_lpRaw.x,clientY:_lpRaw.y}]});
+    const sc=sampleColorAt(pos);if(sc)_lpRingEl.style.borderColor=sc;
+  },80);
   _lpTm=setTimeout(()=>{
+    clearInterval(_lpPreviewIv);_lpPreviewIv=null;
     if(!G.isDrawing||!_lpRaw)return;
     pickColorAt(getPos({clientX:_lpRaw.x,clientY:_lpRaw.y,touches:[{clientX:_lpRaw.x,clientY:_lpRaw.y}]}));
     G.isDrawing=false;endStroke();composite();
-    if(_lpRingEl){_lpRingEl.classList.remove('arm');_lpRingEl.classList.add('fire');setTimeout(()=>{_lpRingEl.className='';},420);}
+    if(_lpRingEl){_lpRingEl.classList.remove('arm');_lpRingEl.classList.add('fire');setTimeout(()=>{_lpRingEl.className='';_lpRingEl.style.borderColor='';},420);}
   },600);
 }
-function cancelLpPick(){clearTimeout(_lpTm);_lpTm=null;if(_lpRingEl)_lpRingEl.className='';}
+function cancelLpPick(){
+  clearTimeout(_lpTm);_lpTm=null;
+  clearInterval(_lpPreviewIv);_lpPreviewIv=null;
+  if(_lpRingEl){_lpRingEl.className='';_lpRingEl.style.borderColor='';}
+}
 
 function commitStroke(){
   if(G.mode==='draw'){
