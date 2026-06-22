@@ -858,6 +858,12 @@ body.ui-hidden #row-counter{display:none!important}
           <div class="rr"><span style="font-size:9px;min-width:30px">블러</span><input type="range" id="adj-bl" min="0" max="20" value="0" step="0.5"><span class="rv" id="adj-blv">0</span></div>
           <div class="rr"><span style="font-size:9px;min-width:30px">노이즈</span><input type="range" id="adj-no" min="0" max="100" value="0"><span class="rv" id="adj-nov">0</span></div>
           <div class="rr"><span style="font-size:9px;min-width:30px">Bloom</span><input type="range" id="adj-bm" min="0" max="100" value="0"><span class="rv" id="adj-bmv">0</span></div>
+          <div style="display:flex;align-items:center;gap:5px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+            <span style="font-size:9px;color:var(--text2);flex-shrink:0">그라디언트 맵</span>
+            <input type="color" id="gmap-a" value="#000000" title="어두운 색" style="width:28px;height:22px;padding:1px;border:1px solid var(--border);border-radius:5px;cursor:pointer;background:var(--panel2)">
+            <input type="color" id="gmap-b" value="#ffffff" title="밝은 색" style="width:28px;height:22px;padding:1px;border:1px solid var(--border);border-radius:5px;cursor:pointer;background:var(--panel2)">
+            <button id="btn-gmap" class="ib" style="flex:1;font-size:9px;margin-top:0">적용</button>
+          </div>
           <button class="ib" id="btn-adj-apply" style="width:100%;margin-top:4px;font-size:10px;background:var(--primary);border-color:var(--primary);color:#fff">✓ 적용</button>
           <button class="ib" id="btn-adj-reset" style="width:100%;margin-top:3px;font-size:10px">↺ 초기화</button>
         </div>
@@ -3288,6 +3294,7 @@ function bindAll(){
     if(_adjSnap&&mainCtx){mainCtx.putImageData(_adjSnap,0,0);composite();_adjSnap=null;}
     adjResetUI();
   });
+  $('btn-gmap').addEventListener('click',()=>{const a=$('gmap-a').value,b=$('gmap-b').value;applyGradientMap(a,b);});
   // 모노라인 + 채우기 허용값
   $('sw-monoline').addEventListener('click',()=>{G.brushMonoline=!G.brushMonoline;$('sw-monoline').classList.toggle('on',G.brushMonoline);});
   $('sw-spray').addEventListener('click',()=>{G.brushSpray=!G.brushSpray;$('sw-spray').classList.toggle('on',G.brushSpray);});
@@ -3666,6 +3673,19 @@ function initCurvesCanvas(){
   $('btn-curve-reset').addEventListener('click',()=>{_curvePts=[{x:64,y:64},{x:192,y:192}];drawCurvesCanvas();if(_adjSnap&&mainCtx){mainCtx.putImageData(_adjSnap,0,0);composite();}});
 }
 function adjVals(){return{br:parseInt($('adj-br').value),ct:parseInt($('adj-ct').value),hu:parseInt($('adj-hu').value),sa:parseInt($('adj-sa').value),bl:parseFloat($('adj-bl').value),no:parseInt($('adj-no').value),bm:parseInt($('adj-bm').value)};}
+function applyGradientMap(colorA,colorB){
+  if(!mainCtx)return;
+  const src=mainCtx.getImageData(0,0,CW,CH);
+  const imgD=new ImageData(new Uint8ClampedArray(src.data),CW,CH);
+  const [ar,ag,ab]=hex2rgb(colorA);const [br,bg,bb]=hex2rgb(colorB);
+  const d=imgD.data;
+  for(let i=0;i<d.length;i+=4){
+    if(d[i+3]===0)continue;
+    const lum=(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114)/255;
+    d[i]=Math.round(ar+(br-ar)*lum);d[i+1]=Math.round(ag+(bg-ag)*lum);d[i+2]=Math.round(ab+(bb-ab)*lum);
+  }
+  mainCtx.putImageData(imgD,0,0);composite();saveH();showToast('그라디언트 맵 적용 완료');
+}
 function applyAdjustments(brightness,contrast,hueShift,saturation,blur,noise,bloom,commit){
   if(!mainCtx)return;
   const src=_adjSnap||mainCtx.getImageData(0,0,CW,CH);
