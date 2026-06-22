@@ -4482,7 +4482,17 @@ function onUp(e){
   }
   else if(G.mode==='clone'){if(_cloneDragStart){_cloneDragStart=null;composite();saveH();}}
   else if(G.mode==='graph'){composite();saveH();pushColorHist(G.color);}
+  // 더블탭 줌 토글 (단일 손가락, 그리기 동작 없을 때만) — Procreate-style
+  if(!e.touches&&!G.isDrawing&&G.mode!=='text'){
+    const now=Date.now(),raw=getRaw(e);
+    if(_dblTapT&&now-_dblTapT<320&&Math.hypot(raw.x-_dblTapX,raw.y-_dblTapY)<30){
+      _dblTapT=0;
+      if(Math.abs(G.zoom-1)<0.05)fitToScreen();
+      else{G.zoom=1;G.viewRot=0;const cwr=($('cw')||document.body).getBoundingClientRect();G.pan={x:cwr.width/2,y:cwr.height/2};applyTransform();}
+    }else{_dblTapT=now;_dblTapX=raw.x;_dblTapY=raw.y;}
+  }
 }
+let _dblTapT=0,_dblTapX=0,_dblTapY=0;
 function onWheel(e){e.preventDefault();G.zoom=Math.max(.2,Math.min(4,G.zoom+(e.deltaY>0?-.1:.1)));applyTransform();}
 let _textCanvasPos=null;
 function openTextEditor(screenX,screenY,canvasPos){
