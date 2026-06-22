@@ -2048,7 +2048,18 @@ function toggleLayerVis(id){const l=layerById(id);if(l){l.visible=!l.visible;com
 function toggleAlphaLock(id){const l=layerById(id);if(l){l.alphaLock=!l.alphaLock;applyLayerLock(l);renderLayers();schedulePersist();}}
 function toggleClip(id){const l=layerById(id);if(l){l.clip=!l.clip;composite();renderLayers();schedulePersist();}}
 function setLayerBlend(id,b){const l=layerById(id);if(l){l.blend=b;composite();schedulePersist();}}
-function renameLayer(id){const l=layerById(id);if(!l)return;const n=prompt('레이어 이름',l.name);if(n!=null){l.name=(n.trim()||l.name);renderLayers();schedulePersist();}}
+function renameLayer(id){
+  const l=layerById(id);if(!l)return;
+  const nameEl=document.querySelector(`.lname[data-lid="${id}"]`);
+  if(!nameEl)return;
+  const inp=document.createElement('input');
+  inp.value=l.name;inp.className='lname-inp';
+  inp.style.cssText='background:var(--panel2);border:1px solid var(--primary);border-radius:4px;color:var(--text);font-size:11px;width:100%;padding:1px 4px;outline:none';
+  nameEl.replaceWith(inp);inp.focus();inp.select();
+  const commit=()=>{l.name=(inp.value.trim()||l.name);renderLayers();schedulePersist();};
+  inp.addEventListener('blur',commit);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();commit();}if(e.key==='Escape'){renderLayers();}e.stopPropagation();});
+}
 function setLayerOpacity(id,v){const l=layerById(id);if(l){l.opacity=Math.max(0,Math.min(1,v));composite();}}
 function moveLayer(id,dir){ // +1 위로, -1 아래로 (배열 인덱스 높을수록 위)
   const i=G.layers.findIndex(l=>l.id===id);if(i<0)return;const j=i+dir;if(j<0||j>=G.layers.length)return;
@@ -2104,7 +2115,8 @@ function renderLayers(){
     const th=document.createElement('canvas');th.width=th.height=34;th.className='lth';
     if(l.cv)th.getContext('2d').drawImage(l.cv,0,0,34,34);
     const info=document.createElement('div');info.className='linfo';
-    info.innerHTML=`<div class="lname">${l.name}</div><div class="lop">${Math.round((l.opacity==null?1:l.opacity)*100)}%</div>`;
+    info.innerHTML=`<div class="lname" data-lid="${l.id}" title="더블탭으로 이름 변경">${l.name}</div><div class="lop">${Math.round((l.opacity==null?1:l.opacity)*100)}%</div>`;
+    info.querySelector('.lname').addEventListener('dblclick',e=>{e.stopPropagation();renameLayer(l.id);});
     const eye=document.createElement('button');eye.className='leye';eye.textContent=l.visible?'👁':'🙈';
     eye.addEventListener('click',e=>{e.stopPropagation();toggleLayerVis(l.id);});
     el.appendChild(th);el.appendChild(info);el.appendChild(eye);
