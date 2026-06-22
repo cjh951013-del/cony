@@ -933,6 +933,21 @@ body.ui-hidden #row-counter{display:none!important}
               <button id="btn-vg" class="ib" style="font-size:8px;margin-top:0;padding:2px 7px">적용</button>
             </div>
           </div>
+          <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+            <div style="display:flex;gap:4px;align-items:center;margin-bottom:4px">
+              <span style="font-size:8px;color:var(--text2);min-width:28px">뜨개<br>픽셀화</span>
+              <select id="pxl-sz" style="flex:1;font-size:8px;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:2px 3px">
+                <option value="40">40px (기본 격자)</option>
+                <option value="20">20px (2배 밀도)</option>
+                <option value="80">80px (저해상도)</option>
+              </select>
+              <button id="btn-pxl" class="ib" style="font-size:8px;margin-top:0;padding:2px 7px">적용</button>
+            </div>
+            <div style="display:flex;gap:4px;align-items:center;justify-content:space-between">
+              <button id="btn-inv" class="ib" style="flex:1;font-size:8px;margin-top:0;padding:3px 4px">반전</button>
+              <button id="btn-thr" class="ib" style="flex:1;font-size:8px;margin-top:0;padding:3px 4px">흑백 임계</button>
+            </div>
+          </div>
           <button class="ib" id="btn-adj-apply" style="width:100%;margin-top:4px;font-size:10px;background:var(--primary);border-color:var(--primary);color:#fff">✓ 적용</button>
           <button class="ib" id="btn-adj-reset" style="width:100%;margin-top:3px;font-size:10px">↺ 초기화</button>
           <button class="ib" id="btn-adj-before" style="width:100%;margin-top:3px;font-size:10px;touch-action:none">👁 누르면 원본 미리보기</button>
@@ -1338,6 +1353,7 @@ let G={
   quickShape:true,
   opacity:1,
   qmSlots:['undo','redo','clrl','pick','center','addl'],
+  maskLayerId:null,
 };
 
 let bgCtx,mainCtx,prevCtx,dispCtx;
@@ -1352,8 +1368,12 @@ function ensureLayerCanvases(){
 function applyLayerLock(l){if(l&&l.ctx)l.ctx.globalCompositeOperation=l.alphaLock?'source-atop':'source-over';}
 const BLEND_MODES=[['source-over','보통'],['multiply','곱하기'],['screen','스크린'],['overlay','오버레이'],['darken','어둡게'],['lighten','밝게'],['color-dodge','닷지'],['difference','반전차']];
 function activeLayer(){return G.layers.find(l=>l.id===G.activeL)||G.layers[0];}
-function setActiveCtx(){ensureLayerCanvases();const l=activeLayer();if(l)mainCtx=l.ctx;}
-let _clipTmp;
+function setActiveCtx(){
+  ensureLayerCanvases();const l=activeLayer();if(!l)return;
+  if(G.maskLayerId===l.id&&l.mask){mainCtx=l.mask.getContext('2d');}
+  else{mainCtx=l.ctx;}
+}
+let _clipTmp,_maskTmp;
 function composite(){
   if(!dispCtx)return;
   dispCtx.clearRect(0,0,CW,CH);
@@ -1369,6 +1389,16 @@ function composite(){
       tc.globalCompositeOperation='destination-in';tc.drawImage(G.layers[i-1].cv,0,0);
       tc.globalCompositeOperation='source-over';
       src=_clipTmp;
+    }
+    if(l.mask){ // 레이어 마스크 적용 (흰=보임, 투명=숨김)
+      if(!_maskTmp){_maskTmp=makeLayerCv();}
+      const mt=_maskTmp.getContext('2d');
+      mt.clearRect(0,0,CW,CH);mt.globalCompositeOperation='source-over';
+      mt.drawImage(src,0,0);
+      mt.globalCompositeOperation='destination-in';
+      mt.drawImage(l.mask,0,0);
+      mt.globalCompositeOperation='source-over';
+      src=_maskTmp;
     }
     dispCtx.globalAlpha=(l.opacity==null?1:l.opacity);
     dispCtx.globalCompositeOperation=l.blend||'source-over';
@@ -2068,7 +2098,7 @@ let persistTm;
 function schedulePersist(){clearTimeout(persistTm);persistTm=setTimeout(snapshotCurrent,1000);}
 // 레이어 영속화: 프로젝트별 키에 레이어 PNG+메타 저장(쿼터 초과시 안전 폐기)
 function serializeLayers(){
-  return G.layers.map(l=>({name:l.name,visible:l.visible!==false,opacity:(l.opacity==null?1:l.opacity),blend:l.blend||'source-over',alphaLock:!!l.alphaLock,clip:!!l.clip,isRef:!!l.isRef,png:l.cv?l.cv.toDataURL('image/png'):null}));
+  return G.layers.map(l=>({name:l.name,visible:l.visible!==false,opacity:(l.opacity==null?1:l.opacity),blend:l.blend||'source-over',alphaLock:!!l.alphaLock,clip:!!l.clip,isRef:!!l.isRef,png:l.cv?l.cv.toDataURL('image/png'):null,maskPng:l.mask?l.mask.toDataURL('image/png'):null}));
 }
 function persistLayers(){
   if(!G.cur)return;
@@ -2084,10 +2114,16 @@ function restoreLayers(data,done){
   G.activeL=G.layers[G.layers.length-1].id;
   ensureLayerCanvases();setActiveCtx();
   let pending=0;
-  data.forEach((d,i)=>{if(d.png){pending++;const img=new Image();
-    img.onload=()=>{if(G.layers[i])G.layers[i].ctx.drawImage(img,0,0);if(--pending===0){composite();renderLayers();done&&done();}};
-    img.onerror=()=>{if(--pending===0){composite();renderLayers();done&&done();}};
-    img.src=d.png;}});
+  data.forEach((d,i)=>{
+    if(d.png){pending++;const img=new Image();
+      img.onload=()=>{if(G.layers[i])G.layers[i].ctx.drawImage(img,0,0);if(--pending===0){composite();renderLayers();done&&done();}};
+      img.onerror=()=>{if(--pending===0){composite();renderLayers();done&&done();}};
+      img.src=d.png;}
+    if(d.maskPng){pending++;const mi=new Image();
+      mi.onload=()=>{if(G.layers[i]){G.layers[i].mask=makeLayerCv();G.layers[i].mask.getContext('2d').drawImage(mi,0,0);}if(--pending===0){composite();renderLayers();done&&done();}};
+      mi.onerror=()=>{if(--pending===0){composite();renderLayers();done&&done();}};
+      mi.src=d.maskPng;}
+  });
   if(pending===0){composite();renderLayers();done&&done();}
 }
 function snapshotCurrent(){
@@ -2402,7 +2438,7 @@ function renderLayers(){
       const blendOpts=BLEND_MODES.map(m=>`<option value="${m[0]}"${(l.blend||'source-over')===m[0]?' selected':''}>${m[1]}</option>`).join('');
       ctr.innerHTML=`<input type="range" min="0" max="100" value="${Math.round((l.opacity==null?1:l.opacity)*100)}" class="lopr" title="투명도">
         <select class="lblend">${blendOpts}</select>
-        <div class="lbtns"><button data-a="lock">${l.alphaLock?'🔒':'🔓'}</button><button data-a="clip" title="클리핑" style="${l.clip?'color:var(--primary)':''}">⤓</button><button data-a="ref" title="참조 레이어" style="${l.isRef?'color:#38bdf8;border-color:#38bdf8':''}">Ref</button><button data-a="dup" title="레이어 복사">⧉</button><button data-a="rename">✎</button><button data-a="up">⬆</button><button data-a="down">⬇</button><button data-a="merge">🔻</button><button data-a="del" class="d">🗑</button></div>`;
+        <div class="lbtns"><button data-a="lock">${l.alphaLock?'🔒':'🔓'}</button><button data-a="clip" title="클리핑" style="${l.clip?'color:var(--primary)':''}">⤓</button><button data-a="ref" title="참조 레이어" style="${l.isRef?'color:#38bdf8;border-color:#38bdf8':''}">Ref</button><button data-a="mask" title="레이어 마스크" style="${l.mask?(G.maskLayerId===l.id?'color:#f97316;border-color:#f97316':'color:var(--primary);border-color:var(--primary)'):''}">🎭</button><button data-a="dup" title="레이어 복사">⧉</button><button data-a="rename">✎</button><button data-a="up">⬆</button><button data-a="down">⬇</button><button data-a="merge">🔻</button><button data-a="del" class="d">🗑</button></div>`;
       const slider=ctr.querySelector('.lopr');
       slider.addEventListener('input',e=>{setLayerOpacity(l.id,e.target.value/100);const op=el.querySelector('.lop');if(op)op.textContent=e.target.value+'%';});
       slider.addEventListener('click',e=>e.stopPropagation());
@@ -2411,7 +2447,7 @@ function renderLayers(){
       bl.addEventListener('change',e=>{setLayerBlend(l.id,e.target.value);});
       ctr.querySelectorAll('.lbtns button').forEach(b=>b.addEventListener('click',e=>{
         e.stopPropagation();const a=b.dataset.a;
-        if(a==='lock')toggleAlphaLock(l.id);else if(a==='clip')toggleClip(l.id);else if(a==='ref')toggleRef(l.id);else if(a==='dup')duplicateLayer(l.id);else if(a==='rename')renameLayer(l.id);else if(a==='up')moveLayer(l.id,1);else if(a==='down')moveLayer(l.id,-1);
+        if(a==='lock')toggleAlphaLock(l.id);else if(a==='clip')toggleClip(l.id);else if(a==='ref')toggleRef(l.id);else if(a==='mask')toggleLayerMask(l.id);else if(a==='dup')duplicateLayer(l.id);else if(a==='rename')renameLayer(l.id);else if(a==='up')moveLayer(l.id,1);else if(a==='down')moveLayer(l.id,-1);
         else if(a==='merge')mergeDown(l.id);else if(a==='del')deleteLayer(l.id);
       }));
       list.appendChild(ctr);
@@ -3464,6 +3500,9 @@ function bindAll(){
     _adjBefore.addEventListener('pointercancel',restoreAdj);
   }
   $('btn-gmap').addEventListener('click',()=>{const a=$('gmap-a').value,b=$('gmap-b').value;applyGradientMap(a,b);});
+  $('btn-pxl').addEventListener('click',applyPixelate);
+  $('btn-inv').addEventListener('click',applyInvert);
+  $('btn-thr').addEventListener('click',applyThreshold);
   // Color Balance tabs & sliders
   function cbLoadTone(t){
     _cbTone=t;const v=_cbState[t];
@@ -3985,6 +4024,75 @@ function initRefPanel(){
     if(rp.classList.contains('show')){rp.classList.toggle('minimized');}
     else{$('ref-file-inp').click();}
   });
+}
+/* ===== 레이어 마스크 ===== */
+function toggleLayerMask(id){
+  const l=layerById(id);if(!l)return;
+  if(!l.mask){
+    // 마스크 생성 — 흰색(완전 표시)으로 초기화
+    l.mask=makeLayerCv();
+    const mc=l.mask.getContext('2d');mc.fillStyle='#fff';mc.fillRect(0,0,CW,CH);
+    G.maskLayerId=l.id;setActiveCtx();renderLayers();
+    showToast('마스크 추가됨 — 검정으로 가리고 흰색으로 복원');
+    const mc2=$('main-c');if(mc2)mc2.style.outline='3px solid rgba(249,115,22,.65)';
+  }else if(G.maskLayerId===l.id){
+    // 마스크 편집 모드 → 레이어 편집 모드
+    G.maskLayerId=null;setActiveCtx();renderLayers();showToast('레이어로 돌아옴 (마스크 유지)');
+    const mc2=$('main-c');if(mc2)mc2.style.outline='';
+  }else{
+    // 레이어 편집 → 마스크 편집 모드
+    G.maskLayerId=l.id;setActiveCtx();renderLayers();
+    showToast('마스크 편집 중 — 검정=가리기, 흰색=보이기');
+    const mc2=$('main-c');if(mc2)mc2.style.outline='3px solid rgba(249,115,22,.65)';
+  }
+}
+function removeLayerMask(id){
+  const l=layerById(id);if(!l||!l.mask)return;
+  // 마스크 굽기(bake): 현재 마스크 결과를 레이어에 적용 후 마스크 제거
+  if(!_maskTmp){_maskTmp=makeLayerCv();}
+  const mt=_maskTmp.getContext('2d');
+  mt.clearRect(0,0,CW,CH);mt.globalCompositeOperation='source-over';
+  mt.drawImage(l.cv,0,0);
+  mt.globalCompositeOperation='destination-in';
+  mt.drawImage(l.mask,0,0);
+  mt.globalCompositeOperation='source-over';
+  l.ctx.clearRect(0,0,CW,CH);l.ctx.drawImage(_maskTmp,0,0);
+  l.mask=null;
+  if(G.maskLayerId===l.id){G.maskLayerId=null;setActiveCtx();const mc2=$('main-c');if(mc2)mc2.style.outline='';}
+  composite();renderLayers();saveH();showToast('마스크 적용 완료');
+}
+/* ===== 픽셀화 / 반전 / 흑백 임계 필터 ===== */
+function applyPixelate(){
+  if(!mainCtx)return;
+  const gs=parseInt(($('pxl-sz')&&$('pxl-sz').value)||'40')||40;
+  const cols=Math.ceil(CW/gs),rows=Math.ceil(CH/gs);
+  const src=mainCtx.canvas;
+  const tmp=document.createElement('canvas');tmp.width=cols;tmp.height=rows;
+  const tc=tmp.getContext('2d');tc.drawImage(src,0,0,cols,rows);
+  const out=document.createElement('canvas');out.width=CW;out.height=CH;
+  const oc=out.getContext('2d');oc.imageSmoothingEnabled=false;
+  oc.drawImage(tmp,0,0,CW,CH);
+  mainCtx.clearRect(0,0,CW,CH);mainCtx.drawImage(out,0,0);
+  composite();saveH();showToast(`뜨개 픽셀화 적용 (${gs}px 격자)`);
+}
+function applyInvert(){
+  if(!mainCtx)return;
+  const d=mainCtx.getImageData(0,0,CW,CH);
+  for(let i=0;i<d.data.length;i+=4){
+    if(d.data[i+3]===0)continue;
+    d.data[i]=255-d.data[i];d.data[i+1]=255-d.data[i+1];d.data[i+2]=255-d.data[i+2];
+  }
+  mainCtx.putImageData(d,0,0);composite();saveH();showToast('색상 반전 완료');
+}
+function applyThreshold(){
+  if(!mainCtx)return;
+  const d=mainCtx.getImageData(0,0,CW,CH);
+  for(let i=0;i<d.data.length;i+=4){
+    if(d.data[i+3]===0)continue;
+    const lum=d.data[i]*.299+d.data[i+1]*.587+d.data[i+2]*.114;
+    const v=lum>128?255:0;d.data[i]=d.data[i+1]=d.data[i+2]=v;
+  }
+  mainCtx.putImageData(d,0,0);composite();saveH();showToast('흑백 임계 필터 완료');
 }
 let _cbState={shad:{cr:0,mg:0,yb:0},mid:{cr:0,mg:0,yb:0},high:{cr:0,mg:0,yb:0}};
 let _cbTone='shad';
