@@ -865,6 +865,20 @@ body.ui-hidden #row-counter{display:none!important}
             <input type="color" id="gmap-b" value="#ffffff" title="밝은 색" style="width:28px;height:22px;padding:1px;border:1px solid var(--border);border-radius:5px;cursor:pointer;background:var(--panel2)">
             <button id="btn-gmap" class="ib" style="flex:1;font-size:9px;margin-top:0">적용</button>
           </div>
+          <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:9px;color:var(--text2)">색상 균형</span>
+              <div style="display:flex;gap:2px">
+                <button id="cbm-shad" style="font-size:8px;padding:1px 5px;border-radius:4px;border:1px solid var(--primary);background:var(--primary);color:#fff;cursor:pointer">그림자</button>
+                <button id="cbm-mid" style="font-size:8px;padding:1px 5px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);cursor:pointer">중간</button>
+                <button id="cbm-high" style="font-size:8px;padding:1px 5px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);cursor:pointer">밝은</button>
+              </div>
+            </div>
+            <div class="rr"><span style="font-size:8px;min-width:28px;color:var(--text2)">C↔R</span><input type="range" id="cb-cr" min="-100" max="100" value="0"><span class="rv" id="cb-crv">0</span></div>
+            <div class="rr"><span style="font-size:8px;min-width:28px;color:var(--text2)">M↔G</span><input type="range" id="cb-mg" min="-100" max="100" value="0"><span class="rv" id="cb-mgv">0</span></div>
+            <div class="rr"><span style="font-size:8px;min-width:28px;color:var(--text2)">Y↔B</span><input type="range" id="cb-yb" min="-100" max="100" value="0"><span class="rv" id="cb-ybv">0</span></div>
+            <button id="btn-cb" class="ib" style="width:100%;font-size:9px;margin-top:3px">색상 균형 적용</button>
+          </div>
           <button class="ib" id="btn-adj-apply" style="width:100%;margin-top:4px;font-size:10px;background:var(--primary);border-color:var(--primary);color:#fff">✓ 적용</button>
           <button class="ib" id="btn-adj-reset" style="width:100%;margin-top:3px;font-size:10px">↺ 초기화</button>
         </div>
@@ -2287,6 +2301,11 @@ function renderLayers(){
     const info=document.createElement('div');info.className='linfo';
     info.innerHTML=`<div class="lname" data-lid="${l.id}" title="더블탭으로 이름 변경">${l.name}</div><div class="lop">${Math.round((l.opacity==null?1:l.opacity)*100)}%</div>`;
     info.querySelector('.lname').addEventListener('dblclick',e=>{e.stopPropagation();renameLayer(l.id);});
+    {const lopEl=info.querySelector('.lop');lopEl.style.cursor='ew-resize';lopEl.title='← → 드래그: 불투명도 조정';
+    let _lopX=null,_lopV=null;
+    lopEl.addEventListener('pointerdown',e=>{e.stopPropagation();_lopX=e.clientX;_lopV=(l.opacity==null?1:l.opacity);lopEl.setPointerCapture(e.pointerId);});
+    lopEl.addEventListener('pointermove',e=>{if(_lopX===null)return;const nv=Math.max(0,Math.min(1,_lopV+(e.clientX-_lopX)/200));setLayerOpacity(l.id,nv);lopEl.textContent=Math.round(nv*100)+'%';});
+    lopEl.addEventListener('pointerup',()=>{if(_lopX!==null){_lopX=null;renderLayers();schedulePersist();}});}
     const eye=document.createElement('button');eye.className='leye';eye.textContent=l.visible?'👁':'🙈';
     eye.addEventListener('click',e=>{e.stopPropagation();toggleLayerVis(l.id);});
     el.appendChild(th);el.appendChild(info);el.appendChild(eye);
@@ -3351,6 +3370,30 @@ function bindAll(){
     adjResetUI();
   });
   $('btn-gmap').addEventListener('click',()=>{const a=$('gmap-a').value,b=$('gmap-b').value;applyGradientMap(a,b);});
+  // Color Balance tabs & sliders
+  function cbLoadTone(t){
+    _cbTone=t;const v=_cbState[t];
+    $('cb-cr').value=v.cr;$('cb-crv').textContent=v.cr;
+    $('cb-mg').value=v.mg;$('cb-mgv').textContent=v.mg;
+    $('cb-yb').value=v.yb;$('cb-ybv').textContent=v.yb;
+    const tabs={shad:'cbm-shad',mid:'cbm-mid',high:'cbm-high'};
+    Object.entries(tabs).forEach(([k,id])=>{
+      const btn=$(id);if(!btn)return;const on=(k===t);
+      btn.style.background=on?'var(--primary)':'var(--panel2)';
+      btn.style.borderColor=on?'var(--primary)':'var(--border)';
+      btn.style.color=on?'#fff':'var(--text2)';
+    });
+  }
+  $('cbm-shad').addEventListener('click',()=>cbLoadTone('shad'));
+  $('cbm-mid').addEventListener('click',()=>cbLoadTone('mid'));
+  $('cbm-high').addEventListener('click',()=>cbLoadTone('high'));
+  ['cb-cr','cb-mg','cb-yb'].forEach(id=>{
+    $(id).addEventListener('input',()=>{
+      const k=id.replace('cb-','');const v=parseInt($(id).value);
+      _cbState[_cbTone][k]=v;$(id+'v').textContent=v;
+    });
+  });
+  $('btn-cb').addEventListener('click',applyColorBalance);
   // 모노라인 + 채우기 허용값
   $('sw-monoline').addEventListener('click',()=>{G.brushMonoline=!G.brushMonoline;$('sw-monoline').classList.toggle('on',G.brushMonoline);});
   $('sw-spray').addEventListener('click',()=>{G.brushSpray=!G.brushSpray;$('sw-spray').classList.toggle('on',G.brushSpray);});
@@ -3742,6 +3785,29 @@ function applyGradientMap(colorA,colorB){
   }
   mainCtx.putImageData(imgD,0,0);composite();saveH();showToast('그라디언트 맵 적용 완료');
 }
+let _cbState={shad:{cr:0,mg:0,yb:0},mid:{cr:0,mg:0,yb:0},high:{cr:0,mg:0,yb:0}};
+let _cbTone='shad';
+function applyColorBalance(){
+  if(!mainCtx)return;
+  const src=mainCtx.getImageData(0,0,CW,CH);
+  const imgD=new ImageData(new Uint8ClampedArray(src.data),CW,CH);
+  const d=imgD.data,s=_cbState;
+  for(let i=0;i<d.length;i+=4){
+    if(d[i+3]===0)continue;
+    let r=d[i],g=d[i+1],b=d[i+2];
+    const lum=(r*.299+g*.587+b*.114)/255;
+    const sw=Math.max(0,1-lum*2);
+    const mw=Math.max(0,1-Math.abs(lum-0.5)*2);
+    const hw=Math.max(0,(lum-0.5)*2);
+    const dR=(s.shad.cr*sw+s.mid.cr*mw+s.high.cr*hw)*0.8;
+    const dG=(s.shad.mg*sw+s.mid.mg*mw+s.high.mg*hw)*0.8;
+    const dB=(s.shad.yb*sw+s.mid.yb*mw+s.high.yb*hw)*0.8;
+    d[i]=Math.min(255,Math.max(0,r+dR));
+    d[i+1]=Math.min(255,Math.max(0,g+dG));
+    d[i+2]=Math.min(255,Math.max(0,b+dB));
+  }
+  mainCtx.putImageData(imgD,0,0);composite();saveH();showToast('색상 균형 적용 완료');
+}
 function applyAdjustments(brightness,contrast,hueShift,saturation,blur,noise,bloom,commit){
   if(!mainCtx)return;
   const src=_adjSnap||mainCtx.getImageData(0,0,CW,CH);
@@ -3955,12 +4021,21 @@ function snapRot(r){
 }
 
 /* ===== 연속 Undo/Redo (두/세 손가락 길게 누르기, 프로크리에이트식) ===== */
-let _cuTm=null,_cuIv=null;
-function stopContinuousUndoRedo(){clearTimeout(_cuTm);clearInterval(_cuIv);_cuTm=_cuIv=null;}
+let _cuTm=null,_cuIv=null,_qmHoldTm=null;
+function stopContinuousUndoRedo(){clearTimeout(_cuTm);clearInterval(_cuIv);_cuTm=_cuIv=null;clearTimeout(_qmHoldTm);_qmHoldTm=null;}
 function startContinuousUndoRedo(n){
   stopContinuousUndoRedo();
   const fn=n>=3?redo:undo;
   _cuTm=setTimeout(()=>{fn();_cuIv=setInterval(fn,90);},380);
+  // 두 손가락 800ms 유지 (이동 없음) → QuickMenu (Procreate 퀵메뉴 제스처)
+  if(n===2){
+    _qmHoldTm=setTimeout(()=>{
+      if(G.multi&&G.multi.moved<15){
+        stopContinuousUndoRedo();
+        const qm=$('qmenu');if(qm)qm.classList.add('open');
+      }
+    },800);
+  }
 }
 /* ===== 팬 관성 (프로크리에이트 momentum scroll) ===== */
 let _inertiaRaf=null;
