@@ -802,6 +802,9 @@ body.ui-hidden #row-counter{display:none!important}
             <div class="sw" id="sw-iso"></div><span>등각(Isometric) 그리드</span>
           </div>
           <div class="sw-wrap" style="margin-bottom:5px">
+            <div class="sw" id="sw-persp"></div><span>원근 격자(Perspective Grid)</span>
+          </div>
+          <div class="sw-wrap" style="margin-bottom:5px">
             <div class="sw" id="sw-nums"></div><span>코·단 번호 (좌하단=1)</span>
           </div>
           <div class="sw-wrap" style="margin-bottom:5px">
@@ -1252,6 +1255,7 @@ let G={
   pan:{x:0,y:0},
   gridOn:true,
   isoGrid:false,
+  perspGuide:false,
   streamLine:0.38,
   numbersOn:false,
   radial:false,
@@ -1661,6 +1665,7 @@ function drawBg(){
   ctx.fillRect(0,0,CW,CH);
   if(G.gridOn) drawGrid(ctx);
   if(G.isoGrid) drawIsoGrid(ctx);
+  if(G.perspGuide) drawPerspGrid(ctx);
   if(G.numbersOn) drawNumbers(ctx);
   drawFrame(ctx);
   drawAnchor(ctx);
@@ -1674,6 +1679,33 @@ function drawSymAxes(ctx){
   if(s==='v'||s==='quad'){ctx.beginPath();ctx.moveTo(a.x,0);ctx.lineTo(a.x,CH);ctx.stroke();}
   if(s==='h'||s==='quad'){ctx.beginPath();ctx.moveTo(0,a.y);ctx.lineTo(CW,a.y);ctx.stroke();}
   if(s==='radial'){const N=Math.max(2,G.symN||6);for(let k=0;k<N;k++){const ang=k*Math.PI/N;ctx.beginPath();ctx.moveTo(a.x-Math.cos(ang)*CW,a.y-Math.sin(ang)*CW);ctx.lineTo(a.x+Math.cos(ang)*CW,a.y+Math.sin(ang)*CW);ctx.stroke();}}
+  ctx.restore();
+}
+// 1-점 원근 격자 (도안 원근감 가이드, Procreate 원근 격자)
+function drawPerspGrid(ctx){
+  const vx=CW/2, vy=CH*0.38;
+  ctx.save();
+  ctx.strokeStyle='rgba(255,100,70,0.38)';ctx.lineWidth=0.8;
+  // 소실선: 하단 edge에서 VP로
+  const nLines=18;
+  for(let i=0;i<=nLines;i++){
+    const x=CW*i/nLines;
+    ctx.beginPath();ctx.moveTo(x,CH);ctx.lineTo(vx,vy);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(vx,vy);ctx.stroke();
+  }
+  // 수평 보조선 (소실 방향으로 압축)
+  ctx.strokeStyle='rgba(255,100,70,0.22)';
+  const nH=10;
+  for(let i=1;i<=nH;i++){
+    const t=Math.pow(i/nH,1.6);
+    const yb=vy+(CH-vy)*t;if(yb<=CH){ctx.beginPath();ctx.moveTo(0,yb);ctx.lineTo(CW,yb);ctx.stroke();}
+    const yt=vy-vy*t;if(yt>=0){ctx.beginPath();ctx.moveTo(0,yt);ctx.lineTo(CW,yt);ctx.stroke();}
+  }
+  // 지평선
+  ctx.strokeStyle='rgba(255,100,70,0.55)';ctx.lineWidth=1.3;
+  ctx.beginPath();ctx.moveTo(0,vy);ctx.lineTo(CW,vy);ctx.stroke();
+  // VP 마커
+  ctx.fillStyle='rgba(255,100,70,0.75)';ctx.beginPath();ctx.arc(vx,vy,4,0,Math.PI*2);ctx.fill();
   ctx.restore();
 }
 // 코·단 번호: 좌하단=1, 코(열)는 왼→오른쪽, 단(행)은 아래→위로 증가
@@ -3094,6 +3126,7 @@ function bindAll(){
   $('frounds').addEventListener('input',()=>{G.fRounds=parseInt($('frounds').value);$('frv').textContent=G.fRounds;drawBg();});
   $('sw-grid').addEventListener('click',()=>{G.gridOn=!G.gridOn;$('sw-grid').classList.toggle('on',G.gridOn);drawBg();});
   $('sw-iso').addEventListener('click',()=>{G.isoGrid=!G.isoGrid;$('sw-iso').classList.toggle('on',G.isoGrid);drawBg();});
+  $('sw-persp').addEventListener('click',()=>{G.perspGuide=!G.perspGuide;$('sw-persp').classList.toggle('on',G.perspGuide);drawBg();if(G.perspGuide)showToast('원근 격자 켜짐 — 소실점: 캔버스 중앙 상단');});
   $('sw-nums').addEventListener('click',()=>{G.numbersOn=!G.numbersOn;$('sw-nums').classList.toggle('on',G.numbersOn);drawBg();});
   $('sw-radial').addEventListener('click',()=>{G.radial=!G.radial;$('sw-radial').classList.toggle('on',G.radial);});
   $('ring-n').addEventListener('input',()=>{G.radialN=Math.max(2,Math.min(120,parseInt($('ring-n').value)||12));});
