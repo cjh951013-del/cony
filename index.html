@@ -575,6 +575,11 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="cph"><span>색상</span><button id="colpop-x" title="닫기">✕</button></div>
     <div id="cw-wrap"><canvas id="cwheel" width="180" height="180"></canvas></div>
     <div class="rr" style="margin:6px 0 8px"><span style="font-size:11px">명도</span><input type="range" id="cw-val" min="0" max="100" value="100"><span class="rv" id="cw-val-v">100</span></div>
+    <div style="display:flex;align-items:center;gap:6px;margin:4px 0 8px">
+      <span style="font-size:10px;color:var(--text3);flex-shrink:0">HEX</span>
+      <input id="col-hex" type="text" maxlength="7" placeholder="#rrggbb" style="flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:11px;font-family:monospace;border-radius:5px;padding:3px 6px;outline:none">
+      <button id="col-hex-ok" style="font-size:10px;padding:3px 7px;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);cursor:pointer">적용</button>
+    </div>
     <div id="colpop-hist" class="cpal" style="margin-bottom:8px"></div>
     <div class="cph" style="margin-bottom:5px">
       <span style="font-size:10px;color:var(--text3)">팔레트</span>
@@ -757,6 +762,8 @@ body.ui-hidden #row-counter{display:none!important}
           <div class="rr"><input type="range" id="bsz" min="1" max="30" value="3"><span class="rv" id="bszv">3px</span></div>
           <div class="cgl">부드러움</div>
           <div class="rr"><input type="range" id="bsft" min="0" max="100" value="0" step="5"><span class="rv" id="bsftv">0%</span></div>
+          <div class="cgl">StreamLine (획 안정화)</div>
+          <div class="rr"><input type="range" id="bstl" min="0" max="95" value="38" step="5"><span class="rv" id="bstlv">38%</span></div>
         </div>
 
         <div class="cg" id="stamp-cg">
@@ -1191,6 +1198,7 @@ let G={
   pan:{x:0,y:0},
   gridOn:true,
   isoGrid:false,
+  streamLine:0.38,
   numbersOn:false,
   radial:false,
   radialN:12,
@@ -2488,6 +2496,7 @@ function wheelPick(e){
 function syncWheelFromColor(){
   try{const rgb=hex2rgb(G.color);const hsv=rgb2hsv(rgb[0],rgb[1],rgb[2]);cwState={h:hsv[0],s:hsv[1],v:hsv[2]};}catch(e){}
   const sl=$('cw-val'),sv=$('cw-val-v');if(sl){sl.value=Math.round(cwState.v*100);}if(sv)sv.textContent=Math.round(cwState.v*100);
+  const hi=$('col-hex');if(hi)hi.value=G.color;
   drawColorWheel();
 }
 function pushColorHist(c){
@@ -2909,6 +2918,10 @@ function bindAll(){
   $('op-rail').addEventListener('input',()=>{const v=parseInt($('op-rail').value);G.opacity=v/100;const sv=$('op-rail-v');if(sv)sv.textContent=v;});
   $('topcol').addEventListener('click',e=>{if(_cdDidDrag){_cdDidDrag=false;return;}e.stopPropagation();$('morepop').classList.remove('open');const op=$('colpop').classList.toggle('open');if(op){syncWheelFromColor();renderColorHist();renderHarmony();}});
   $('harmony-mode').addEventListener('change',()=>renderHarmony());
+  function applyHexInput(){const v=($('col-hex').value||'').trim();const h=v.startsWith('#')?v:'#'+v;if(/^#[0-9a-fA-F]{6}$/.test(h)){setColor(h);pushColorHist(h);syncWheelFromColor();renderHarmony();}}
+  $('col-hex-ok').addEventListener('click',applyHexInput);
+  $('col-hex').addEventListener('keydown',e=>{if(e.key==='Enter')applyHexInput();e.stopPropagation();});
+  $('col-hex').addEventListener('click',e=>e.stopPropagation());
   $('colpop-x').addEventListener('click',()=>$('colpop').classList.remove('open'));
   // 복사/붙여넣기 플로팅 메뉴 (세 손가락 아래 스와이프)
   $('cpm-x').addEventListener('click',()=>{$('cpm').style.display='none';});
@@ -2953,6 +2966,7 @@ function bindAll(){
   }
   $('size-rail').addEventListener('input',()=>{const v=parseInt($('size-rail').value);if(G.mode==='stamp'){G.stampSz=v;}else if(G.mode==='eraser'){G.eraserSz=Math.min(30,v);}else{G.brushSz=Math.min(30,v);const b=$('bsz');if(b)b.value=G.brushSz;const bv=$('bszv');if(bv)bv.textContent=G.brushSz+'px';}const sv=$('size-rail-v');if(sv)sv.textContent=v;showBszHud(v);});
   $('bsft').addEventListener('input',()=>{G.brushSoftness=parseInt($('bsft').value);$('bsftv').textContent=G.brushSoftness+'%';});
+  $('bstl').addEventListener('input',()=>{G.streamLine=parseInt($('bstl').value)/100;$('bstlv').textContent=$('bstl').value+'%';});
   const BRUSH_PRESETS={ink:{sz:3,soft:0,mono:true,spray:false},pencil:{sz:4,soft:20,mono:false,spray:false},airbrush:{sz:12,soft:80,mono:false,spray:false},marker:{sz:8,soft:0,mono:true,spray:false},brush:{sz:5,soft:40,mono:false,spray:false}};
   document.querySelectorAll('.bpreset').forEach(btn=>{btn.addEventListener('click',()=>{
     const p=BRUSH_PRESETS[btn.dataset.p];if(!p)return;
@@ -3844,7 +3858,8 @@ function onMove(e){
       const last=G.path[G.path.length-1];
       // draw 모드는 StreamLine 0.38 — 입력 안정화로 떨림 제거 (프로크리에이트 StreamLine)
       const fv=(e.touches&&e.touches[0]&&e.touches[0].force>0)?e.touches[0].force:0;
-      const spos=G.mode==='draw'?{x:last.x+(pos.x-last.x)*0.62,y:last.y+(pos.y-last.y)*0.62,t:Date.now(),f:fv}:{...pos,t:Date.now(),f:fv};
+      const slFac=1-(G.streamLine||0.38);
+      const spos=G.mode==='draw'?{x:last.x+(pos.x-last.x)*slFac,y:last.y+(pos.y-last.y)*slFac,t:Date.now(),f:fv}:{...pos,t:Date.now(),f:fv};
       if(dist2(spos,last)>=MIN_PT){G.path.push(spos);if(dist2(spos,last)>HOLD_TOL&&!G.editing)armHold();}
       renderPreview();
     }
