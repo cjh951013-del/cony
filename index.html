@@ -132,8 +132,8 @@ html[data-theme=light] #eh{background:linear-gradient(180deg,rgba(255,255,255,.8
 /* 브러시 커서 프리뷰 (프로크리에이트식 원형 프리뷰) */
 #brush-cursor{position:absolute;pointer-events:none;border:2px solid rgba(255,255,255,.88);border-radius:50%;box-shadow:0 0 0 1.5px rgba(0,0,0,.55);transform:translate(-50%,-50%);display:none;z-index:35}
 /* 핀치 줌 HUD */
-#zoom-hud,#rot-hud{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.65);color:#fff;font-size:24px;font-weight:700;padding:9px 22px;border-radius:16px;pointer-events:none;opacity:0;transition:opacity .25s;z-index:42;letter-spacing:.5px;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
-#zoom-hud.show,#rot-hud.show{opacity:1}
+#zoom-hud,#rot-hud{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.65);color:#fff;font-size:24px;font-weight:700;padding:9px 22px;border-radius:16px;pointer-events:none;opacity:0;transition:opacity .25s;z-index:42;letter-spacing:.5px;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);cursor:pointer}
+#zoom-hud.show,#rot-hud.show{opacity:1;pointer-events:auto}
 #rot-hud{top:calc(50% + 52px)}
 /* 길게 누르기 색 추출 링 */
 #lp-ring{position:absolute;pointer-events:none;border:2.5px solid var(--primary);border-radius:50%;width:52px;height:52px;transform:translate(-50%,-50%) scale(0);display:none;z-index:36;transition:transform .55s ease,opacity .55s ease;opacity:0}
@@ -3129,6 +3129,9 @@ function bindAll(){
   $('btn-resize').addEventListener('click',()=>{$('morepop').classList.remove('open');$('rz-w').value=CW;$('rz-h').value=CH;openM('m-resize');});
   $('btn-resize-ok').addEventListener('click',()=>{const nw=parseInt($('rz-w').value),nh=parseInt($('rz-h').value);if(!nw||!nh)return;resizeCanvas(nw,nh,$('rz-anchor').checked);closeM('m-resize');});
   $('btn-ctr').addEventListener('click',()=>{fitToScreen();});
+  // zoom-hud 탭 → 100%/Fit 토글, rot-hud 탭 → 회전 초기화 (Procreate-style)
+  $('zoom-hud').addEventListener('click',e=>{e.stopPropagation();if(Math.abs(G.zoom-1)<0.05)fitToScreen();else{G.zoom=1;G.viewRot=0;const cwr=($('cw')||document.body).getBoundingClientRect();G.pan={x:cwr.width/2,y:cwr.height/2};applyTransform();showZoomHud();}});
+  $('rot-hud').addEventListener('click',e=>{e.stopPropagation();G.viewRot=0;applyTransform();showRotHud(0);showToast('캔버스 회전 초기화');});
   $('btn-pro').addEventListener('click',()=>openM('m-pro'));
   $('btn-theme').addEventListener('click',()=>{const lt=document.documentElement.getAttribute('data-theme')==='light';const ic=$('btn-theme').querySelector('.mi');if(lt){document.documentElement.removeAttribute('data-theme');G.bgColor='#202024';if(ic)ic.textContent='🌙';}else{document.documentElement.setAttribute('data-theme','light');G.bgColor='#ffffff';if(ic)ic.textContent='☀️';}if(bgCtx)drawBg();});
   
