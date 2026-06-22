@@ -131,8 +131,9 @@ html[data-theme=light] #eh{background:linear-gradient(180deg,rgba(255,255,255,.8
 /* 브러시 커서 프리뷰 (프로크리에이트식 원형 프리뷰) */
 #brush-cursor{position:absolute;pointer-events:none;border:2px solid rgba(255,255,255,.88);border-radius:50%;box-shadow:0 0 0 1.5px rgba(0,0,0,.55);transform:translate(-50%,-50%);display:none;z-index:35}
 /* 핀치 줌 HUD */
-#zoom-hud{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.65);color:#fff;font-size:24px;font-weight:700;padding:9px 22px;border-radius:16px;pointer-events:none;opacity:0;transition:opacity .25s;z-index:42;letter-spacing:.5px;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
-#zoom-hud.show{opacity:1}
+#zoom-hud,#rot-hud{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.65);color:#fff;font-size:24px;font-weight:700;padding:9px 22px;border-radius:16px;pointer-events:none;opacity:0;transition:opacity .25s;z-index:42;letter-spacing:.5px;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+#zoom-hud.show,#rot-hud.show{opacity:1}
+#rot-hud{top:calc(50% + 52px)}
 /* 길게 누르기 색 추출 링 */
 #lp-ring{position:absolute;pointer-events:none;border:2.5px solid var(--primary);border-radius:50%;width:52px;height:52px;transform:translate(-50%,-50%) scale(0);display:none;z-index:36;transition:transform .55s ease,opacity .55s ease;opacity:0}
 #lp-ring.arm{display:block;transform:translate(-50%,-50%) scale(1);opacity:.9}
@@ -536,6 +537,7 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
       <canvas id="prev-c"></canvas>
       <div id="brush-cursor"></div>
       <div id="zoom-hud">100%</div>
+      <div id="rot-hud">0°</div>
       <div id="lp-ring"></div>
       <div id="color-drop-ghost"></div>
       <aside id="tooldock">
@@ -2771,6 +2773,24 @@ function showZoomHud(){
   clearTimeout(_zHudTm);
   _zHudTm=setTimeout(()=>h.classList.remove('show'),1300);
 }
+let _rHudTm=null;
+function showRotHud(deg){
+  const h=$('rot-hud');if(!h)return;
+  h.textContent=deg+'°';
+  h.classList.add('show');
+  clearTimeout(_rHudTm);
+  _rHudTm=setTimeout(()=>h.classList.remove('show'),1300);
+}
+const _ROT_SNAP=6*Math.PI/180; // 6도 이내면 스냅
+function snapRot(r){
+  const pi2=Math.PI*2;
+  const rn=((r%pi2)+pi2)%pi2;
+  const snaps=[0,Math.PI/2,Math.PI,3*Math.PI/2,pi2];
+  for(const s of snaps){
+    if(Math.abs(rn-s)<_ROT_SNAP)return r-(rn-s);
+  }
+  return r;
+}
 
 /* ===== 길게 누르기 스포이드 (600ms, 프로크리에이트 long-press eyedropper) ===== */
 let _lpTm=null,_lpRaw=null,_lpRingEl=null;
@@ -2846,7 +2866,12 @@ function updateMulti(e){
   const new_ty=-(c_lx-wW/2)*Math.sin(newRot)+(c_ly-wH/2)*Math.cos(newRot)-pynZ;
   G.pan={x:new_tx+wW/2,y:new_ty+wH/2};
   if(Math.abs(newZ-G.zoom)>5e-4){G.zoom=newZ;showZoomHud();}
-  G.viewRot=newRot;
+  const snapped=snapRot(newRot);
+  if(Math.abs(snapped-G.viewRot)>0.001){
+    const degNow=Math.round(snapped*180/Math.PI);
+    showRotHud(((degNow%360)+360)%360);
+  }
+  G.viewRot=snapped;
   applyTransform();
   G.multi.moved+=Math.hypot(dx,dy);G.multi.cl=c;
 }
