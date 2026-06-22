@@ -574,8 +574,12 @@ body.ui-hidden #row-counter{display:none!important}
     <div id="cw-wrap"><canvas id="cwheel" width="180" height="180"></canvas></div>
     <div class="rr" style="margin:6px 0 8px"><span style="font-size:11px">명도</span><input type="range" id="cw-val" min="0" max="100" value="100"><span class="rv" id="cw-val-v">100</span></div>
     <div id="colpop-hist" class="cpal" style="margin-bottom:8px"></div>
-    <div class="cph" style="margin-bottom:5px"><span style="font-size:10px;color:var(--text3)">팔레트</span></div>
+    <div class="cph" style="margin-bottom:5px">
+      <span style="font-size:10px;color:var(--text3)">팔레트</span>
+      <button id="btn-extract-pal" style="font-size:9px;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);cursor:pointer" title="이미지에서 색상 추출">🎨 이미지 추출</button>
+    </div>
     <div class="cpal" id="colpop-pal"></div>
+    <input type="file" id="pal-img-input" accept="image/*" style="display:none">
   </div>
 
   <!-- QuickMenu (Procreate radial) -->
@@ -1115,6 +1119,7 @@ let G={
   fillThreshold:40,
   rowCount:1,
   cloneSrc:null,
+  customPalette:[],
   stampSz:48,
   rot:0,
   viewRot:0,
@@ -2144,6 +2149,34 @@ function renderLayers(){
   });
 }
 
+/* ===== 이미지에서 색상 팔레트 추출 ===== */
+function extractPaletteFromImage(file){
+  const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{
+    const sz=64;const cv=document.createElement('canvas');cv.width=cv.height=sz;
+    const tc=cv.getContext('2d');tc.drawImage(img,0,0,sz,sz);URL.revokeObjectURL(url);
+    const data=tc.getImageData(0,0,sz,sz).data;
+    // 중복 제거를 위해 색상 버킷(6-bit per channel)으로 양자화
+    const buckets={};
+    for(let i=0;i<data.length;i+=4){
+      if(data[i+3]<128)continue;
+      const r=data[i]>>2,g=data[i+1]>>2,b=data[i+2]>>2;
+      const key=(r<<12)|(g<<6)|b;buckets[key]=(buckets[key]||0)+1;
+    }
+    const sorted=Object.entries(buckets).sort((a,b)=>b[1]-a[1]).slice(0,16);
+    const cols=sorted.map(([k])=>{
+      const ki=parseInt(k);const r=(ki>>12)&63,g=(ki>>6)&63,b=ki&63;
+      return rgb2hex(r<<2,g<<2,b<<2);
+    });
+    // 중복 비슷한 색 제거 (threshold 32)
+    const unique=[];cols.forEach(c=>{
+      const [cr,cg,cb]=hex2rgb(c);
+      if(!unique.some(u=>{const[ur,ug,ub]=hex2rgb(u);return Math.abs(cr-ur)+Math.abs(cg-ug)+Math.abs(cb-ub)<48;}))unique.push(c);
+    });
+    G.customPalette=unique.slice(0,12);
+    renderPalettes();showToast('팔레트 '+unique.length+'색 추출 완료');
+  };img.src=url;
+}
 /* ===================== COLOR PALETTES ===================== */
 // 한 곳에서 색을 바꾸면 모든 팔레트(패널·상단 팝오버·상단 스와치)가 동기화된다.
 function setColor(c){
@@ -2436,7 +2469,17 @@ function buildColorPicker(container){
 }
 function renderPalettes(){
   buildColorPicker($('cpal'));
-  buildColorPicker($('colpop-pal'));
+  const pp=$('colpop-pal');pp.innerHTML='';
+  buildColorPicker(pp);
+  if(G.customPalette&&G.customPalette.length){
+    const sep=document.createElement('div');sep.style.cssText='width:100%;height:1px;background:var(--border);margin:5px 0';pp.appendChild(sep);
+    G.customPalette.forEach(c=>{
+      const el=document.createElement('div');el.className='ci'+(c===G.color?' act':'');
+      el.style.background=c;el.title=c;
+      el.addEventListener('click',()=>{setColor(c);pushColorHist(c);syncWheelFromColor&&syncWheelFromColor();});
+      pp.appendChild(el);
+    });
+  }
   const tc=$('topcol');if(tc)tc.style.background=G.color;
 
   const bp=$('bgpal');bp.innerHTML='';
@@ -2730,6 +2773,8 @@ function bindAll(){
   $('op-rail').addEventListener('input',()=>{const v=parseInt($('op-rail').value);G.opacity=v/100;const sv=$('op-rail-v');if(sv)sv.textContent=v;});
   $('topcol').addEventListener('click',e=>{if(_cdDidDrag){_cdDidDrag=false;return;}e.stopPropagation();$('morepop').classList.remove('open');const op=$('colpop').classList.toggle('open');if(op){syncWheelFromColor();renderColorHist();}});
   $('colpop-x').addEventListener('click',()=>$('colpop').classList.remove('open'));
+  $('btn-extract-pal').addEventListener('click',()=>$('pal-img-input').click());
+  $('pal-img-input').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)extractPaletteFromImage(f);e.target.value='';});
   // 컬러 휠 + 명도 슬라이더
   let cwDrag=false;
   const cw=$('cwheel');
