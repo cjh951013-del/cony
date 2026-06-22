@@ -652,6 +652,13 @@ body.ui-hidden #row-counter{display:none!important}
         <button class="ib" id="btn-redo" title="다시실행" disabled>↪</button>
       </aside>
       <div id="snap-badge">📐 직선 고정 ON</div>
+      <div id="cpm" style="display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.45);flex-direction:row;gap:6px">
+        <button class="selb" id="cpm-copy">📋 복사</button>
+        <button class="selb" id="cpm-cut">✂ 자르기</button>
+        <button class="selb" id="cpm-paste">📌 붙이기</button>
+        <button class="selb" id="cpm-clrl">🧽 레이어 지우기</button>
+        <button class="selb" id="cpm-x" style="background:var(--panel2)">✕</button>
+      </div>
       <div id="gesture-hint">✌️ 두 손가락=이동·확대 · 두 손가락 탭=실행취소 · 세 손가락 탭=다시실행 · 선 긋고 2초(또는 다른 손 터치)=도형 고정 · 네 손가락 탭=도구 숨기기</div>
       <div id="sel-shape">
         <button class="ssb act" data-sm="rect" title="사각 선택">▭</button>
@@ -2845,6 +2852,12 @@ function bindAll(){
   $('topcol').addEventListener('click',e=>{if(_cdDidDrag){_cdDidDrag=false;return;}e.stopPropagation();$('morepop').classList.remove('open');const op=$('colpop').classList.toggle('open');if(op){syncWheelFromColor();renderColorHist();renderHarmony();}});
   $('harmony-mode').addEventListener('change',()=>renderHarmony());
   $('colpop-x').addEventListener('click',()=>$('colpop').classList.remove('open'));
+  // 복사/붙여넣기 플로팅 메뉴 (세 손가락 아래 스와이프)
+  $('cpm-x').addEventListener('click',()=>{$('cpm').style.display='none';});
+  $('cpm-copy').addEventListener('click',()=>{$('cpm').style.display='none';const r=selRect();if(r){const mc2=applySelMask(clipToCanvas(mainCtx.getImageData(r.x,r.y,r.w,r.h)),r);G.clipboard=mc2.getContext('2d').getImageData(0,0,r.w,r.h);showToast('복사됨');}else{const d=mainCtx.getImageData(0,0,CW,CH);G.clipboard=d;showToast('레이어 전체 복사됨');}});
+  $('cpm-cut').addEventListener('click',()=>{$('cpm').style.display='none';const r=selRect();if(r){const mc2=applySelMask(clipToCanvas(mainCtx.getImageData(r.x,r.y,r.w,r.h)),r);G.clipboard=mc2.getContext('2d').getImageData(0,0,r.w,r.h);clearSelectionRegion(r);composite();saveH();showToast('잘라내기 완료');}else{G.clipboard=mainCtx.getImageData(0,0,CW,CH);mainCtx.clearRect(0,0,CW,CH);composite();saveH();showToast('레이어 잘라내기 완료');}});
+  $('cpm-paste').addEventListener('click',()=>{$('cpm').style.display='none';if(G.clipboard){pasteFloat();showToast('붙이기 완료');}});
+  $('cpm-clrl').addEventListener('click',()=>{$('cpm').style.display='none';clearActiveLayer();showToast('레이어 지웠습니다');});
   $('btn-extract-pal').addEventListener('click',()=>$('pal-img-input').click());
   $('pal-img-input').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)extractPaletteFromImage(f);e.target.value='';});
   // 컬러 휠 + 명도 슬라이더
@@ -3610,6 +3623,12 @@ function renderSymGuide(){
   }
   prevCtx.restore();
 }
+// 세 손가락 아래 스와이프 = 복사/붙여넣기 플로팅 메뉴 (Procreate 3-finger swipe)
+function showCopyPasteMenu(){
+  const m=$('cpm');if(!m)return;
+  m.style.display='flex';
+  setTimeout(()=>{if($('cpm').style.display!=='none')$('cpm').style.display='none';},4000);
+}
 // 4손가락 탭 = UI 숨기기/보이기 (프로크리에이트). 숨김 상태에선 작은 복원 버튼만.
 function toggleUIHidden(){
   const hidden=document.body.classList.toggle('ui-hidden');
@@ -3806,10 +3825,13 @@ function onUp(e){
       const n=G.multi.n;
       // 두 손가락 수평 스와이프: 왼쪽=실행취소, 오른쪽=다시실행
       const swipeX=hist&&hist.length>=2?hist[hist.length-1].c.x-hist[0].c.x:0;
-      const swipeY=hist&&hist.length>=2?Math.abs(hist[hist.length-1].c.y-hist[0].c.y):0;
-      const isSwipe=!tap&&n===2&&Math.abs(swipeX)>55&&swipeY<Math.abs(swipeX)*0.6&&Math.abs(G.zoom-G.multi.z0)<0.04&&Math.abs(G.viewRot-G.multi.vr0)<0.08;
+      const swipeRawY=hist&&hist.length>=2?hist[hist.length-1].c.y-hist[0].c.y:0;
+      const swipeY=Math.abs(swipeRawY);
+      const isSwipe2=!tap&&n===2&&Math.abs(swipeX)>55&&swipeY<Math.abs(swipeX)*0.6&&Math.abs(G.zoom-G.multi.z0)<0.04&&Math.abs(G.viewRot-G.multi.vr0)<0.08;
+      const isSwipe3down=!tap&&n===3&&swipeRawY>60&&swipeY>Math.abs(swipeX)*0.7&&Math.abs(G.zoom-G.multi.z0)<0.04;
       G.multi=null;
-      if(isSwipe){if(swipeX<0)undo();else redo();}
+      if(isSwipe2){if(swipeX<0)undo();else redo();}
+      else if(isSwipe3down){showCopyPasteMenu();}
       else if(tap){if(G.editing){cancelShape();}else if(n>=4){toggleUIHidden();}else if(n>=3){redo();}else{undo();}}
     }
     return;
