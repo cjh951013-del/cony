@@ -2724,22 +2724,48 @@ function pasteFloat(){if(!G.clipboard)return;const r=selRect();const x=r?r.x:Mat
 function commitFloat(){if(!G.float)return;const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;mainCtx.save();mainCtx.translate(cx,cy);mainCtx.rotate(r);mainCtx.drawImage(f.cv,-f.w/2,-f.h/2);mainCtx.restore();G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();saveH();}
 function strokePolyCtx(ctx,poly){
   if(!poly||poly.length<1)return;
-  const oa=ctx.globalAlpha;if(G.opacity<1)ctx.globalAlpha=oa*G.opacity;
-  ctx.lineWidth=G.brushSz;ctx.strokeStyle=G.color;ctx.lineCap='round';ctx.lineJoin='round';ctx.setLineDash([]);
+  const oa=ctx.globalAlpha;
+  ctx.strokeStyle=G.color;ctx.lineCap='round';ctx.lineJoin='round';ctx.setLineDash([]);
+  const hasTimes=poly[0]&&poly[0].t!=null;
+  const N=poly.length;
   symXf().forEach(T=>{
     const pts=poly.map(p=>T(p));
-    ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
-    if(pts.length<3){
-      for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);
-    }else{
-      // 중간점 베지어로 부드러운 곡선 (프로크리에이트 브러시 품질)
-      for(let i=1;i<pts.length-1;i++){
-        const mx=(pts[i].x+pts[i+1].x)/2,my=(pts[i].y+pts[i+1].y)/2;
-        ctx.quadraticCurveTo(pts[i].x,pts[i].y,mx,my);
+    // 속도 기반 선폭 계산 (빠를수록 가늘어짐 — 프로크리에이트 압력 감도)
+    const widths=new Array(N).fill(G.brushSz);
+    if(hasTimes&&N>1){
+      const MAX_V=4.5; // px/ms 이상이면 최대로 가늘어짐
+      for(let i=1;i<N;i++){
+        const dt=Math.max(1,poly[i].t-poly[i-1].t);
+        const ds=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
+        const vel=ds/dt;
+        widths[i]=G.brushSz*Math.max(0.35,1-(vel/MAX_V)*0.65);
       }
-      ctx.lineTo(pts[pts.length-1].x,pts[pts.length-1].y);
+      widths[0]=widths[1];
     }
-    ctx.stroke();
+    ctx.globalAlpha=oa*G.opacity;
+    if(N<2){
+      // 점 하나
+      ctx.lineWidth=widths[0];ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);ctx.lineTo(pts[0].x+0.01,pts[0].y);ctx.stroke();
+      return;
+    }
+    if(N<3){
+      ctx.lineWidth=(widths[0]+widths[1])/2;ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);ctx.lineTo(pts[1].x,pts[1].y);ctx.stroke();
+      return;
+    }
+    // 중간점 베지어 + 구간별 선폭
+    const mids=[];
+    for(let i=0;i<N-1;i++)mids.push({x:(pts[i].x+pts[i+1].x)/2,y:(pts[i].y+pts[i+1].y)/2});
+    // 첫 구간
+    ctx.lineWidth=widths[0];ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);ctx.lineTo(mids[0].x,mids[0].y);ctx.stroke();
+    // 중간 구간
+    for(let i=1;i<N-1;i++){
+      ctx.lineWidth=(widths[i-1]+widths[i])/2;
+      ctx.beginPath();ctx.moveTo(mids[i-1].x,mids[i-1].y);
+      ctx.quadraticCurveTo(pts[i].x,pts[i].y,mids[i].x,mids[i].y);
+      ctx.stroke();
+    }
+    // 마지막 구간
+    ctx.lineWidth=widths[N-1];ctx.beginPath();ctx.moveTo(mids[N-2].x,mids[N-2].y);ctx.lineTo(pts[N-1].x,pts[N-1].y);ctx.stroke();
   });
   ctx.globalAlpha=oa;
 }
@@ -2906,7 +2932,7 @@ function onDown(e){
   }
   G.isDrawing=true;G.lastPos=pos;
   if(G.mode==='stamp'||G.mode==='draw'){
-    G.path=[pos];G.snap=null;renderPreview();armHold();
+    G.path=[{...pos,t:Date.now()}];G.snap=null;renderPreview();armHold();
     if(e.touches)startLpPick(e);
   }
   else if(G.mode==='graph'){fillCell(pos);composite();}
@@ -2941,7 +2967,7 @@ function onMove(e){
   const pos=getPos(e);
   if(G.mode==='stamp'||G.mode==='draw'){
     const last=G.path[G.path.length-1];
-    if(dist2(pos,last)>=MIN_PT){G.path.push(pos);if(dist2(pos,last)>HOLD_TOL&&!G.editing)armHold();}
+    if(dist2(pos,last)>=MIN_PT){G.path.push({...pos,t:Date.now()});if(dist2(pos,last)>HOLD_TOL&&!G.editing)armHold();}
     renderPreview();
   }else if(G.mode==='graph'){fillCell(pos);composite();}
   else if(G.mode==='eraser'){mainCtx.clearRect(pos.x-G.brushSz*2,pos.y-G.brushSz*2,G.brushSz*4,G.brushSz*4);composite();}
