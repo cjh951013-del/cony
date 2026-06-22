@@ -456,6 +456,14 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
 .chb-sep{width:1px;height:18px;background:rgba(255,255,255,.15);margin:0 2px;flex-shrink:0}
 body.ui-hidden #col-hist-bar{display:none!important}
 html[data-theme=light] #col-hist-bar{background:rgba(240,240,252,.92);border-color:rgba(0,0,0,.1)}
+/* ===== 단/코 카운터 위젯 ===== */
+#row-counter{position:absolute;top:12px;right:12px;background:rgba(24,24,44,.9);border:1.5px solid rgba(168,85,247,.55);border-radius:22px;display:flex;align-items:center;z-index:20;backdrop-filter:blur(10px);box-shadow:0 3px 16px rgba(0,0,0,.45);touch-action:none;user-select:none}
+#row-counter.hidden{display:none}
+#rc-dec,#rc-inc{background:none;border:none;color:rgba(255,255,255,.7);font-size:20px;width:36px;height:38px;cursor:pointer;line-height:1;padding:0;flex-shrink:0}
+#rc-dec:hover,#rc-inc:hover,#rc-dec:active,#rc-inc:active{color:var(--primary)}
+#rc-val{font-size:11px;font-weight:800;color:var(--primary);min-width:52px;text-align:center;padding:0 2px;line-height:1.2}
+#rc-lbl{font-size:9px;color:rgba(255,255,255,.45);display:block;font-weight:400}
+body.ui-hidden #row-counter{display:none!important}
 /* ===== QuickMenu (Procreate-style radial) ===== */
 #qmenu{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;pointer-events:none}
 #qmenu.open{display:flex;pointer-events:auto}
@@ -657,6 +665,12 @@ html[data-theme=light] #col-hist-bar{background:rgba(240,240,252,.92);border-col
           <button id="text-ok" style="padding:5px 12px;border-radius:7px;border:none;background:var(--primary);color:#fff;font-size:12px;font-weight:700;cursor:pointer">✓</button>
           <button id="text-x" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(60,60,80,.8);color:var(--text2);font-size:12px;cursor:pointer">✕</button>
         </div>
+      </div>
+      <!-- 단/코 카운터 위젯 -->
+      <div id="row-counter">
+        <button id="rc-dec" title="단/코 줄이기">−</button>
+        <div id="rc-val"><span id="rc-num">1</span><span id="rc-lbl">단</span></div>
+        <button id="rc-inc" title="단/코 늘리기">＋</button>
       </div>
       <!-- 하단 컬러 히스토리 바 -->
       <div id="col-hist-bar">
@@ -1052,6 +1066,7 @@ let G={
   brushMonoline:false,
   brushSpray:false,
   fillThreshold:40,
+  rowCount:1,
   stampSz:48,
   rot:0,
   viewRot:0,
@@ -2214,6 +2229,39 @@ function pushColorHist(c){
   if(G.colorHist.length>10)G.colorHist.pop();
   renderColHistBar();
 }
+/* ===== 단/코 카운터 위젯 ===== */
+function updateRowCounter(){const n=$('rc-num');if(n)n.textContent=G.rowCount;}
+function initRowCounter(){
+  updateRowCounter();
+  $('rc-inc').addEventListener('click',e=>{e.stopPropagation();G.rowCount=Math.max(1,G.rowCount+1);updateRowCounter();showToast('단 '+G.rowCount);schedulePersist();});
+  $('rc-dec').addEventListener('click',e=>{e.stopPropagation();if(G.rowCount>1){G.rowCount--;updateRowCounter();showToast('단 '+G.rowCount);schedulePersist();}});
+  // 길게 눌러 리셋
+  let _rcLpTm=null;
+  $('rc-val').addEventListener('pointerdown',()=>{_rcLpTm=setTimeout(()=>{G.rowCount=1;updateRowCounter();showToast('단 카운터 초기화');schedulePersist();},700);});
+  $('rc-val').addEventListener('pointerup',()=>{clearTimeout(_rcLpTm);});
+  $('rc-val').addEventListener('pointerleave',()=>{clearTimeout(_rcLpTm);});
+  // 드래그로 이동
+  const el=$('row-counter');if(!el)return;
+  let _rcDrag=false,_rcOx=0,_rcOy=0,_rcSx=0,_rcSy=0;
+  el.addEventListener('pointerdown',e=>{
+    if(e.target===el||e.target.id==='rc-val'||e.target.id==='rc-num'||e.target.id==='rc-lbl'){
+      _rcDrag=true;el.setPointerCapture(e.pointerId);
+      const r=el.getBoundingClientRect();
+      _rcOx=e.clientX-r.left;_rcOy=e.clientY-r.top;
+      _rcSx=parseInt(el.style.right||12,10);_rcSy=parseInt(el.style.top||12,10);
+      e.stopPropagation();
+    }
+  });
+  el.addEventListener('pointermove',e=>{
+    if(!_rcDrag)return;
+    const cwr=($('cw')||document.body).getBoundingClientRect();
+    const lx=e.clientX-cwr.left-_rcOx;
+    const ly=e.clientY-cwr.top-_rcOy;
+    el.style.left=Math.max(0,lx)+'px';el.style.top=Math.max(0,ly)+'px';
+    el.style.right='auto';
+  });
+  el.addEventListener('pointerup',()=>{_rcDrag=false;});
+}
 function renderColHistBar(){
   const cur=$('chb-cur');if(cur)cur.style.background=G.color;
   const list=$('chb-list');if(!list)return;list.innerHTML='';
@@ -2551,6 +2599,7 @@ function bindAll(){
   // 하단 컬러 히스토리 바: 현재색 원 클릭 → 컬러 팝업 열기
   const chbCur=$('chb-cur');if(chbCur)chbCur.addEventListener('click',e=>{e.stopPropagation();$('morepop').classList.remove('open');const op=$('colpop').classList.toggle('open');if(op){syncWheelFromColor();renderColorHist();}});
   renderColHistBar();
+  initRowCounter();
   $('btn-more').addEventListener('click',e=>{e.stopPropagation();$('colpop').classList.remove('open');$('morepop').classList.toggle('open');});
   $('btn-quickshape').addEventListener('click',()=>{G.quickShape=!G.quickShape;const t=$('btn-quickshape').querySelector('span:last-child');if(t)t.textContent='길게 눌러 도형 고정: '+(G.quickShape?'켜짐':'꺼짐');});
   $('btn-legend').addEventListener('click',()=>{$('morepop').classList.remove('open');openLegend();});
