@@ -635,6 +635,7 @@ body.ui-hidden #row-counter{display:none!important}
         <button class="tbtn" data-mode="graph" title="방안뜨기(칸 색칠)"><span class="ti">▦</span>방안</button>
         <button class="tbtn" data-mode="text" title="텍스트"><span class="ti">T</span>글자</button>
       </div>
+      <div style="padding:4px 8px 2px"><input id="stitch-search" type="search" placeholder="🔍 기호 이름 검색..." style="width:100%;box-sizing:border-box;font-size:11px;padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--panel2);color:var(--text);outline:none"></div>
       <div class="stl" id="stitch-list"></div>
       <div class="drag-hint">2초 누르기 → 순서변경</div>
       <div class="sl-footer">
@@ -2025,10 +2026,12 @@ function renderShelf(){
   $('stl-title').textContent=type==='crochet'?'코바늘':'대바늘';
   const defs=STITCHES[type];
   const order=G.stitchOrder[type];
-  
+  const searchQ=(($('stitch-search')||{}).value||'').trim().toLowerCase();
+
   order.forEach((origIdx,dispIdx)=>{
     const s=defs[origIdx];
     if(!s||!s.visible)return;
+    if(searchQ&&!s.name.toLowerCase().includes(searchQ))return;
     const el=document.createElement('div');
     el.className='sc'+(s.id===G.stitch?' act':'');
     el.dataset.idx=origIdx;
@@ -3151,6 +3154,8 @@ function bindAll(){
     b.classList.add('act');$('tab-'+b.dataset.tab).classList.add('act');
   }));
   
+  // STITCH 검색
+  {const ss=$('stitch-search');if(ss)ss.addEventListener('input',()=>renderShelf());}
   // STITCH MGR
   $('btn-mgr').addEventListener('click',()=>{openMgr();openM('m-mgr');});
   $('btn-stitch-mgr').addEventListener('click',()=>{openMgr();openM('m-mgr');});
