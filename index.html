@@ -2724,11 +2724,21 @@ function pasteFloat(){if(!G.clipboard)return;const r=selRect();const x=r?r.x:Mat
 function commitFloat(){if(!G.float)return;const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;mainCtx.save();mainCtx.translate(cx,cy);mainCtx.rotate(r);mainCtx.drawImage(f.cv,-f.w/2,-f.h/2);mainCtx.restore();G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();saveH();}
 function strokePolyCtx(ctx,poly){
   if(!poly||poly.length<1)return;
-  const oa=ctx.globalAlpha; if(G.opacity<1)ctx.globalAlpha=oa*G.opacity;
+  const oa=ctx.globalAlpha;if(G.opacity<1)ctx.globalAlpha=oa*G.opacity;
   ctx.lineWidth=G.brushSz;ctx.strokeStyle=G.color;ctx.lineCap='round';ctx.lineJoin='round';ctx.setLineDash([]);
   symXf().forEach(T=>{
-    const q0=T(poly[0]);ctx.beginPath();ctx.moveTo(q0.x,q0.y);
-    for(let i=1;i<poly.length;i++){const q=T(poly[i]);ctx.lineTo(q.x,q.y);}
+    const pts=poly.map(p=>T(p));
+    ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+    if(pts.length<3){
+      for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);
+    }else{
+      // 중간점 베지어로 부드러운 곡선 (프로크리에이트 브러시 품질)
+      for(let i=1;i<pts.length-1;i++){
+        const mx=(pts[i].x+pts[i+1].x)/2,my=(pts[i].y+pts[i+1].y)/2;
+        ctx.quadraticCurveTo(pts[i].x,pts[i].y,mx,my);
+      }
+      ctx.lineTo(pts[pts.length-1].x,pts[pts.length-1].y);
+    }
     ctx.stroke();
   });
   ctx.globalAlpha=oa;
