@@ -785,6 +785,9 @@ body.ui-hidden #row-counter{display:none!important}
             <div class="sw on" id="sw-grid"></div><span>격자(Grid)</span>
           </div>
           <div class="sw-wrap" style="margin-bottom:5px">
+            <div class="sw" id="sw-iso"></div><span>등각(Isometric) 그리드</span>
+          </div>
+          <div class="sw-wrap" style="margin-bottom:5px">
             <div class="sw" id="sw-nums"></div><span>코·단 번호 (좌하단=1)</span>
           </div>
           <div class="sw-wrap" style="margin-bottom:5px">
@@ -1187,6 +1190,7 @@ let G={
   zoom:1,
   pan:{x:0,y:0},
   gridOn:true,
+  isoGrid:false,
   numbersOn:false,
   radial:false,
   radialN:12,
@@ -1593,6 +1597,7 @@ function drawBg(){
   ctx.fillStyle=G.bgColor;
   ctx.fillRect(0,0,CW,CH);
   if(G.gridOn) drawGrid(ctx);
+  if(G.isoGrid) drawIsoGrid(ctx);
   if(G.numbersOn) drawNumbers(ctx);
   drawFrame(ctx);
   drawAnchor(ctx);
@@ -1627,6 +1632,16 @@ function drawGrid(ctx){
   ctx.strokeStyle='rgba(100,100,200,0.15)';ctx.lineWidth=.5;
   for(let x=0;x<=CW;x+=gs){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,CH);ctx.stroke();}
   for(let y=0;y<=CH;y+=gs){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}
+}
+function drawIsoGrid(ctx){
+  const gs=40;const D=Math.max(CW,CH)*2;
+  ctx.save();ctx.strokeStyle='rgba(100,200,100,0.18)';ctx.lineWidth=.5;
+  // 30° 등각 선들: 오른쪽 위 방향
+  const dx=gs,dy=gs*0.577; // tan(30°)
+  for(let s=-D;s<=D;s+=dx){ctx.beginPath();ctx.moveTo(s,0);ctx.lineTo(s+D,D*0.577);ctx.stroke();}
+  for(let s=-D;s<=D;s+=dx){ctx.beginPath();ctx.moveTo(s,0);ctx.lineTo(s-D,D*0.577);ctx.stroke();}
+  for(let y=0;y<=CH+D;y+=dy*2){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}
+  ctx.restore();
 }
 function drawFrame(ctx){
   const cx=CW/2,cy=CH/2,r=CW*.38;
@@ -2852,6 +2867,7 @@ function bindAll(){
   $('frame-sel').addEventListener('change',()=>{G.frame=$('frame-sel').value;drawBg();});
   $('frounds').addEventListener('input',()=>{G.fRounds=parseInt($('frounds').value);$('frv').textContent=G.fRounds;drawBg();});
   $('sw-grid').addEventListener('click',()=>{G.gridOn=!G.gridOn;$('sw-grid').classList.toggle('on',G.gridOn);drawBg();});
+  $('sw-iso').addEventListener('click',()=>{G.isoGrid=!G.isoGrid;$('sw-iso').classList.toggle('on',G.isoGrid);drawBg();});
   $('sw-nums').addEventListener('click',()=>{G.numbersOn=!G.numbersOn;$('sw-nums').classList.toggle('on',G.numbersOn);drawBg();});
   $('sw-radial').addEventListener('click',()=>{G.radial=!G.radial;$('sw-radial').classList.toggle('on',G.radial);});
   $('ring-n').addEventListener('input',()=>{G.radialN=Math.max(2,Math.min(120,parseInt($('ring-n').value)||12));});
