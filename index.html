@@ -581,6 +581,17 @@ body.ui-hidden #row-counter{display:none!important}
     </div>
     <div class="cpal" id="colpop-pal"></div>
     <input type="file" id="pal-img-input" accept="image/*" style="display:none">
+    <div class="cph" style="margin-top:8px;margin-bottom:5px">
+      <span style="font-size:10px;color:var(--text3)">색상 조화</span>
+      <select id="harmony-mode" style="font-size:9px;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:2px 4px">
+        <option value="comp">보색</option>
+        <option value="split">분할 보색</option>
+        <option value="analog">유사색</option>
+        <option value="triad">삼각</option>
+        <option value="tetra">사각</option>
+      </select>
+    </div>
+    <div class="cpal" id="harmony-pal"></div>
   </div>
 
   <!-- QuickMenu (Procreate radial) -->
@@ -2221,6 +2232,7 @@ function setColor(c){
   const tc=$('topcol');if(tc)tc.style.background=c;
   renderShelf();
   renderColHistBar();
+  if($('colpop')&&$('colpop').classList.contains('open'))renderHarmony();
 }
 /* ===== 복제 도장 (Clone Stamp) ===== */
 let _cloneCanvas=null,_cloneDragStart=null;
@@ -2503,6 +2515,26 @@ function buildColorPicker(container){
   cin.style='width:24px;height:24px;border:none;padding:0;border-radius:50%;overflow:hidden;cursor:pointer;background:none';
   cin.addEventListener('input',()=>setColor(cin.value));
   container.appendChild(cin);
+}
+function renderHarmony(){
+  const box=$('harmony-pal');if(!box)return;
+  box.innerHTML='';
+  const [r,g,b]=hex2rgb(G.color);
+  const [h,s,v]=rgb2hsv(r,g,b);
+  const mode=($('harmony-mode')||{}).value||'comp';
+  let angles=[];
+  if(mode==='comp')angles=[180];
+  else if(mode==='split')angles=[150,210];
+  else if(mode==='analog')angles=[-30,-15,15,30];
+  else if(mode==='triad')angles=[120,240];
+  else if(mode==='tetra')angles=[90,180,270];
+  const cols=[G.color,...angles.map(a=>{const nh=((h+a)%360+360)%360;const[nr,ng,nb]=hsv2rgb(nh,s,v);return rgb2hex(nr,ng,nb);})];
+  cols.forEach(c=>{
+    const el=document.createElement('div');el.className='ci'+(c===G.color?' act':'');
+    el.style.background=c;el.title=c;
+    el.addEventListener('click',()=>{setColor(c);pushColorHist(c);syncWheelFromColor&&syncWheelFromColor();renderHarmony();});
+    box.appendChild(el);
+  });
 }
 function renderPalettes(){
   buildColorPicker($('cpal'));
@@ -2810,7 +2842,8 @@ function bindAll(){
   $('btn-sel-top').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode('select');});
   $('btn-trans').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode('selection');});
   $('op-rail').addEventListener('input',()=>{const v=parseInt($('op-rail').value);G.opacity=v/100;const sv=$('op-rail-v');if(sv)sv.textContent=v;});
-  $('topcol').addEventListener('click',e=>{if(_cdDidDrag){_cdDidDrag=false;return;}e.stopPropagation();$('morepop').classList.remove('open');const op=$('colpop').classList.toggle('open');if(op){syncWheelFromColor();renderColorHist();}});
+  $('topcol').addEventListener('click',e=>{if(_cdDidDrag){_cdDidDrag=false;return;}e.stopPropagation();$('morepop').classList.remove('open');const op=$('colpop').classList.toggle('open');if(op){syncWheelFromColor();renderColorHist();renderHarmony();}});
+  $('harmony-mode').addEventListener('change',()=>renderHarmony());
   $('colpop-x').addEventListener('click',()=>$('colpop').classList.remove('open'));
   $('btn-extract-pal').addEventListener('click',()=>$('pal-img-input').click());
   $('pal-img-input').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)extractPaletteFromImage(f);e.target.value='';});
