@@ -561,6 +561,7 @@ body.ui-hidden #row-counter{display:none!important}
     <button class="mrow" id="btn-img"><span class="mi">🖼</span><span>이미지 가져오기 (따라 그리기)</span></button>
     <button class="mrow" id="btn-ref"><span class="mi">📌</span><span>레퍼런스 이미지 (투명 오버레이)</span></button>
     <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
+    <button class="mrow" id="btn-resize"><span class="mi">⤢</span><span>캔버스 크기 조정</span></button>
     <button class="mrow" id="btn-fliph"><span class="mi">⇋</span><span>좌우 반전</span></button>
     <button class="mrow" id="btn-flipv"><span class="mi">⤲</span><span>상하 반전</span></button>
     <button class="mrow" id="btn-rotcw"><span class="mi">↻</span><span>캔버스 90° 시계방향 회전</span></button>
@@ -807,6 +808,7 @@ body.ui-hidden #row-counter{display:none!important}
           <div class="rr"><span style="font-size:9px;min-width:30px">색조</span><input type="range" id="adj-hu" min="-180" max="180" value="0"><span class="rv" id="adj-huv">0°</span></div>
           <div class="rr"><span style="font-size:9px;min-width:30px">채도</span><input type="range" id="adj-sa" min="-100" max="100" value="0"><span class="rv" id="adj-sav">0</span></div>
           <div class="rr"><span style="font-size:9px;min-width:30px">블러</span><input type="range" id="adj-bl" min="0" max="20" value="0" step="0.5"><span class="rv" id="adj-blv">0</span></div>
+          <div class="rr"><span style="font-size:9px;min-width:30px">노이즈</span><input type="range" id="adj-no" min="0" max="100" value="0"><span class="rv" id="adj-nov">0</span></div>
           <button class="ib" id="btn-adj-apply" style="width:100%;margin-top:4px;font-size:10px;background:var(--primary);border-color:var(--primary);color:#fff">✓ 적용</button>
           <button class="ib" id="btn-adj-reset" style="width:100%;margin-top:3px;font-size:10px">↺ 초기화</button>
         </div>
@@ -859,6 +861,18 @@ body.ui-hidden #row-counter{display:none!important}
     </aside>
   </div>
   <footer id="ea" id="ad2">📢 [광고] 실시간 뜨개 코칭 커뮤니티 "포근실방" 지금 가입하기 →</footer>
+</div>
+
+<!-- ===== MODAL: 캔버스 크기 조정 ===== -->
+<div class="mo" id="m-resize">
+  <div class="mc" style="max-width:320px">
+    <div class="mh"><h2>캔버스 크기 조정</h2><button class="mhx" onclick="closeM('m-resize')">✕</button></div>
+    <div class="fg"><label>너비 (픽셀)</label><input id="rz-w" type="number" min="200" max="4000" value="1200" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text)"></div>
+    <div class="fg"><label>높이 (픽셀)</label><input id="rz-h" type="number" min="200" max="4000" value="1200" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text)"></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="rz-anchor" checked><span>현재 콘텐츠 유지 (가운데 정렬)</span></label></div>
+    <div class="fg" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3)">⚠ 크기를 줄이면 캔버스 밖 영역이 잘립니다. 실행 취소 가능합니다.</div>
+    <div class="mf"><button class="mb" onclick="closeM('m-resize')">취소</button><button class="mb p" id="btn-resize-ok">적용</button></div>
+  </div>
 </div>
 
 <!-- ===== MODAL: 새 프로젝트 ===== -->
@@ -1028,7 +1042,7 @@ body.ui-hidden #row-counter{display:none!important}
 
 <script>
 /* ===================== DATA ===================== */
-const CW=1200,CH=1200;
+let CW=1200,CH=1200;
 const STITCHES={
   crochet:[
     {id:'ch',name:'사슬(ch)',svg:'ellipse',params:{cx:16,cy:16,rx:8,ry:4,transform:'rotate(-30 16 16)'},visible:true},
@@ -1799,6 +1813,26 @@ function rotateCanvas(dir){
   composite();renderLayers();saveHMulti();
 }
 function clearCv(){if(mainCtx)mainCtx.clearRect(0,0,CW,CH);G.usedSymbols=[];composite();}
+function resizeCanvas(nw,nh,anchor){
+  nw=Math.round(Math.max(200,Math.min(4000,nw)));nh=Math.round(Math.max(200,Math.min(4000,nh)));
+  if(nw===CW&&nh===CH)return;
+  // 1) 각 레이어 콘텐츠를 새 크기의 off-screen 캔버스로 복사
+  const ox=anchor?Math.round((nw-CW)/2):0,oy=anchor?Math.round((nh-CH)/2):0;
+  G.layers.forEach(l=>{
+    if(!l.cv)return;
+    const tmp=document.createElement('canvas');tmp.width=nw;tmp.height=nh;
+    tmp.getContext('2d').drawImage(l.cv,ox,oy);
+    l.cv=tmp;l.ctx=tmp.getContext('2d');
+    applyLayerLock(l);
+  });
+  // 2) DOM 캔버스 크기 변경 (clearRect는 필요 없음 — width 재할당이 자동 클리어)
+  CW=nw;CH=nh;
+  const bgEl=$('bg-c');if(bgEl){bgEl.width=nw;bgEl.height=nh;bgCtx=bgEl.getContext('2d');}
+  const mcEl=$('main-c');if(mcEl){mcEl.width=nw;mcEl.height=nh;dispCtx=mcEl.getContext('2d');}
+  const pcEl=$('prev-c');if(pcEl){pcEl.width=nw;pcEl.height=nh;prevCtx=pcEl.getContext('2d');}
+  setActiveCtx();drawBg();composite();renderLayers();fitToScreen();saveHMulti();
+  showToast(`캔버스 크기 변경 → ${nw}×${nh}`);
+}
 // 범례(레전드): 도안에 사용한 기호 목록을 모달에 자동 생성
 function openLegend(){
   const box=$('legend-list');if(!box)return;
@@ -2721,6 +2755,8 @@ function bindAll(){
   $('btn-rotcw').addEventListener('click',()=>{$('morepop').classList.remove('open');rotateCanvas('cw');});
   $('btn-rotccw').addEventListener('click',()=>{$('morepop').classList.remove('open');rotateCanvas('ccw');});
   $('btn-clrlayer').addEventListener('click',()=>{$('morepop').classList.remove('open');clearActiveLayer();});
+  $('btn-resize').addEventListener('click',()=>{$('morepop').classList.remove('open');$('rz-w').value=CW;$('rz-h').value=CH;openM('m-resize');});
+  $('btn-resize-ok').addEventListener('click',()=>{const nw=parseInt($('rz-w').value),nh=parseInt($('rz-h').value);if(!nw||!nh)return;resizeCanvas(nw,nh,$('rz-anchor').checked);closeM('m-resize');});
   $('btn-ctr').addEventListener('click',()=>{fitToScreen();});
   $('btn-pro').addEventListener('click',()=>openM('m-pro'));
   $('btn-theme').addEventListener('click',()=>{const lt=document.documentElement.getAttribute('data-theme')==='light';const ic=$('btn-theme').querySelector('.mi');if(lt){document.documentElement.removeAttribute('data-theme');G.bgColor='#202024';if(ic)ic.textContent='🌙';}else{document.documentElement.setAttribute('data-theme','light');G.bgColor='#ffffff';if(ic)ic.textContent='☀️';}if(bgCtx)drawBg();});
@@ -2963,20 +2999,20 @@ function bindAll(){
     showToast('그라디언트 적용');
   });
   // Adjustments — live preview with _adjSnap (전역)
-  function adjResetUI(){['adj-br','adj-ct','adj-hu','adj-sa','adj-bl'].forEach(id=>{$(id).value=0;});$('adj-brv').textContent='0';$('adj-ctv').textContent='0';$('adj-huv').textContent='0°';$('adj-sav').textContent='0';$('adj-blv').textContent='0';}
-  function adjVals(){return{br:parseInt($('adj-br').value),ct:parseInt($('adj-ct').value),hu:parseInt($('adj-hu').value),sa:parseInt($('adj-sa').value),bl:parseFloat($('adj-bl').value)};}
-  ['adj-br','adj-ct','adj-hu','adj-sa','adj-bl'].forEach(id=>{
+  function adjResetUI(){['adj-br','adj-ct','adj-hu','adj-sa','adj-bl','adj-no'].forEach(id=>{$(id).value=0;});$('adj-brv').textContent='0';$('adj-ctv').textContent='0';$('adj-huv').textContent='0°';$('adj-sav').textContent='0';$('adj-blv').textContent='0';$('adj-nov').textContent='0';}
+  function adjVals(){return{br:parseInt($('adj-br').value),ct:parseInt($('adj-ct').value),hu:parseInt($('adj-hu').value),sa:parseInt($('adj-sa').value),bl:parseFloat($('adj-bl').value),no:parseInt($('adj-no').value)};}
+  ['adj-br','adj-ct','adj-hu','adj-sa','adj-bl','adj-no'].forEach(id=>{
     $(id).addEventListener('input',()=>{
       const v=adjVals();
-      $('adj-brv').textContent=v.br;$('adj-ctv').textContent=v.ct;$('adj-huv').textContent=v.hu+'°';$('adj-sav').textContent=v.sa;$('adj-blv').textContent=v.bl;
+      $('adj-brv').textContent=v.br;$('adj-ctv').textContent=v.ct;$('adj-huv').textContent=v.hu+'°';$('adj-sav').textContent=v.sa;$('adj-blv').textContent=v.bl;$('adj-nov').textContent=v.no;
       if(!_adjSnap&&mainCtx)_adjSnap=mainCtx.getImageData(0,0,CW,CH);
-      applyAdjustments(v.br,v.ct,v.hu,v.sa,v.bl,false);
+      applyAdjustments(v.br,v.ct,v.hu,v.sa,v.bl,v.no,false);
     });
   });
   $('btn-adj-apply').addEventListener('click',()=>{
     const v=adjVals();
-    if(!_adjSnap&&v.br===0&&v.ct===0&&v.hu===0&&v.sa===0&&v.bl===0)return;
-    applyAdjustments(v.br,v.ct,v.hu,v.sa,v.bl,true);
+    if(!_adjSnap&&v.br===0&&v.ct===0&&v.hu===0&&v.sa===0&&v.bl===0&&v.no===0)return;
+    applyAdjustments(v.br,v.ct,v.hu,v.sa,v.bl,v.no,true);
     _adjSnap=null;adjResetUI();showToast('조정 적용 완료');
   });
   $('btn-adj-reset').addEventListener('click',()=>{
@@ -3258,7 +3294,7 @@ function invertSelection(){
 /* ===== 레이어 조정 (Procreate-style Adjustments) ===== */
 function rgb2hsl(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h,s;const l=(mx+mn)/2;if(mx===mn){h=s=0;}else{const d=mx-mn;s=l>0.5?d/(2-mx-mn):d/(mx+mn);switch(mx){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}h/=6;}return[h*360,s,l];}
 function hsl2rgb(h,s,l){h/=360;let r,g,b;if(s===0){r=g=b=l;}else{const hue2rgb=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};const q=l<0.5?l*(1+s):l+s-l*s,p=2*l-q;r=hue2rgb(p,q,h+1/3);g=hue2rgb(p,q,h);b=hue2rgb(p,q,h-1/3);}return[Math.round(r*255),Math.round(g*255),Math.round(b*255)];}
-function applyAdjustments(brightness,contrast,hueShift,saturation,blur,commit){
+function applyAdjustments(brightness,contrast,hueShift,saturation,blur,noise,commit){
   if(!mainCtx)return;
   const src=_adjSnap||mainCtx.getImageData(0,0,CW,CH);
   // Gaussian blur: draw via filter into temp canvas
@@ -3276,8 +3312,9 @@ function applyAdjustments(brightness,contrast,hueShift,saturation,blur,commit){
   const d=imgD.data;
   const b=brightness*2.55;
   const cf=contrast===0?1:(259*(contrast+255))/(255*(259-contrast));
-  const needPixel=brightness!==0||contrast!==0||hueShift!==0||saturation!==0;
+  const needPixel=brightness!==0||contrast!==0||hueShift!==0||saturation!==0||(noise||0)>0;
   if(needPixel){
+    const na=(noise||0)/100*80;
     for(let i=0;i<d.length;i+=4){
       if(d[i+3]===0)continue;
       let r=d[i],g=d[i+1],bl=d[i+2];
@@ -3290,6 +3327,7 @@ function applyAdjustments(brightness,contrast,hueShift,saturation,blur,commit){
         if(saturation!==0)s=Math.min(1,Math.max(0,s+saturation/100));
         [r,g,bl]=hsl2rgb(h,s,l);
       }
+      if(na>0){const n=(Math.random()-.5)*na;r=Math.min(255,Math.max(0,r+n));g=Math.min(255,Math.max(0,g+n));bl=Math.min(255,Math.max(0,bl+n));}
       d[i]=r;d[i+1]=g;d[i+2]=bl;
     }
   }
