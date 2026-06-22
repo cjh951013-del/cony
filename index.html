@@ -67,6 +67,7 @@ select,input{font-family:inherit}
 .ss{font-size:10px;color:var(--success)}
 .ib{background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--text2);padding:4px 7px;font-size:13px}
 .ib:hover{background:var(--panel2);color:var(--text)}
+.ib.act{background:var(--primary);border-color:var(--primary);color:#fff}
 .ib:disabled{opacity:.3;cursor:not-allowed}
 .zt{font-size:11px;color:var(--text2);min-width:38px;text-align:center}
 .pro-tog{display:flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid var(--gold);border-radius:7px;background:transparent;color:var(--gold);font-size:11px;font-weight:700}
@@ -667,7 +668,7 @@ body.ui-hidden #row-counter{display:none!important}
         <button class="selb" id="cpm-clrl">🧽 레이어 지우기</button>
         <button class="selb" id="cpm-x" style="background:var(--panel2)">✕</button>
       </div>
-      <div id="gesture-hint">✌️ 두 손가락=이동·확대 · 두 손가락 탭=실행취소 · 세 손가락 탭=다시실행 · 선 긋고 2초(또는 다른 손 터치)=도형 고정 · 네 손가락 탭=도구 숨기기</div>
+      <div id="gesture-hint">✌️ 두 손가락=이동·확대 · 두 손가락 탭=실행취소 · 세 손가락 탭=다시실행 · 세 손가락 아래=복사/붙이기 메뉴 · 선 긋고 2초=도형 고정 · 네 손가락 탭=UI 숨기기</div>
       <div id="sel-shape">
         <button class="ssb act" data-sm="rect" title="사각 선택">▭</button>
         <button class="ssb" data-sm="ellipse" title="타원 선택">⬭</button>
@@ -3793,8 +3794,8 @@ function renderSymGuide(){
 // 세 손가락 아래 스와이프 = 복사/붙여넣기 플로팅 메뉴 (Procreate 3-finger swipe)
 function showCopyPasteMenu(){
   const m=$('cpm');if(!m)return;
-  m.style.display='flex';
-  setTimeout(()=>{if($('cpm').style.display!=='none')$('cpm').style.display='none';},4000);
+  m.style.display='flex';m.style.animation='none';
+  clearTimeout(m._hideT);m._hideT=setTimeout(()=>{m.style.display='none';},4000);
 }
 // 4손가락 탭 = UI 숨기기/보이기 (프로크리에이트). 숨김 상태에선 작은 복원 버튼만.
 function toggleUIHidden(){
