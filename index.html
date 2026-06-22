@@ -3256,10 +3256,13 @@ function strokePolyCtx(ctx,poly){
   const N=poly.length;
   symXf().forEach(T=>{
     const pts=poly.map(p=>T(p));
-    // 속도 기반 선폭 계산 (빠를수록 가늘어짐 — 프로크리에이트 압력 감도)
+    // 선폭 계산: Apple Pencil force 우선, 없으면 속도 기반 (빠를수록 가늘어짐)
     const widths=new Array(N).fill(G.brushSz);
-    if(!G.brushMonoline&&hasTimes&&N>1){
-      const MAX_V=4.5; // px/ms 이상이면 최대로 가늘어짐
+    const hasForce=!G.brushMonoline&&poly.some(p=>p.f>0);
+    if(hasForce){
+      for(let i=0;i<N;i++){const f=poly[i].f||0;widths[i]=G.brushSz*(0.35+f*0.65);}
+    }else if(!G.brushMonoline&&hasTimes&&N>1){
+      const MAX_V=4.5;
       for(let i=1;i<N;i++){
         const dt=Math.max(1,poly[i].t-poly[i-1].t);
         const ds=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
@@ -3556,7 +3559,8 @@ function onDown(e){
       sprayAt(pos);composite();
       _sprayIv=setInterval(()=>{if(G.isDrawing&&G.lastPos){sprayAt(G.lastPos);composite();}},50);
     }else{
-      G.path=[{...pos,t:Date.now()}];G.snap=null;renderPreview();armHold();
+      const f0=(e.touches&&e.touches[0]&&e.touches[0].force>0)?e.touches[0].force:0;
+      G.path=[{...pos,t:Date.now(),f:f0}];G.snap=null;renderPreview();armHold();
     }
     if(e.touches)startLpPick(e);
   }
@@ -3609,7 +3613,8 @@ function onMove(e){
     }else{
       const last=G.path[G.path.length-1];
       // draw 모드는 StreamLine 0.38 — 입력 안정화로 떨림 제거 (프로크리에이트 StreamLine)
-      const spos=G.mode==='draw'?{x:last.x+(pos.x-last.x)*0.62,y:last.y+(pos.y-last.y)*0.62,t:Date.now()}:{...pos,t:Date.now()};
+      const fv=(e.touches&&e.touches[0]&&e.touches[0].force>0)?e.touches[0].force:0;
+      const spos=G.mode==='draw'?{x:last.x+(pos.x-last.x)*0.62,y:last.y+(pos.y-last.y)*0.62,t:Date.now(),f:fv}:{...pos,t:Date.now(),f:fv};
       if(dist2(spos,last)>=MIN_PT){G.path.push(spos);if(dist2(spos,last)>HOLD_TOL&&!G.editing)armHold();}
       renderPreview();
     }
