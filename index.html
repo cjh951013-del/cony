@@ -883,6 +883,20 @@ body.ui-hidden #row-counter{display:none!important}
             <div class="rr"><span style="font-size:8px;min-width:28px;color:var(--text2)">Y↔B</span><input type="range" id="cb-yb" min="-100" max="100" value="0"><span class="rv" id="cb-ybv">0</span></div>
             <button id="btn-cb" class="ib" style="width:100%;font-size:9px;margin-top:3px">색상 균형 적용</button>
           </div>
+          <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+            <div style="display:flex;gap:4px;align-items:center;margin-bottom:4px">
+              <span style="font-size:8px;color:var(--text2);min-width:28px">선명도</span>
+              <input type="range" id="adj-sh" min="0" max="100" value="0" style="flex:1">
+              <span class="rv" id="adj-shv">0</span>
+              <button id="btn-sh" class="ib" style="font-size:8px;margin-top:0;padding:2px 7px">적용</button>
+            </div>
+            <div style="display:flex;gap:4px;align-items:center">
+              <span style="font-size:8px;color:var(--text2);min-width:28px">비네팅</span>
+              <input type="range" id="adj-vg" min="0" max="100" value="0" style="flex:1">
+              <span class="rv" id="adj-vgv">0</span>
+              <button id="btn-vg" class="ib" style="font-size:8px;margin-top:0;padding:2px 7px">적용</button>
+            </div>
+          </div>
           <button class="ib" id="btn-adj-apply" style="width:100%;margin-top:4px;font-size:10px;background:var(--primary);border-color:var(--primary);color:#fff">✓ 적용</button>
           <button class="ib" id="btn-adj-reset" style="width:100%;margin-top:3px;font-size:10px">↺ 초기화</button>
         </div>
@@ -3431,6 +3445,10 @@ function bindAll(){
     });
   });
   $('btn-cb').addEventListener('click',applyColorBalance);
+  $('adj-sh').addEventListener('input',()=>{$('adj-shv').textContent=$('adj-sh').value;});
+  $('adj-vg').addEventListener('input',()=>{$('adj-vgv').textContent=$('adj-vg').value;});
+  $('btn-sh').addEventListener('click',applySharpness);
+  $('btn-vg').addEventListener('click',applyVignette);
   // 모노라인 + 채우기 허용값
   $('sw-monoline').addEventListener('click',()=>{G.brushMonoline=!G.brushMonoline;$('sw-monoline').classList.toggle('on',G.brushMonoline);});
   $('sw-spray').addEventListener('click',()=>{G.brushSpray=!G.brushSpray;$('sw-spray').classList.toggle('on',G.brushSpray);});
@@ -3844,6 +3862,35 @@ function applyColorBalance(){
     d[i+2]=Math.min(255,Math.max(0,b+dB));
   }
   mainCtx.putImageData(imgD,0,0);composite();saveH();showToast('색상 균형 적용 완료');
+}
+function applySharpness(){
+  if(!mainCtx)return;const amt=parseInt($('adj-sh').value)/100;if(amt<=0)return;
+  const src=mainCtx.getImageData(0,0,CW,CH);
+  const tmpCv=document.createElement('canvas');tmpCv.width=CW;tmpCv.height=CH;
+  const tc=tmpCv.getContext('2d');
+  const srcCv=document.createElement('canvas');srcCv.width=CW;srcCv.height=CH;
+  srcCv.getContext('2d').putImageData(src,0,0);
+  tc.filter=`blur(${0.8+amt*0.8}px)`;tc.drawImage(srcCv,0,0);tc.filter='none';
+  const blurD=tc.getImageData(0,0,CW,CH).data;
+  const imgD=new ImageData(new Uint8ClampedArray(src.data),CW,CH);
+  const d=imgD.data;const str=amt*2.2;
+  for(let i=0;i<d.length;i+=4){
+    if(d[i+3]===0)continue;
+    d[i]=Math.min(255,Math.max(0,d[i]+(d[i]-blurD[i])*str));
+    d[i+1]=Math.min(255,Math.max(0,d[i+1]+(d[i+1]-blurD[i+1])*str));
+    d[i+2]=Math.min(255,Math.max(0,d[i+2]+(d[i+2]-blurD[i+2])*str));
+  }
+  mainCtx.putImageData(imgD,0,0);composite();saveH();showToast('선명도 적용 완료');
+}
+function applyVignette(){
+  if(!mainCtx)return;const amt=parseInt($('adj-vg').value)/100;if(amt<=0)return;
+  const cx=CW/2,cy=CH/2,r=Math.max(CW,CH)*0.85;
+  mainCtx.save();mainCtx.globalCompositeOperation='source-over';
+  const grad=mainCtx.createRadialGradient(cx,cy,r*(0.25+amt*0.15),cx,cy,r);
+  grad.addColorStop(0,'rgba(0,0,0,0)');
+  grad.addColorStop(1,`rgba(0,0,0,${amt*0.8})`);
+  mainCtx.fillStyle=grad;mainCtx.fillRect(0,0,CW,CH);
+  mainCtx.restore();composite();saveH();showToast('비네팅 적용 완료');
 }
 function applyAdjustments(brightness,contrast,hueShift,saturation,blur,noise,bloom,commit){
   if(!mainCtx)return;
