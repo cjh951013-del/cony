@@ -464,6 +464,12 @@ html[data-theme=light] #col-hist-bar{background:rgba(240,240,252,.92);border-col
 #rc-val{font-size:11px;font-weight:800;color:var(--primary);min-width:52px;text-align:center;padding:0 2px;line-height:1.2}
 #rc-lbl{font-size:9px;color:rgba(255,255,255,.45);display:block;font-weight:400}
 body.ui-hidden #row-counter{display:none!important}
+/* ===== 레퍼런스 이미지 오버레이 ===== */
+#ref-overlay{position:absolute;display:none;z-index:18;touch-action:none;user-select:none;cursor:move;max-width:55%;max-height:55%;object-fit:contain;border:1px dashed rgba(255,255,255,.25);border-radius:4px}
+#ref-ctrl{position:absolute;z-index:19;background:rgba(20,20,36,.9);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:4px 8px;display:none;align-items:center;gap:7px}
+#ref-ctrl input[type=range]{width:80px}
+#ref-ctrl span{font-size:10px;color:var(--text3);min-width:22px}
+#ref-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0}
 /* ===== 복제 도장 소스 표시기 ===== */
 #clone-src-ind{position:absolute;display:none;pointer-events:none;z-index:22;transform:translate(-50%,-50%);width:20px;height:20px}
 #clone-src-ind .csi-h{position:absolute;top:50%;left:0;right:0;height:2px;background:rgba(255,215,0,.9);margin-top:-1px;border-radius:1px}
@@ -553,6 +559,7 @@ body.ui-hidden #row-counter{display:none!important}
     <button class="mrow" id="btn-quickshape"><span class="mi">📐</span><span>길게 눌러 도형 고정: 켜짐</span></button>
     <button class="mrow" id="btn-legend"><span class="mi">📋</span><span>기호 범례 보기</span></button>
     <button class="mrow" id="btn-img"><span class="mi">🖼</span><span>이미지 가져오기 (따라 그리기)</span></button>
+    <button class="mrow" id="btn-ref"><span class="mi">📌</span><span>레퍼런스 이미지 (투명 오버레이)</span></button>
     <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
     <button class="mrow" id="btn-fliph"><span class="mi">⇋</span><span>좌우 반전</span></button>
     <button class="mrow" id="btn-flipv"><span class="mi">⤲</span><span>상하 반전</span></button>
@@ -672,6 +679,15 @@ body.ui-hidden #row-counter{display:none!important}
           <button id="text-x" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(60,60,80,.8);color:var(--text2);font-size:12px;cursor:pointer">✕</button>
         </div>
       </div>
+      <!-- 레퍼런스 이미지 -->
+      <img id="ref-overlay" alt="reference">
+      <div id="ref-ctrl">
+        <span>투명도</span>
+        <input type="range" id="ref-op" min="5" max="100" value="40">
+        <span id="ref-opv">40%</span>
+        <button id="ref-close" title="레퍼런스 제거">✕</button>
+      </div>
+      <input type="file" id="ref-input" accept="image/*" style="display:none">
       <!-- 복제 도장 소스 표시기 -->
       <div id="clone-src-ind"><div class="csi-h"></div><div class="csi-v"></div><div class="csi-ring"></div></div>
       <!-- 단/코 카운터 위젯 -->
@@ -2183,6 +2199,38 @@ function floodFill(x0,y0){
   }
   mainCtx.putImageData(imgD,0,0);composite();saveH();pushColorHist(G.color);
 }
+/* ===== 레퍼런스 이미지 오버레이 ===== */
+function initRefOverlay(){
+  const ref=$('ref-overlay'),ctrl=$('ref-ctrl'),opSlider=$('ref-op'),opV=$('ref-opv'),refInput=$('ref-input');
+  if(!ref||!ctrl||!refInput)return;
+  $('btn-ref').addEventListener('click',()=>{$('morepop').classList.remove('open');refInput.click();});
+  refInput.addEventListener('change',e=>{
+    const f=e.target.files&&e.target.files[0];if(!f)return;
+    const url=URL.createObjectURL(f);ref.src=url;ref.style.display='block';ref.style.opacity='0.4';
+    ctrl.style.display='flex';
+    ref.style.left='10%';ref.style.top='10%';
+    e.target.value='';
+  });
+  opSlider.addEventListener('input',()=>{const v=opSlider.value;ref.style.opacity=v/100;opV.textContent=v+'%';});
+  $('ref-close').addEventListener('click',()=>{ref.style.display='none';ctrl.style.display='none';ref.src='';});
+  // 드래그로 이동
+  let _rdDown=false,_rdX=0,_rdY=0,_rl=0,_rt=0;
+  ref.addEventListener('pointerdown',e=>{
+    _rdDown=true;ref.setPointerCapture(e.pointerId);
+    const r=ref.getBoundingClientRect(),cwr=($('cw')||document.body).getBoundingClientRect();
+    _rdX=e.clientX;_rdY=e.clientY;
+    _rl=r.left-cwr.left;_rt=r.top-cwr.top;
+    e.stopPropagation();e.preventDefault();
+  });
+  ref.addEventListener('pointermove',e=>{
+    if(!_rdDown)return;
+    const cwr=($('cw')||document.body).getBoundingClientRect();
+    ref.style.left=Math.max(0,_rl+(e.clientX-_rdX))+'px';
+    ref.style.top=Math.max(0,_rt+(e.clientY-_rdY))+'px';
+    ctrl.style.left=ref.style.left;ctrl.style.top=(parseFloat(ref.style.top)+ref.clientHeight+4)+'px';
+  });
+  ref.addEventListener('pointerup',()=>{_rdDown=false;});
+}
 /* ===== ColorDrop: topcol 드래그 → 캔버스에 떨어뜨리면 flood fill ===== */
 let _cdDown=false,_cdDragging=false,_cdDown0=null,_cdDidDrag=false,_cdGhostEl=null;
 function _cdGhost(){if(!_cdGhostEl)_cdGhostEl=$('color-drop-ghost');return _cdGhostEl;}
@@ -2844,6 +2892,7 @@ function bindAll(){
   document.querySelectorAll('.ad-strip').forEach(el=>el.addEventListener('click',()=>alert('광고 클릭 → 외부 링크 연동 (애드센스 또는 제휴 링크)')));
   injectIcons();
   bindColorDrop();
+  initRefOverlay();
 }
 
 /* ===================== DRAW ENGINE (Procreate / Pinpino style) ===================== */
