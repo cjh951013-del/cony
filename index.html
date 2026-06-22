@@ -686,6 +686,8 @@ body.ui-hidden #row-counter{display:none!important}
           <button class="selb d" id="sel-dl">🗑 지우기</button>
           <button class="selb" id="sel-mv">✥ 이동</button>
           <button class="selb" id="sel-inv">⊘ 반전</button>
+          <button class="selb" id="sel-grow">⊕ 확장</button>
+          <button class="selb" id="sel-shrink">⊖ 축소</button>
         </div>
       </div>
       <div id="shape-bar">
@@ -3246,6 +3248,8 @@ function bindAll(){
   $('sel-pa').addEventListener('click',pasteFloat);
   $('sel-fl').addEventListener('click',fillSelection);
   $('sel-inv').addEventListener('click',invertSelection);
+  $('sel-grow').addEventListener('click',()=>growShrinkSel(8));
+  $('sel-shrink').addEventListener('click',()=>growShrinkSel(-8));
   $('sel-gd').addEventListener('click',()=>{
     const r=selRect();if(!mainCtx)return;
     const x0=r?r.x:0,y0=r?r.y:0,x1=r?r.x+r.w:CW,y1=r?r.y+r.h:CH;
@@ -3555,6 +3559,27 @@ function invertSelection(){
   prevCtx.strokeRect(0,0,CW,CH);
   const sc=$('sel-count');if(sc){const gs=40;sc.textContent=Math.floor(CW/gs)+'코×'+Math.floor(CH/gs)+'단';}
   showToast('선택 반전 → 전체 선택');
+}
+function growShrinkSel(delta){
+  const r=selRect();if(!r)return;
+  if(G.selMode==='rect'){
+    const nx=Math.max(0,r.x-delta),ny=Math.max(0,r.y-delta);
+    const nx2=Math.min(CW,r.x+r.w+delta),ny2=Math.min(CH,r.y+r.h+delta);
+    if(nx2-nx<2||ny2-ny<2)return;
+    G.selStart={x:nx,y:ny};G.selEnd={x:nx2,y:ny2};
+    prevCtx.clearRect(0,0,CW,CH);
+    prevCtx.strokeStyle='rgba(168,85,247,.85)';prevCtx.lineWidth=Math.max(1,1.2/G.zoom);prevCtx.setLineDash([6/G.zoom,4/G.zoom]);
+    prevCtx.strokeRect(nx,ny,nx2-nx,ny2-ny);
+  } else if(G.selMode==='ellipse'){
+    const cx=r.x+r.w/2,cy=r.y+r.h/2;
+    const nrx=Math.max(1,(r.w/2)+delta),nry=Math.max(1,(r.h/2)+delta);
+    G.selStart={x:cx-nrx,y:cy-nry};G.selEnd={x:cx+nrx,y:cy+nry};
+    prevCtx.clearRect(0,0,CW,CH);
+    prevCtx.strokeStyle='rgba(168,85,247,.85)';prevCtx.lineWidth=Math.max(1,1.2/G.zoom);prevCtx.setLineDash([6/G.zoom,4/G.zoom]);
+    prevCtx.beginPath();prevCtx.ellipse(cx,cy,nrx,nry,0,0,7);prevCtx.stroke();
+  }
+  const sc=$('sel-count');if(sc){const gs=40;const nr=selRect();if(nr)sc.textContent=Math.floor(nr.w/gs)+'코×'+Math.floor(nr.h/gs)+'단';}
+  showToast(delta>0?`선택 확장 +${delta}px`:`선택 축소 ${delta}px`);
 }
 /* ===== 레이어 조정 (Procreate-style Adjustments) ===== */
 function rgb2hsl(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h,s;const l=(mx+mn)/2;if(mx===mn){h=s=0;}else{const d=mx-mn;s=l>0.5?d/(2-mx-mn):d/(mx+mn);switch(mx){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}h/=6;}return[h*360,s,l];}
