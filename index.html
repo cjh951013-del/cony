@@ -2991,7 +2991,9 @@ function onMove(e){
   const pos=getPos(e);
   if(G.mode==='stamp'||G.mode==='draw'){
     const last=G.path[G.path.length-1];
-    if(dist2(pos,last)>=MIN_PT){G.path.push({...pos,t:Date.now()});if(dist2(pos,last)>HOLD_TOL&&!G.editing)armHold();}
+    // draw 모드는 StreamLine 0.38 — 입력 안정화로 떨림 제거 (프로크리에이트 StreamLine)
+    const spos=G.mode==='draw'?{x:last.x+(pos.x-last.x)*0.62,y:last.y+(pos.y-last.y)*0.62,t:Date.now()}:{...pos,t:Date.now()};
+    if(dist2(spos,last)>=MIN_PT){G.path.push(spos);if(dist2(spos,last)>HOLD_TOL&&!G.editing)armHold();}
     renderPreview();
   }else if(G.mode==='graph'){fillCell(pos);composite();}
   else if(G.mode==='eraser'){
