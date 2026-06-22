@@ -318,7 +318,16 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
 .cntb{padding:3px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:14px;line-height:1}
 .cntb:hover{border-color:var(--primary)}
 #layer-list{display:flex;flex-direction:column;gap:3px}
-.li{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:5px 6px;cursor:pointer;transition:var(--tr);font-size:11px;display:flex;align-items:center;gap:7px}
+/* Procreate-style swipe-to-reveal on layer rows */
+.li-wrap{position:relative;overflow:hidden;border-radius:6px}
+.li-swipe-btns{position:absolute;right:0;top:0;bottom:0;display:flex;align-items:stretch;gap:0;pointer-events:none;opacity:0;transition:opacity .15s}
+.li-swipe-btns.show{pointer-events:auto;opacity:1}
+.lsb{border:none;padding:0 12px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;min-width:54px}
+.lsb-dup{background:#4f46e5;color:#fff}
+.lsb-lock{background:#0369a1;color:#fff}
+.lsb-del{background:var(--danger);color:#fff}
+.lsb span{font-size:8px}
+.li{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:5px 6px;cursor:pointer;transition:transform .18s ease,border-color var(--tr);font-size:11px;display:flex;align-items:center;gap:7px;position:relative;will-change:transform}
 .li.act{border-color:var(--primary);color:var(--primary)}
 .li.dragging{opacity:.35;border-style:dashed}
 .li.drag-over{border-color:var(--primary);background:rgba(168,85,247,.12);box-shadow:0 0 0 2px var(--primary)}
@@ -2456,7 +2465,21 @@ function renderLayers(){
     eye.addEventListener('click',e=>{e.stopPropagation();toggleLayerVis(l.id);});
     el.appendChild(th);el.appendChild(info);el.appendChild(eye);
     el.addEventListener('click',()=>{G.activeL=l.id;setActiveCtx();renderLayers();});
-    list.appendChild(el);
+    // Procreate-style swipe-to-reveal
+    const wrap=document.createElement('div');wrap.className='li-wrap';
+    const swipeBtns=document.createElement('div');swipeBtns.className='li-swipe-btns';
+    swipeBtns.innerHTML=`<button class="lsb lsb-dup">⧉<span>복제</span></button><button class="lsb lsb-lock">${l.alphaLock?'🔒':'🔓'}<span>잠금</span></button><button class="lsb lsb-del">🗑<span>삭제</span></button>`;
+    swipeBtns.querySelector('.lsb-dup').addEventListener('click',e=>{e.stopPropagation();duplicateLayer(l.id);});
+    swipeBtns.querySelector('.lsb-lock').addEventListener('click',e=>{e.stopPropagation();toggleAlphaLock(l.id);});
+    swipeBtns.querySelector('.lsb-del').addEventListener('click',e=>{e.stopPropagation();deleteLayer(l.id);});
+    wrap.appendChild(swipeBtns);wrap.appendChild(el);
+    let _liTx=0,_liOpen=false,_liSx=null;
+    const REVEAL_W=162;
+    function setLiTx(tx,animate){el.style.transition=animate?'transform .18s ease':'none';el.style.transform=`translateX(${tx}px)`;swipeBtns.style.width=Math.abs(tx)+'px';if(Math.abs(tx)>4)swipeBtns.classList.add('show');else swipeBtns.classList.remove('show');}
+    el.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;_liSx=e.touches[0].clientX;_liTx=_liOpen?-REVEAL_W:0;},{passive:true});
+    el.addEventListener('touchmove',e=>{if(_liSx===null||e.touches.length!==1)return;const dx=e.touches[0].clientX-_liSx;const newTx=Math.max(-REVEAL_W,Math.min(0,_liTx+dx));setLiTx(newTx,false);},{passive:true});
+    el.addEventListener('touchend',()=>{if(_liSx===null)return;_liSx=null;const open=_liTx<-REVEAL_W*0.4;_liOpen=open;setLiTx(open?-REVEAL_W:0,true);_liTx=open?-REVEAL_W:0;});
+    list.appendChild(wrap);
     if(l.id===G.activeL){
       const ctr=document.createElement('div');ctr.className='lctrl';
       const blendOpts=BLEND_MODES.map(m=>`<option value="${m[0]}"${(l.blend||'source-over')===m[0]?' selected':''}>${m[1]}</option>`).join('');
