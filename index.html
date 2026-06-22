@@ -1596,6 +1596,7 @@ function fitToScreen(){
   G.zoom=z;G.viewRot=0;
   G.pan={x:(vw-CW*z)/2,y:(vh-CH*z)/2};
   applyTransform();
+  setTimeout(renderSymGuide,0);
 }
 
 /* ===================== DRAWING ===================== */
@@ -2588,7 +2589,7 @@ function bindAll(){
   $('ring-n').addEventListener('input',()=>{G.radialN=Math.max(2,Math.min(120,parseInt($('ring-n').value)||12));});
   $('ring-r').addEventListener('input',()=>{G.radialR=Math.max(20,Math.min(580,parseInt($('ring-r').value)||200));});
   $('btn-ring').addEventListener('click',placeRing);
-  $('sym-sel').addEventListener('change',()=>{G.symmetry=$('sym-sel').value;$('symn-row').style.display=(G.symmetry==='radial')?'flex':'none';drawBg();});
+  $('sym-sel').addEventListener('change',()=>{G.symmetry=$('sym-sel').value;$('symn-row').style.display=(G.symmetry==='radial')?'flex':'none';drawBg();renderSymGuide();});
   $('sym-n').addEventListener('input',()=>{G.symN=Math.max(2,Math.min(16,parseInt($('sym-n').value)||6));drawBg();});
   $('btn-anchor').addEventListener('click',()=>{G.anchorMode=true;const cw=$('cw');if(cw)cw.style.cursor='crosshair';const b=$('snap-badge');if(b){b.style.display='block';b.style.pointerEvents='none';b.textContent='◎ 기준점 위치를 탭하세요';}});
   // ── 프로크리에이트식 상단 바 / 사이드바 ──
@@ -3289,7 +3290,21 @@ function commitStroke(){
     else stampPolyCtx(mainCtx,G.path,false);
   }
 }
-function endStroke(){clearTimeout(holdTm);if(prevCtx)prevCtx.clearRect(0,0,CW,CH);G.path=null;G.snap=null;}
+function endStroke(){clearTimeout(holdTm);if(prevCtx)prevCtx.clearRect(0,0,CW,CH);G.path=null;G.snap=null;renderSymGuide();}
+function renderSymGuide(){
+  if(!prevCtx||!G.symmetry||G.isDrawing)return;
+  const lw=Math.max(0.5,1.2/G.zoom);
+  prevCtx.save();
+  prevCtx.strokeStyle='rgba(168,85,247,.55)';prevCtx.lineWidth=lw;prevCtx.setLineDash([8/G.zoom,5/G.zoom]);
+  const cx=CW/2,cy=CH/2,D=Math.max(CW,CH);
+  if(G.symmetry==='v'||G.symmetry==='quad'){prevCtx.beginPath();prevCtx.moveTo(cx,0);prevCtx.lineTo(cx,CH);prevCtx.stroke();}
+  if(G.symmetry==='h'||G.symmetry==='quad'){prevCtx.beginPath();prevCtx.moveTo(0,cy);prevCtx.lineTo(CW,cy);prevCtx.stroke();}
+  if(G.symmetry==='radial'){
+    const n=G.symN||6;
+    for(let i=0;i<n;i++){const a=i*Math.PI/n,dx=Math.cos(a)*D,dy=Math.sin(a)*D;prevCtx.beginPath();prevCtx.moveTo(cx-dx,cy-dy);prevCtx.lineTo(cx+dx,cy+dy);prevCtx.stroke();}
+  }
+  prevCtx.restore();
+}
 // 4손가락 탭 = UI 숨기기/보이기 (프로크리에이트). 숨김 상태에선 작은 복원 버튼만.
 function toggleUIHidden(){
   const hidden=document.body.classList.toggle('ui-hidden');
@@ -3481,8 +3496,14 @@ function onUp(e){
         const hdt=Math.max(1,h1.t-h0.t);
         startInertia((h1.c.x-h0.c.x)/hdt*16,(h1.c.y-h0.c.y)/hdt*16);
       }
-      const n=G.multi.n;G.multi=null;
-      if(tap){if(G.editing){cancelShape();}else if(n>=4){toggleUIHidden();}else if(n>=3){redo();}else{undo();}}
+      const n=G.multi.n;
+      // 두 손가락 수평 스와이프: 왼쪽=실행취소, 오른쪽=다시실행
+      const swipeX=hist&&hist.length>=2?hist[hist.length-1].c.x-hist[0].c.x:0;
+      const swipeY=hist&&hist.length>=2?Math.abs(hist[hist.length-1].c.y-hist[0].c.y):0;
+      const isSwipe=!tap&&n===2&&Math.abs(swipeX)>55&&swipeY<Math.abs(swipeX)*0.6&&Math.abs(G.zoom-G.multi.z0)<0.04&&Math.abs(G.viewRot-G.multi.vr0)<0.08;
+      G.multi=null;
+      if(isSwipe){if(swipeX<0)undo();else redo();}
+      else if(tap){if(G.editing){cancelShape();}else if(n>=4){toggleUIHidden();}else if(n>=3){redo();}else{undo();}}
     }
     return;
   }
