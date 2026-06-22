@@ -639,6 +639,20 @@ html[data-theme=light] #col-hist-bar{background:rgba(240,240,252,.92);border-col
         <button class="fbb" id="btn-ctr" title="화면 중앙">⊕</button>
         <button class="fbb" id="btn-narr" title="서술도안 보기">📝</button>
       </div>
+      <!-- 텍스트 도구 인라인 에디터 -->
+      <div id="text-wrap" style="display:none;position:absolute;z-index:50;pointer-events:auto">
+        <textarea id="text-inp" rows="2" placeholder="텍스트 입력…" style="background:rgba(20,20,36,.94);color:#fff;border:2px solid var(--primary);border-radius:10px;padding:8px 12px;font-size:18px;resize:none;outline:none;min-width:140px;max-width:280px;box-shadow:0 6px 24px rgba(0,0,0,.55);line-height:1.4;font-family:sans-serif"></textarea>
+        <div style="display:flex;gap:5px;margin-top:5px;align-items:center">
+          <select id="text-font" style="flex:1;background:rgba(20,20,36,.94);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:4px 6px;font-size:11px">
+            <option value="sans-serif">고딕</option>
+            <option value="serif">명조</option>
+            <option value="monospace">고정폭</option>
+            <option value="'Apple SD Gothic Neo',sans-serif">애플 고딕</option>
+          </select>
+          <button id="text-ok" style="padding:5px 12px;border-radius:7px;border:none;background:var(--primary);color:#fff;font-size:12px;font-weight:700;cursor:pointer">✓</button>
+          <button id="text-x" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(60,60,80,.8);color:var(--text2);font-size:12px;cursor:pointer">✕</button>
+        </div>
+      </div>
       <!-- 하단 컬러 히스토리 바 -->
       <div id="col-hist-bar">
         <div id="chb-cur" title="현재 색상 (탭 → 색상 패널 열기)"></div>
@@ -2635,6 +2649,11 @@ function bindAll(){
     ensureLayerCanvases();G.activeL=id;setActiveCtx();renderLayers();composite();
   });
   
+  // TEXT TOOL
+  $('text-ok').addEventListener('click',commitTextEditor);
+  $('text-x').addEventListener('click',cancelTextEditor);
+  $('text-inp').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();commitTextEditor();}if(e.key==='Escape')cancelTextEditor();e.stopPropagation();});
+  $('text-font').addEventListener('change',()=>{const inp=$('text-inp');if(inp)inp.style.fontFamily=$('text-font').value;});
   // SELECTION BAR
   $('sel-cp').addEventListener('click',()=>{
     const r=selRect();if(r){const mc2=applySelMask(clipToCanvas(mainCtx.getImageData(r.x,r.y,r.w,r.h)),r);G.clipboard=mc2.getContext('2d').getImageData(0,0,r.w,r.h);}
@@ -3196,6 +3215,12 @@ function onDown(e){
   if(G.spaceDown||e.button===1){
     G.isPanning=true;const raw=getRaw(e);G.panStart={x:raw.x-G.pan.x,y:raw.y-G.pan.y};return;
   }
+  if(G.mode==='text'){
+    // 텍스트 모드: 탭하면 인라인 에디터 열기
+    if(_textCanvasPos){commitTextEditor();}
+    else{const raw=getRaw(e);openTextEditor(raw.x,raw.y,pos);}
+    return;
+  }
   G.isDrawing=true;G.lastPos=pos;
   if(G.mode==='stamp'||G.mode==='draw'){
     G.path=[{...pos,t:Date.now()}];G.snap=null;renderPreview();armHold();
@@ -3292,10 +3317,39 @@ function onUp(e){
   else if(G.mode==='graph'){composite();saveH();pushColorHist(G.color);}
 }
 function onWheel(e){e.preventDefault();G.zoom=Math.max(.2,Math.min(4,G.zoom+(e.deltaY>0?-.1:.1)));applyTransform();}
+let _textCanvasPos=null;
+function openTextEditor(screenX,screenY,canvasPos){
+  _textCanvasPos=canvasPos;
+  const wrap=$('text-wrap');if(!wrap)return;
+  const cwr=($('cw')||document.body).getBoundingClientRect();
+  const inp=$('text-inp');if(!inp)return;
+  const fsize=Math.round(G.brushSz*5+12);
+  inp.style.fontSize=fsize+'px';inp.style.color=G.color;inp.style.fontFamily=$('text-font')?$('text-font').value:'sans-serif';
+  inp.value='';
+  const lx=Math.min(screenX-cwr.left,cwr.width-160);
+  const ly=Math.min(screenY-cwr.top-fsize,cwr.height-120);
+  wrap.style.cssText=`display:block;position:absolute;left:${Math.max(4,lx)}px;top:${Math.max(4,ly)}px;z-index:50;pointer-events:auto`;
+  setTimeout(()=>{inp.focus();inp.select();},80);
+}
+function commitTextEditor(){
+  const wrap=$('text-wrap');if(!wrap||!_textCanvasPos)return;
+  const inp=$('text-inp');if(!inp)return;
+  const txt=inp.value.trim();
+  if(txt&&mainCtx){
+    const fsize=Math.round(G.brushSz*5+12);
+    const font=($('text-font')?$('text-font').value:'sans-serif');
+    mainCtx.save();mainCtx.font=`${fsize}px ${font}`;mainCtx.fillStyle=G.color;mainCtx.globalAlpha=G.opacity;
+    const lines=txt.split('\n');
+    lines.forEach((line,i)=>mainCtx.fillText(line,_textCanvasPos.x,_textCanvasPos.y+i*fsize*1.3));
+    mainCtx.restore();composite();saveH();pushColorHist(G.color);
+  }
+  wrap.style.display='none';_textCanvasPos=null;
+}
+function cancelTextEditor(){const wrap=$('text-wrap');if(wrap)wrap.style.display='none';_textCanvasPos=null;}
 function onDblClick(e){
   if(G.mode==='text'){
-    const pos=getPos(e);const txt=prompt('텍스트 입력:');
-    if(txt){mainCtx.font=`${G.brushSz*5+12}px sans-serif`;mainCtx.fillStyle=G.color;mainCtx.fillText(txt,pos.x,pos.y);composite();saveH();}
+    const pos=getPos(e);const raw=getRaw(e);
+    openTextEditor(raw.x,raw.y,pos);
   }
 }
 let shTm;
