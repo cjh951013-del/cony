@@ -741,6 +741,8 @@ body.ui-hidden #row-counter{display:none!important}
         <button class="ib" id="btn-redo" title="다시실행" disabled>↪</button>
       </aside>
       <div id="snap-badge">📐 직선 고정 ON</div>
+      <!-- Drawing Assist 배지 (Procreate-style) -->
+      <div id="da-badge" style="position:absolute;bottom:64px;right:10px;z-index:12;display:none;flex-direction:column;gap:3px;align-items:flex-end;pointer-events:none"></div>
       <div id="cpm" style="display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.45);flex-direction:row;gap:6px">
         <button class="selb" id="cpm-copy">📋 복사</button>
         <button class="selb" id="cpm-cut">✂ 자르기</button>
@@ -3275,15 +3277,15 @@ function bindAll(){
   $('frame-sel').addEventListener('change',()=>{G.frame=$('frame-sel').value;drawBg();});
   $('frounds').addEventListener('input',()=>{G.fRounds=parseInt($('frounds').value);$('frv').textContent=G.fRounds;drawBg();});
   $('sw-grid').addEventListener('click',()=>{G.gridOn=!G.gridOn;$('sw-grid').classList.toggle('on',G.gridOn);drawBg();});
-  $('sw-iso').addEventListener('click',()=>{G.isoGrid=!G.isoGrid;$('sw-iso').classList.toggle('on',G.isoGrid);drawBg();});
-  $('sw-persp').addEventListener('click',()=>{G.perspGuide=!G.perspGuide;$('sw-persp').classList.toggle('on',G.perspGuide);drawBg();if(G.perspGuide)showToast('원근 격자 켜짐 — 소실점: 캔버스 중앙 상단');});
+  $('sw-iso').addEventListener('click',()=>{G.isoGrid=!G.isoGrid;$('sw-iso').classList.toggle('on',G.isoGrid);drawBg();renderDaBadge();});
+  $('sw-persp').addEventListener('click',()=>{G.perspGuide=!G.perspGuide;$('sw-persp').classList.toggle('on',G.perspGuide);drawBg();renderDaBadge();if(G.perspGuide)showToast('원근 격자 켜짐 — 소실점: 캔버스 중앙 상단');});
   $('sw-nums').addEventListener('click',()=>{G.numbersOn=!G.numbersOn;$('sw-nums').classList.toggle('on',G.numbersOn);drawBg();});
   $('sw-radial').addEventListener('click',()=>{G.radial=!G.radial;$('sw-radial').classList.toggle('on',G.radial);});
   $('ring-n').addEventListener('input',()=>{G.radialN=Math.max(2,Math.min(120,parseInt($('ring-n').value)||12));});
   $('ring-r').addEventListener('input',()=>{G.radialR=Math.max(20,Math.min(580,parseInt($('ring-r').value)||200));});
   $('btn-ring').addEventListener('click',placeRing);
-  $('sym-sel').addEventListener('change',()=>{G.symmetry=$('sym-sel').value;$('symn-row').style.display=(G.symmetry==='radial')?'flex':'none';drawBg();renderSymGuide();});
-  $('sym-n').addEventListener('input',()=>{G.symN=Math.max(2,Math.min(16,parseInt($('sym-n').value)||6));drawBg();});
+  $('sym-sel').addEventListener('change',()=>{G.symmetry=$('sym-sel').value;$('symn-row').style.display=(G.symmetry==='radial')?'flex':'none';drawBg();renderSymGuide();renderDaBadge();});
+  $('sym-n').addEventListener('input',()=>{G.symN=Math.max(2,Math.min(16,parseInt($('sym-n').value)||6));drawBg();renderDaBadge();});
   $('btn-anchor').addEventListener('click',()=>{G.anchorMode=true;const cw=$('cw');if(cw)cw.style.cursor='crosshair';const b=$('snap-badge');if(b){b.style.display='block';b.style.pointerEvents='none';b.textContent='◎ 기준점 위치를 탭하세요';}});
   // ── 프로크리에이트식 상단 바 / 사이드바 ──
   // 패널은 한 번에 하나만 (팔레트/도구·가이드/레이어)
@@ -4180,16 +4182,16 @@ function toggleLayerMask(id){
     // 마스크 생성 — 흰색(완전 표시)으로 초기화
     l.mask=makeLayerCv();
     const mc=l.mask.getContext('2d');mc.fillStyle='#fff';mc.fillRect(0,0,CW,CH);
-    G.maskLayerId=l.id;setActiveCtx();renderLayers();
+    G.maskLayerId=l.id;setActiveCtx();renderLayers();renderDaBadge();
     showToast('마스크 추가됨 — 검정으로 가리고 흰색으로 복원');
     const mc2=$('main-c');if(mc2)mc2.style.outline='3px solid rgba(249,115,22,.65)';
   }else if(G.maskLayerId===l.id){
     // 마스크 편집 모드 → 레이어 편집 모드
-    G.maskLayerId=null;setActiveCtx();renderLayers();showToast('레이어로 돌아옴 (마스크 유지)');
+    G.maskLayerId=null;setActiveCtx();renderLayers();renderDaBadge();showToast('레이어로 돌아옴 (마스크 유지)');
     const mc2=$('main-c');if(mc2)mc2.style.outline='';
   }else{
     // 레이어 편집 → 마스크 편집 모드
-    G.maskLayerId=l.id;setActiveCtx();renderLayers();
+    G.maskLayerId=l.id;setActiveCtx();renderLayers();renderDaBadge();
     showToast('마스크 편집 중 — 검정=가리기, 흰색=보이기');
     const mc2=$('main-c');if(mc2)mc2.style.outline='3px solid rgba(249,115,22,.65)';
   }
@@ -4638,6 +4640,19 @@ function renderSymGuide(){
     for(let i=0;i<n;i++){const a=i*Math.PI/n,dx=Math.cos(a)*D,dy=Math.sin(a)*D;prevCtx.beginPath();prevCtx.moveTo(cx-dx,cy-dy);prevCtx.lineTo(cx+dx,cy+dy);prevCtx.stroke();}
   }
   prevCtx.restore();
+}
+/* ===== Drawing Assist 배지 ===== */
+function renderDaBadge(){
+  const el=$('da-badge');if(!el)return;
+  el.innerHTML='';
+  const SYM_LABELS={v:'↔ 세로 대칭',h:'↕ 가로 대칭',quad:'✦ 4방향 대칭',radial:`✧ 방사 ${G.symN||6}분할`};
+  const badges=[];
+  if(G.symmetry&&SYM_LABELS[G.symmetry])badges.push({t:SYM_LABELS[G.symmetry],c:'rgba(168,85,247,.85)'});
+  if(G.isoGrid)badges.push({t:'⊹ 아이소그리드',c:'rgba(34,197,94,.8)'});
+  if(G.perspGuide)badges.push({t:'⊿ 원근 가이드',c:'rgba(59,130,246,.85)'});
+  if(G.maskLayerId)badges.push({t:'🎭 마스크 편집 중',c:'rgba(249,115,22,.85)'});
+  badges.forEach(b=>{const d=document.createElement('div');d.textContent=b.t;d.style.cssText=`background:${b.c};color:#fff;padding:3px 9px;border-radius:9px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.4);`;el.appendChild(d);});
+  el.style.display=badges.length?'flex':'none';
 }
 // 세 손가락 아래 스와이프 = 복사/붙여넣기 플로팅 메뉴 (Procreate 3-finger swipe)
 function showCopyPasteMenu(){
