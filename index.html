@@ -2292,7 +2292,8 @@ function setMode(m){
   if(G.editing)cancelShape();
   if(G.float)commitFloat();
   if(m==='pick'&&G.mode!=='pick')G.prevMode=G.mode;
-  if(['stamp','draw','graph','text'].includes(m))G.prevPaint=m;
+  if(['stamp','draw','graph','text'].includes(m)){G.prevPaint=m;G.prevDraw=m;}
+  else if(m==='eraser'||m==='smudge'){if(!G.prevDraw)G.prevDraw=G.prevPaint||'stamp';}
   G.mode=m;
   document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
   // 상단 바 도구 버튼 하이라이트 동기화 (프로크리에이트식)
@@ -2373,8 +2374,8 @@ function bindAll(){
   $('sr-col').addEventListener('click',()=>$('sr').classList.remove('show'));
   const PAINT_MODES=['stamp','draw','graph','text'];
   $('btn-paint').addEventListener('click',()=>{if(!PAINT_MODES.includes(G.mode))setMode(G.prevPaint||'stamp');togglePanel('sl');});
-  $('btn-smudge').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode('smudge');});
-  $('btn-erase').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode('eraser');});
+  $('btn-smudge').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode(G.mode==='smudge'?(G.prevDraw||'stamp'):'smudge');});
+  $('btn-erase').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode(G.mode==='eraser'?(G.prevDraw||'stamp'):'eraser');});
   $('btn-modify').addEventListener('click',()=>{closePanels();setMode('pick');});
   $('btn-layers').addEventListener('click',()=>togglePanel('sr','layers'));
   $('btn-adjust').addEventListener('click',()=>togglePanel('sr','tools'));
