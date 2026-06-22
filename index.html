@@ -2867,6 +2867,23 @@ function snapRot(r){
   return r;
 }
 
+/* ===== 팬 관성 (프로크리에이트 momentum scroll) ===== */
+let _inertiaRaf=null;
+function cancelInertia(){if(_inertiaRaf){cancelAnimationFrame(_inertiaRaf);_inertiaRaf=null;}}
+function startInertia(vx,vy){
+  cancelInertia();
+  if(Math.hypot(vx,vy)<0.3)return;
+  let t0=performance.now();
+  function frame(t){
+    const dt=Math.min(t-t0,40);t0=t;
+    const f=Math.pow(0.88,dt/16);vx*=f;vy*=f;
+    G.pan.x+=vx*(dt/16);G.pan.y+=vy*(dt/16);
+    applyTransform();
+    if(Math.hypot(vx,vy)>0.2)_inertiaRaf=requestAnimationFrame(frame);
+    else _inertiaRaf=null;
+  }
+  _inertiaRaf=requestAnimationFrame(frame);
+}
 /* ===== 길게 누르기 스포이드 (600ms, 프로크리에이트 long-press eyedropper) ===== */
 let _lpTm=null,_lpRaw=null,_lpRingEl=null;
 function startLpPick(e){
@@ -2912,11 +2929,13 @@ function toggleUIHidden(){
 function centroidT(ts){let x=0,y=0;for(const t of ts){x+=t.clientX;y+=t.clientY;}return{x:x/ts.length,y:y/ts.length};}
 function spreadT(ts){if(ts.length===2)return Math.hypot(ts[0].clientX-ts[1].clientX,ts[0].clientY-ts[1].clientY);const c=centroidT(ts);let s=0;for(const t of ts)s+=Math.hypot(t.clientX-c.x,t.clientY-c.y);return s/ts.length;}
 function startMulti(e){
+  cancelInertia();
   const ts=[...e.touches];const c=centroidT(ts);
   G.multi={c0:c,d0:spreadT(ts),cl:c,t0:Date.now(),n:ts.length,moved:0,
     z0:G.zoom,p0:{x:G.pan.x,y:G.pan.y},
     a0:ts.length>=2?Math.atan2(ts[1].clientY-ts[0].clientY,ts[1].clientX-ts[0].clientX):0,
-    vr0:G.viewRot||0};
+    vr0:G.viewRot||0,
+    hist:[{c,t:Date.now()}]};
 }
 function updateMulti(e){
   const ts=[...e.touches];if(ts.length<2)return;if(!G.multi){startMulti(e);return;}
@@ -2949,6 +2968,8 @@ function updateMulti(e){
   G.viewRot=snapped;
   applyTransform();
   G.multi.moved+=Math.hypot(dx,dy);G.multi.cl=c;
+  // 속도 계산용 히스토리 (최근 4개 유지)
+  const hist=G.multi.hist;hist.push({c,t:Date.now()});if(hist.length>4)hist.shift();
 }
 
 /* ===================== CANVAS INTERACTION ===================== */
@@ -3037,6 +3058,13 @@ function onUp(e){
     if(!e.touches||e.touches.length<2){
       const dt=Date.now()-G.multi.t0;
       const tap=dt<300&&G.multi.moved<14&&Math.abs(G.zoom-G.multi.z0)<0.04&&Math.abs(G.viewRot-G.multi.vr0)<0.08;
+      // 관성: 히스토리 최근 2개로 속도 추출 → 손 뗄 때 슬라이드 (줌/회전 변화 없을 때만)
+      const hist=G.multi.hist;
+      if(!tap&&hist&&hist.length>=2&&Math.abs(G.zoom-G.multi.z0)<0.04&&Math.abs(G.viewRot-G.multi.vr0)<0.08){
+        const h0=hist[0],h1=hist[hist.length-1];
+        const hdt=Math.max(1,h1.t-h0.t);
+        startInertia((h1.c.x-h0.c.x)/hdt*16,(h1.c.y-h0.c.y)/hdt*16);
+      }
       const n=G.multi.n;G.multi=null;
       if(tap){if(G.editing){cancelShape();}else if(n>=4){toggleUIHidden();}else if(n>=3){redo();}else{undo();}}
     }
