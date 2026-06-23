@@ -871,6 +871,9 @@ body.ui-hidden #row-counter{display:none!important}
             <button class="ib" id="r0" style="flex:1;font-size:10px;color:var(--danger)">0°</button>
           </div>
           <div class="rr"><input type="range" id="rsl" min="-180" max="180" value="0"><span class="rv" id="rv">0°</span></div>
+          <div class="sw-wrap" style="margin-top:5px">
+            <div class="sw on" id="sw-snap"></div><span>격자 스냅 (기호를 칸 중앙에 고정)</span>
+          </div>
         </div>
 
         <div class="cg">
@@ -1420,6 +1423,7 @@ let G={
   userYarns:[],
   userSymbols:[],
   canvasFrames:[],
+  stampSnap:true,
   longPressTimer:null,
   dragSrcIdx:null,
   narrType:'ko',
@@ -2064,6 +2068,7 @@ function fillCell(p){
   symXf().forEach(T=>{const q=T(p);const cx=Math.floor(q.x/gs)*gs,cy=Math.floor(q.y/gs)*gs;if(cx>=0&&cy>=0&&cx<CW&&cy<CH)mainCtx.fillRect(cx,cy,gs,gs);});
 }
 function stampAt(x,y){
+  if(G.stampSnap&&G.gridOn){const gs=40;x=Math.floor(x/gs)*gs+gs/2;y=Math.floor(y/gs)*gs+gs/2;}
   const sz=G.stampSz||48, col=G.toolColors[G.stitch]||G.color;
   symXf().forEach(T=>{const q=T({x,y});const rot=G.radial?radialRotFor(q.x,q.y)+(G.rot||0):G.rot;drawSVGStitch(mainCtx,q.x,q.y,G.stitch,col,sz,rot);});
   recordSymUse(G.stitch);
@@ -3383,6 +3388,7 @@ function bindAll(){
   $('sw-iso').addEventListener('click',()=>{G.isoGrid=!G.isoGrid;$('sw-iso').classList.toggle('on',G.isoGrid);drawBg();renderDaBadge();});
   $('sw-persp').addEventListener('click',()=>{G.perspGuide=!G.perspGuide;$('sw-persp').classList.toggle('on',G.perspGuide);drawBg();renderDaBadge();if(G.perspGuide)showToast('원근 격자 켜짐 — 소실점: 캔버스 중앙 상단');});
   $('sw-nums').addEventListener('click',()=>{G.numbersOn=!G.numbersOn;$('sw-nums').classList.toggle('on',G.numbersOn);drawBg();});
+  {const sn=$('sw-snap');if(sn){sn.classList.toggle('on',G.stampSnap!==false);sn.addEventListener('click',()=>{G.stampSnap=!G.stampSnap;sn.classList.toggle('on',G.stampSnap);showToast(G.stampSnap?'격자 스냅 ON — 기호가 칸 중앙에 고정됩니다':'격자 스냅 OFF');});}}
   $('sw-rowctr').addEventListener('click',()=>{toggleRowCtr();$('sw-rowctr').classList.toggle('on',$('row-ctr')&&!$('row-ctr').classList.contains('hide'));});
   $('btn-clr-frames').addEventListener('click',clearAllFrames);
   $('sw-radial').addEventListener('click',()=>{G.radial=!G.radial;$('sw-radial').classList.toggle('on',G.radial);});
