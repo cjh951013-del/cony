@@ -54,8 +54,20 @@
 - Capacitor 패키징 스캐폴드 (package.json·capacitor.config.json·.gitignore)
 - 색상 모델 정리 (#14): 기호 선택 시 toolColor → G.color 동기화 (topcol 즉시 반영)
 
+## 2026-06-23 세션 5 추가 기능
+- PWA manifest.json + Service Worker(sw.js) — 오프라인 캐시, 홈화면 추가
+- Web Share API 내보내기 — 모바일에서 네이티브 공유시트 사용
+- icons/icon.svg + icons/gen-icons.html (브라우저에서 192/512 PNG 즉시 다운로드)
+- 서술도안 PDF — 새 창 인쇄 파이프라인(한글 폰트·제목·날짜)
+- 서술도안 복사 — alert → showToast + clipboard Promise 에러 핸들
+- .cony 프로젝트 파일 내보내기/불러오기 (레이어 PNG+메타 JSON, morepop 버튼)
+- 에디터 헤더 중앙 프로젝트 이름 편집 — blur/Enter 저장, hover 강조
+- fix: PNG 내보내기 투명 배경 (기존엔 bg-c 포함돼 불투명)
+- GitHub Pages 배포: 세션 5 전체 push 완료
+
 ## 남은 작업
 - Toss 실키 교체 + 서버사이드 `/payments/confirm` 엔드포인트 구축
+- icons/gen-icons.html 브라우저에서 열어 icon-192/512.png 생성 후 저장
 - `npm install && npx cap add android/ios` → 실기기 빌드 테스트
-- 와디즈 펀딩 페이지 작성 + 스토어 스크린샷
+- 와디즈 펀딩 페이지 작성 + 스토어 스크린샷 촬영
 - ⚠️ 단수표 자동(#16) 불가 — 래스터 비트맵이라 행별 코수 역산 불가
