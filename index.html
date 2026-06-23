@@ -553,6 +553,7 @@ body.ui-hidden #row-counter{display:none!important}
 #ref-img{width:100%;object-fit:contain;max-height:200px;display:block;transition:opacity .2s}
 #ref-panel.minimized #ref-img{display:none}
 </style>
+<script src="https://js.tosspayments.com/v1"></script>
 </head>
 <body>
 
@@ -1157,7 +1158,7 @@ body.ui-hidden #row-counter{display:none!important}
       </div>
     </div>
     <div id="plan-benefits"></div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:7px">결제 수단 (나이스페이먼츠 연동 예정)</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:7px">결제 수단 (토스페이먼츠)</div>
     <div class="pmg">
       <button class="pmb act" data-m="toss">토스페이</button>
       <button class="pmb" data-m="kakao">카카오페이</button>
@@ -1348,6 +1349,8 @@ const YARN_DB=[
 
 const COLORS=['#ffffff','#ff4757','#ffa502','#2ed573','#1e90ff','#9b59b6','#f368e0','#ff6b6b','#ffd700','#00bcd4'];
 const BG_COLORS=['#202024','#121214','#0d1117','#ffffff','#f3f4f6','#fef08a','#bfdbfe','#1a2a1a'];
+// 토스페이먼츠 클라이언트 키 — 배포 전 실제 키로 교체 (토스 대시보드 → 개발 → API 키)
+const TOSS_CLIENT_KEY='test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eo0';
 
 const PLAN_BENEFITS={
   free:{
@@ -2257,6 +2260,7 @@ function persistProjects(){
 }
 function loadPersisted(){
   try{const s=localStorage.getItem('cony_projects_v1');if(s){const arr=JSON.parse(s);if(Array.isArray(arr)&&arr.length)G.projects=arr;}}catch(e){}
+  try{const p=localStorage.getItem('cony_plan');if(p==='pro'||p==='pro2')G.plan=p;}catch(e){}
 }
 function restoreCanvas(){
   setActiveCtx();
@@ -3556,22 +3560,41 @@ function bindAll(){
   $('btn-pay').addEventListener('click',()=>{
     const sel=document.querySelector('.plan.act,.plan.act2');
     const plan=sel?.dataset?.plan||'pro';
-    closeM('m-pro');openM('m-co');
-    $('co-spin').style.display='block';$('co-chk').style.display='none';
-    $('co-t').textContent='결제 처리 중...';$('co-d').textContent='나이스페이먼츠 결제 모듈 준비 중...\n(사업자 등록 후 실제 연동 예정)';$('co-done').style.display='none';
-    setTimeout(()=>{
-      $('co-spin').style.display='none';$('co-chk').style.display='block';
-      const pn=plan==='pro2'?'Pro+':'Pro';
-      $('co-t').textContent=`${pn} 결제 완료! 👑`;
-      $('co-d').textContent=`${pn} 라이선스가 활성화되었습니다.`;
-      $('co-done').style.display='block';
-    },2200);
+    const method=document.querySelector('.pmb.act')?.dataset?.m||'toss';
+    const amount=plan==='pro2'?9900:4900;
+    const orderName='Crochet Flow '+(plan==='pro2'?'Pro+':'Pro')+' 월 구독';
+    const orderId='cony_'+Date.now();
+    const base=location.origin+location.pathname;
+    const successUrl=base+'?pay_ok=1&plan='+plan;
+    const failUrl=base+'?pay_fail=1';
+    const methodMap={toss:'토스페이',kakao:'카카오페이',card:'카드'};
+    if(typeof TossPayments==='undefined'){
+      // SDK 미로드 시 mock 폴백 (로컬/오프라인)
+      closeM('m-pro');openM('m-co');
+      $('co-spin').style.display='block';$('co-chk').style.display='none';
+      $('co-t').textContent='결제 처리 중...';
+      $('co-d').textContent='토스페이먼츠 연결 중... (SDK 로드 필요)';
+      $('co-done').style.display='none';
+      setTimeout(()=>{
+        $('co-spin').style.display='none';$('co-chk').style.display='block';
+        const pn=plan==='pro2'?'Pro+':'Pro';
+        $('co-t').textContent=pn+' 결제 완료! 👑';
+        $('co-d').textContent=pn+' 라이선스가 활성화되었습니다.';
+        $('co-done').style.display='block';
+      },1800);
+      return;
+    }
+    closeM('m-pro');
+    TossPayments(TOSS_CLIENT_KEY).requestPayment(methodMap[method]||'카드',{
+      amount,orderId,orderName,customerName:'코니 사용자',successUrl,failUrl
+    }).catch(err=>{if(err.code!=='USER_CANCEL')showToast('결제 오류: '+err.message);});
   });
   $('co-done').addEventListener('click',()=>{
     const sel=document.querySelector('.plan.act,.plan.act2');
     G.plan=sel?.dataset?.plan||'pro';
+    try{localStorage.setItem('cony_plan',G.plan);}catch(e){}
     closeM('m-co');planChip();renderShelf();renderPalettes();
-    alert(`🎉 ${G.plan==='pro2'?'Pro+':'Pro'} 활성화 완료!`);
+    showToast('🎉 '+(G.plan==='pro2'?'Pro+':'Pro')+' 활성화 완료!');
   });
   
   // EXPORT
@@ -5228,6 +5251,19 @@ function scheduleSH(){clearTimeout(shTm);shTm=setTimeout(saveH,800);}
 /* ===================== INIT ===================== */
 (function init(){
   loadPersisted();
+  // 토스페이먼츠 결제 완료 후 리다이렉트 처리
+  try{
+    const up=new URLSearchParams(location.search);
+    if(up.get('pay_ok')){
+      const plan=up.get('plan')||'pro';
+      if(plan==='pro'||plan==='pro2'){G.plan=plan;localStorage.setItem('cony_plan',plan);}
+      history.replaceState({},'',location.pathname);
+      setTimeout(()=>showToast('🎉 '+(G.plan==='pro2'?'Pro+':'Pro')+' 결제 완료!'),600);
+    }else if(up.get('pay_fail')){
+      history.replaceState({},'',location.pathname);
+      setTimeout(()=>showToast('결제가 취소되었습니다.'),600);
+    }
+  }catch(e){}
   loadUserSymbols();
   renderDash();
   // setup editor listeners
