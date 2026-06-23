@@ -1510,7 +1510,8 @@ const ICONS={
   graph:'<rect x="4.5" y="4.5" width="15" height="15" rx="1.5"/><path d="M9.5 4.5v15M14.5 4.5v15M4.5 9.5h15M4.5 14.5h15"/>',
   text:'<path d="M6 6h12M12 6v12M9.5 18h5"/>',
   qmenu:'<circle cx="12" cy="12" r="2.2"/><path d="M12 4v3.2M12 16.8V20M4 12h3.2M16.8 12H20M6.3 6.3l2.3 2.3M15.4 15.4l2.3 2.3M17.7 6.3l-2.3 2.3M8.6 15.4l-2.3 2.3"/>',
-  gradient:'<defs><linearGradient id="gi" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a855f7"/><stop offset="100%" style="stop-color:transparent"/></linearGradient></defs><rect x="4.5" y="4.5" width="15" height="15" rx="2.5" fill="url(#gi)" stroke="currentColor" stroke-width="1.5" fill-opacity="0.7"/><line x1="5" y1="19" x2="19" y2="5" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3,2"/>'
+  gradient:'<defs><linearGradient id="gi" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#a855f7"/><stop offset="100%" style="stop-color:transparent"/></linearGradient></defs><rect x="4.5" y="4.5" width="15" height="15" rx="2.5" fill="url(#gi)" stroke="currentColor" stroke-width="1.5" fill-opacity="0.7"/><line x1="5" y1="19" x2="19" y2="5" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3,2"/>',
+  annotation:'<path d="M4 17l1-3L13 6a1.8 1.8 0 0 1 2.6 2.6L8 18 4 17z"/><line x1="11" y1="20" x2="20" y2="20"/><line x1="11" y1="18" x2="11" y2="22"/><line x1="20" y1="18" x2="20" y2="22"/>'
 };
 function svgIcon(name,sz){return '<svg class="pc-ic" viewBox="0 0 24 24" width="'+(sz||22)+'" height="'+(sz||22)+'">'+(ICONS[name]||'')+'</svg>';}
 function injectIcons(){
@@ -1518,6 +1519,8 @@ function injectIcons(){
   for(const id in map){const e=$(id);if(e)e.innerHTML=svgIcon(map[id], id==='btn-undo'||id==='btn-redo'?20:id==='btn-modify'?20:22);}
   const lbl={stamp:'기호',draw:'펜',graph:'방안',text:'글자'}, ic={stamp:'stamp',draw:'pen',graph:'graph',text:'text'};
   document.querySelectorAll('.pc-modes .tbtn[data-mode]').forEach(b=>{const m=b.dataset.mode;b.innerHTML=svgIcon(ic[m],19)+'<span>'+(lbl[m]||m)+'</span>';});
+  const annBtn=document.querySelector('.tbtn[data-shelf="annotation"]');
+  if(annBtn)annBtn.innerHTML=svgIcon('annotation',19)+'<span>주석</span>';
 }
 function openM(id){$(id).classList.add('open')}
 function closeM(id){$(id).classList.remove('open')}
