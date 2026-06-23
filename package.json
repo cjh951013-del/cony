@@ -1,0 +1,23 @@
+{
+  "name": "crochet-flow",
+  "version": "1.0.0",
+  "description": "코니 — 코바늘·대바늘 도안 제작 앱 (Crochet Flow)",
+  "private": true,
+  "scripts": {
+    "serve": "npx serve . -l 3940",
+    "cap:sync": "npx cap sync",
+    "cap:android": "npx cap open android",
+    "cap:ios": "npx cap open ios",
+    "cap:build:android": "npx cap build android",
+    "cap:build:ios": "npx cap build ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "serve": "^14.0.0"
+  }
+}
