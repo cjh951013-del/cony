@@ -1164,6 +1164,9 @@ body.ui-hidden #row-counter{display:none!important}
       <div><kbd>Ctrl+S</kbd> .cony 저장</div><div><kbd>Ctrl++</kbd> 줌 인</div>
       <div><kbd>Ctrl+-</kbd> 줌 아웃</div><div><kbd>Ctrl+0</kbd> 화면 맞춤</div>
       <div><kbd>Space</kbd> 이동(팬)</div><div><kbd>Shift</kbd> 직선 고정</div>
+      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">레이어</div>
+      <div><kbd>Alt+N</kbd> 새 레이어</div><div><kbd>Alt+]</kbd> 레이어 위로</div>
+      <div><kbd>Alt+[</kbd> 레이어 아래로</div><div></div>
       <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">도형·자유변형 중</div>
       <div><kbd>T</kbd> 도형 종류 변경</div><div><kbd>Enter</kbd> 확정/적용</div>
       <div><kbd>Esc</kbd> 취소/삭제</div><div><kbd>Del</kbd> 변형 삭제</div>
@@ -3972,6 +3975,24 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
           if(sr){sr.value=G.brushSz;const sv=$('size-rail-v');if(sv)sv.textContent=G.brushSz;}
           showBszHud(G.brushSz);
         }
+      }
+    }
+    // Alt 단축키 (레이어 조작)
+    if(e.altKey&&!e.ctrlKey&&!e.metaKey){
+      if(e.code==='BracketRight'||e.code==='BracketLeft'){
+        e.preventDefault();
+        const dir=e.code==='BracketRight'?1:-1;
+        const idx=G.layers.findIndex(l=>l.id===G.activeL);
+        const ni=idx+dir;
+        if(idx>=0&&ni>=0&&ni<G.layers.length){
+          [G.layers[idx],G.layers[ni]]=[G.layers[ni],G.layers[idx]];
+          renderLayers();composite();saveH();
+          showToast(dir>0?'레이어 위로  Alt+]':'레이어 아래로  Alt+[');
+        }
+      }
+      if(e.code==='KeyN'){
+        e.preventDefault();
+        const ab=$('btn-addl');if(ab)ab.click();
       }
     }
     // Ctrl/Cmd 단축키
