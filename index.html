@@ -731,7 +731,7 @@ body.ui-hidden #row-counter{display:none!important}
       <div id="brush-cursor"></div>
       <div id="zoom-hud">100%</div>
       <div id="rot-hud">0°</div>
-      <div id="row-ctr" class="hide"><span class="rc-lbl">단</span><span id="rc-num">1</span></div>
+      <div id="row-ctr" class="hide"><span class="rc-lbl">단</span><span id="rc-hud-num">1</span></div>
       <div id="lp-ring">
         <canvas id="lp-loupe" width="80" height="80"></canvas>
         <div id="lp-swatch"><div class="lp-sw" id="lp-sw-old"></div><div class="lp-sw" id="lp-sw-new"></div></div>
@@ -2263,7 +2263,7 @@ function openLegend(){
   openM('m-legend');
 }
 let ssTm;
-function setSS(){$('sst').textContent='💾 저장 중...';clearTimeout(ssTm);ssTm=setTimeout(()=>{$('sst').textContent='✓ 저장됨';},600);}
+function setSS(){const e=$('sst');if(!e)return;e.textContent='💾 저장 중...';clearTimeout(ssTm);ssTm=setTimeout(()=>{const s=$('sst');if(s)s.textContent='✓ 저장됨';},600);}
 
 /* ===================== AUTOSAVE (localStorage) ===================== */
 let persistTm;
@@ -4942,7 +4942,7 @@ function hideBrushCursor(){if(!_bcEl)_bcEl=$('brush-cursor');if(_bcEl)_bcEl.styl
 function initRowCtr(){
   try{G.rowCount=parseInt(localStorage.getItem('rc_count')||'1')||1;}catch(e){G.rowCount=1;}
   const el=$('row-ctr');if(!el)return;
-  const num=$('rc-num');
+  const num=$('rc-hud-num');
   function update(){if(num)num.textContent=G.rowCount;try{localStorage.setItem('rc_count',G.rowCount);}catch(e){}}
   update();
   let _rcHold=null;
@@ -5380,6 +5380,7 @@ function onUp(e){
   if(G.editing){if(G.awaitLift)G.awaitLift=false;G.dragH=null;return;}
   if(G.isPanning){G.isPanning=false;return;}
   if(!G.isDrawing)return;G.isDrawing=false;
+  const pos=getPos(e);
   if(G.mode==='stamp'||G.mode==='draw'){
     if(G.brushSpray&&G.mode==='draw'){
       clearInterval(_sprayIv);_sprayIv=null;
