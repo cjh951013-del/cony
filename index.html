@@ -1161,8 +1161,9 @@ body.ui-hidden #row-counter{display:none!important}
       <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">편집</div>
       <div><kbd>Ctrl+Z</kbd> 되돌리기</div><div><kbd>Ctrl+Y</kbd> 다시 실행</div>
       <div><kbd>Ctrl+A</kbd> 전체 선택</div><div><kbd>Ctrl+D</kbd> 선택 해제</div>
-      <div><kbd>Ctrl+S</kbd> .cony 저장</div><div><kbd>Space</kbd> 이동(팬)</div>
-      <div><kbd>Shift</kbd> 직선 고정</div><div></div>
+      <div><kbd>Ctrl+S</kbd> .cony 저장</div><div><kbd>Ctrl++</kbd> 줌 인</div>
+      <div><kbd>Ctrl+-</kbd> 줌 아웃</div><div><kbd>Ctrl+0</kbd> 화면 맞춤</div>
+      <div><kbd>Space</kbd> 이동(팬)</div><div><kbd>Shift</kbd> 직선 고정</div>
       <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">도형·자유변형 중</div>
       <div><kbd>T</kbd> 도형 종류 변경</div><div><kbd>Enter</kbd> 확정/적용</div>
       <div><kbd>Esc</kbd> 취소/삭제</div><div><kbd>Del</kbd> 변형 삭제</div>
@@ -3975,6 +3976,9 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
     }
     // Ctrl/Cmd 단축키
     if(e.ctrlKey||e.metaKey){
+      if(e.code==='Equal'||e.code==='NumpadAdd'){e.preventDefault();G.zoom=Math.min(8,G.zoom*1.25);applyTransform();showZoomHud();}
+      if(e.code==='Minus'||e.code==='NumpadSubtract'){e.preventDefault();G.zoom=Math.max(0.08,G.zoom/1.25);applyTransform();showZoomHud();}
+      if(e.code==='Digit0'||e.code==='Numpad0'){e.preventDefault();fitToScreen();showToast('화면 맞춤  Ctrl+0');}
       if(e.code==='KeyS'){e.preventDefault();exportProject();}
       if(e.code==='KeyA'&&!e.shiftKey){
         e.preventDefault();
