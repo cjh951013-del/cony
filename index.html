@@ -69,7 +69,9 @@ select,input{font-family:inherit}
 #eh .el{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
 #eh .ec{font-size:10px;color:var(--text3);background:#0a0a1a;border:1px dashed #22224a;padding:3px 10px;border-radius:5px;white-space:nowrap}
 #eh .er{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-#pn{background:transparent;border:none;border-bottom:1px solid transparent;color:var(--text);font-size:13px;font-weight:600;width:160px;padding:2px 3px}
+#pn{background:transparent;border:none;color:var(--text);font-size:12px;font-weight:600;max-width:160px;min-width:60px;width:auto;padding:3px 6px;text-align:center;border-radius:7px;cursor:text;outline:none;transition:.15s}
+#pn:hover{background:rgba(255,255,255,.07)}
+#pn:focus{background:rgba(168,85,247,.15);border-bottom:1.5px solid var(--primary)}
 #pn:focus{outline:none;border-bottom-color:var(--primary)}
 .ss{font-size:10px;color:var(--success)}
 .ib{background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--text2);padding:4px 7px;font-size:13px}
@@ -608,9 +610,7 @@ body.ui-hidden #row-counter{display:none!important}
       <button class="pc-tb" id="btn-layers" title="레이어">▦</button>
       <button id="topcol" title="색상 선택"></button>
     </div>
-    <div style="display:none">
-      <input type="text" id="pn" value="무제 도안"><span class="ss" id="sst">✓ 저장됨</span>
-    </div>
+    <input type="text" id="pn" value="무제 도안" title="도안 이름 (탭하여 수정)">
   </header>
 
   <div id="morepop">
@@ -3400,6 +3400,12 @@ function bindAll(){
   
   // EDITOR HEADER
   $('btn-back').addEventListener('click',()=>{saveThumb();snapshotCurrent();showScreen('dash');renderDash();});
+  const pnEl=$('pn');
+  if(pnEl){
+    const savePn=()=>{if(G.cur&&pnEl.value.trim()){G.cur.name=pnEl.value.trim();persistProjects();}};
+    pnEl.addEventListener('blur',savePn);
+    pnEl.addEventListener('keydown',e=>{if(e.key==='Enter'){pnEl.blur();}});
+  }
   $('btn-undo').addEventListener('click',undo);
   $('btn-redo').addEventListener('click',redo);
   $('btn-clr').addEventListener('click',()=>{$('morepop').classList.remove('open');if(confirm('모든 레이어를 비울까요? (전체 초기화)')){clearAllLayers();}});
