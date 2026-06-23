@@ -381,6 +381,7 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
 .fg input,.fg select,.fg textarea{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 9px;font-size:12px;font-family:inherit}
 .fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--primary)}
 .mf{display:flex;gap:7px;justify-content:flex-end;margin-top:14px}
+kbd{display:inline-block;background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:var(--text)}
 .mb{padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:12px;font-weight:600;cursor:pointer}
 .mb:hover{background:var(--panel2)}
 .mb.p{background:var(--primary);border-color:var(--primary);color:#fff}
@@ -1146,6 +1147,28 @@ body.ui-hidden #row-counter{display:none!important}
   </div>
 </div>
 
+<!-- ===== MODAL: 키보드 단축키 도움말 ===== -->
+<div class="mo" id="m-keys">
+  <div class="mc" style="max-width:420px">
+    <div class="mh"><h2>⌨ 키보드 단축키</h2><button class="mhx" onclick="closeM('m-keys')">✕</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12px;padding:4px 0 8px">
+      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin-bottom:4px">도구</div>
+      <div><kbd>B</kbd> 브러시</div><div><kbd>E</kbd> 지우개</div>
+      <div><kbd>S</kbd> 스머지</div><div><kbd>P</kbd> 색상 추출</div>
+      <div><kbd>G</kbd> 그라디언트</div><div><kbd>F</kbd> 화면 맞춤</div>
+      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">크기</div>
+      <div><kbd>[</kbd> 크기 줄이기</div><div><kbd>]</kbd> 크기 늘리기</div>
+      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">편집</div>
+      <div><kbd>Ctrl+Z</kbd> 되돌리기</div><div><kbd>Ctrl+Y</kbd> 다시 실행</div>
+      <div><kbd>Ctrl+A</kbd> 전체 선택</div><div><kbd>Ctrl+D</kbd> 선택 해제</div>
+      <div><kbd>Space</kbd> 이동(팬)</div><div><kbd>Shift</kbd> 직선 고정</div>
+      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">도형 편집 중</div>
+      <div><kbd>T</kbd> 도형 종류 변경</div><div><kbd>Enter</kbd> 확정</div>
+      <div><kbd>Esc</kbd> 취소</div><div></div>
+    </div>
+    <div class="mf"><button class="mb" onclick="closeM('m-keys')">닫기</button></div>
+  </div>
+</div>
 <!-- ===== MODAL: PRO 업그레이드 ===== -->
 <div class="mo" id="m-pro">
   <div class="mc">
@@ -1830,7 +1853,7 @@ function bindSymEditor(){
   $('sym-clear').addEventListener('click',()=>{symEdit.el=[];symEdit.cur=[];drawSymEditor();});
   $('sym-save').addEventListener('click',()=>{
     symFinishLine(); // 미완성 선 자동 마무리
-    if(!symEdit.el.length){alert('기호가 비어 있어요. 점·선·원이나 기존 기호를 추가해 주세요.');return;}
+    if(!symEdit.el.length){showToast('기호가 비어 있어요 — 점·선·원을 추가해 주세요');return;}
     const name=$('sym-name').value.trim()||'내 기호';
     addCustomSymbol(name,symEdit.el);
     renderShelf();
@@ -2553,7 +2576,7 @@ function duplicateLayer(id){
   composite();renderLayers();saveHMulti();showToast(nl.name+' 복사 완료');
 }
 function deleteLayer(id){
-  if(G.layers.length<=1){alert('마지막 레이어는 삭제할 수 없어요.');return;}
+  if(G.layers.length<=1){showToast('마지막 레이어는 삭제할 수 없어요');return;}
   const i=G.layers.findIndex(l=>l.id===id);if(i<0)return;
   G.layers.splice(i,1);
   if(G.activeL===id){G.activeL=G.layers[Math.max(0,i-1)].id;setActiveCtx();}
@@ -3909,11 +3932,55 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
       else if(e.code==='Escape')cancelShape();
       else if(e.code==='KeyT')cycleShapeType();
     }
+    // Procreate 스타일 단축키 (입력 필드 제외, 수정키 없을 때)
+    if(!e.ctrlKey&&!e.metaKey&&!e.altKey&&!G.editing){
+      if(e.key==='?'){e.preventDefault();openM('m-keys');}
+      if(e.code==='KeyB'){setMode('draw');showToast('브러시  B');}
+      else if(e.code==='KeyE'){setMode('eraser');showToast('지우개  E');}
+      else if(e.code==='KeyS'){setMode('smudge');showToast('스머지  S');}
+      else if(e.code==='KeyP'){setMode('pick');showToast('색상 추출  P');}
+      else if(e.code==='KeyG'){setMode('gradient');showToast('그라디언트  G');}
+      else if(e.code==='KeyF'){e.preventDefault();fitToScreen();showToast('화면 맞춤  F');}
+      else if(e.code==='BracketLeft'||e.code==='BracketRight'){
+        const delta=e.code==='BracketRight'?5:-5;
+        const sr=$('size-rail');
+        if(G.mode==='stamp'){
+          G.stampSz=Math.max(10,Math.min(60,(G.stampSz||48)+delta));
+          if(sr){sr.value=G.stampSz;const sv=$('size-rail-v');if(sv)sv.textContent=G.stampSz;}
+          showBszHud(G.stampSz);
+        }else if(G.mode==='eraser'){
+          G.eraserSz=Math.max(2,Math.min(30,(G.eraserSz||6)+(delta>0?2:-2)));
+          if(sr){sr.value=G.eraserSz;const sv=$('size-rail-v');if(sv)sv.textContent=G.eraserSz;}
+          showBszHud(G.eraserSz);
+        }else{
+          G.brushSz=Math.max(1,Math.min(30,(G.brushSz||3)+(delta>0?2:-2)));
+          if(sr){sr.value=G.brushSz;const sv=$('size-rail-v');if(sv)sv.textContent=G.brushSz;}
+          showBszHud(G.brushSz);
+        }
+      }
+    }
+    // Ctrl/Cmd 단축키
+    if(e.ctrlKey||e.metaKey){
+      if(e.code==='KeyA'&&!e.shiftKey){
+        e.preventDefault();
+        setMode('select');G.selStart={x:0,y:0};G.selEnd={x:CW,y:CH};
+        if(prevCtx){prevCtx.clearRect(0,0,CW,CH);prevCtx.strokeStyle='rgba(168,85,247,.85)';prevCtx.lineWidth=1.2;prevCtx.setLineDash([6,4]);prevCtx.strokeRect(0,0,CW,CH);}
+        const st=$('sel-tb');if(st)st.style.display='flex';
+        showToast('전체 선택  Ctrl+A');
+      }
+      if(e.code==='KeyD'&&!e.shiftKey){
+        e.preventDefault();
+        G.selStart=null;G.selEnd=null;G.selPath=null;
+        const st=$('sel-tb');if(st)st.style.display='none';
+        if(prevCtx)prevCtx.clearRect(0,0,CW,CH);
+        showToast('선택 해제  Ctrl+D');
+      }
+    }
   });
   document.addEventListener('keyup',e=>{if(e.code==='Space'){G.spaceDown=false;}});
   
   // AD STRIPS
-  document.querySelectorAll('.ad-strip').forEach(el=>el.addEventListener('click',()=>alert('광고 클릭 → 외부 링크 연동 (애드센스 또는 제휴 링크)')));
+  document.querySelectorAll('.ad-strip').forEach(el=>el.addEventListener('click',()=>showToast('준비 중입니다')));
   injectIcons();
   bindColorDrop();
   initRefOverlay();
