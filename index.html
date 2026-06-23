@@ -181,7 +181,7 @@ html[data-theme=light] .pc-sq{background:rgba(255,255,255,.7);border-color:rgba(
 #sl .sh,#sr .tabs{flex-shrink:0}
 .pcol{font-size:13px}
 /* 팔레트 모드 탭 (펜/기호/방안/글자) */
-.pc-modes{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:7px;border-bottom:1px solid var(--border);flex-shrink:0}
+.pc-modes{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:7px;border-bottom:1px solid var(--border);flex-shrink:0}
 .pc-modes .tbtn{padding:6px 2px;font-size:9px;gap:2px}
 .pc-modes .tbtn .ti{font-size:16px}
 /* 좁은 폰: 패널을 넉넉히 + 상단 바 압축 */
@@ -695,6 +695,7 @@ body.ui-hidden #row-counter{display:none!important}
         <button class="tbtn" data-mode="draw" title="펜·손글씨"><span class="ti">✏️</span>펜</button>
         <button class="tbtn" data-mode="graph" title="방안뜨기(칸 색칠)"><span class="ti">▦</span>방안</button>
         <button class="tbtn" data-mode="text" title="텍스트"><span class="ti">T</span>글자</button>
+        <button class="tbtn" data-shelf="annotation" title="주석 기호"><span class="ti">✎</span>주석</button>
       </div>
       <div style="padding:4px 8px 2px"><input id="stitch-search" type="search" placeholder="🔍 기호 이름 검색..." style="width:100%;box-sizing:border-box;font-size:11px;padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--panel2);color:var(--text);outline:none"></div>
       <div class="stl" id="stitch-list"></div>
@@ -1305,6 +1306,20 @@ const STITCHES={
   ]
 };
 
+STITCHES.annotation=[
+  {id:'ann-arr-r',name:'화살표→',svg:'ann-arr-r',visible:true},
+  {id:'ann-arr-l',name:'화살표←',svg:'ann-arr-l',visible:true},
+  {id:'ann-arr-u',name:'화살표↑',svg:'ann-arr-u',visible:true},
+  {id:'ann-arr-d',name:'화살표↓',svg:'ann-arr-d',visible:true},
+  {id:'ann-arr-ud',name:'양방향↕',svg:'ann-arr-ud',visible:true},
+  {id:'ann-arr-lr',name:'양방향↔',svg:'ann-arr-lr',visible:true},
+  {id:'ann-circ1',name:'마커①',svg:'ann-circ1',visible:true},
+  {id:'ann-circ2',name:'마커②',svg:'ann-circ2',visible:true},
+  {id:'ann-circ3',name:'마커③',svg:'ann-circ3',visible:true},
+  {id:'ann-star',name:'별 마커',svg:'ann-star',visible:true},
+  {id:'ann-x',name:'금지 표시',svg:'ann-x',visible:true},
+  {id:'ann-dim-h',name:'가로 치수',svg:'ann-dim-h',visible:true},
+];
 const YARN_DB=[
   {brand:'DMC',name:'Natura XL',color:'크림',hex:'#f5f0e0',weight:'중세',mpg:'2.5m/g'},
   {brand:'Drops',name:'Paris',color:'연핑크',hex:'#f9c5c5',weight:'중세',mpg:'3m/g'},
@@ -1387,8 +1402,8 @@ let G={
   spaceDown:false,
   selStart:null,selEnd:null,clipboard:null,selMode:'rect',selPath:null,
   panelPos:'left',
-  stitchOrder:{crochet:[...Array(STITCHES.crochet.length).keys()],knitting:[...Array(STITCHES.knitting.length).keys()]},
-  stitchVisible:{crochet:new Array(STITCHES.crochet.length).fill(true),knitting:new Array(STITCHES.knitting.length).fill(true)},
+  stitchOrder:{crochet:[...Array(STITCHES.crochet.length).keys()],knitting:[...Array(STITCHES.knitting.length).keys()],annotation:[...Array(STITCHES.annotation.length).keys()]},
+  stitchVisible:{crochet:new Array(STITCHES.crochet.length).fill(true),knitting:new Array(STITCHES.knitting.length).fill(true),annotation:new Array(STITCHES.annotation.length).fill(true)},
   userYarns:[],
   userSymbols:[],
   longPressTimer:null,
@@ -1632,6 +1647,20 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
       ctx.beginPath();ctx.moveTo(-h*.55,h*.55);ctx.lineTo(-h*.15,h*.15);
       ctx.moveTo(h*.15,-h*.15);ctx.lineTo(h*.55,-h*.55);ctx.stroke();  // ／ 끊김(아래)
       ctx.beginPath();ctx.moveTo(-h*.55,-h*.55);ctx.lineTo(h*.55,h*.55);ctx.stroke();break; // ＼ 위
+    /* ===== 주석 기호 ===== */
+    case 'ann-arr-r':{const as=h*.35;ctx.beginPath();ctx.moveTo(-h*.6,0);ctx.lineTo(h*.6,0);ctx.moveTo(h*.6-as,-as*.7);ctx.lineTo(h*.6,0);ctx.lineTo(h*.6-as,as*.7);ctx.stroke();break;}
+    case 'ann-arr-l':{const as=h*.35;ctx.beginPath();ctx.moveTo(h*.6,0);ctx.lineTo(-h*.6,0);ctx.moveTo(-h*.6+as,-as*.7);ctx.lineTo(-h*.6,0);ctx.lineTo(-h*.6+as,as*.7);ctx.stroke();break;}
+    case 'ann-arr-u':{const as=h*.35;ctx.beginPath();ctx.moveTo(0,h*.6);ctx.lineTo(0,-h*.6);ctx.moveTo(-as*.7,-h*.6+as);ctx.lineTo(0,-h*.6);ctx.lineTo(as*.7,-h*.6+as);ctx.stroke();break;}
+    case 'ann-arr-d':{const as=h*.35;ctx.beginPath();ctx.moveTo(0,-h*.6);ctx.lineTo(0,h*.6);ctx.moveTo(-as*.7,h*.6-as);ctx.lineTo(0,h*.6);ctx.lineTo(as*.7,h*.6-as);ctx.stroke();break;}
+    case 'ann-arr-ud':{const as=h*.3;ctx.beginPath();ctx.moveTo(0,-h*.65);ctx.lineTo(0,h*.65);ctx.moveTo(-as*.7,-h*.65+as);ctx.lineTo(0,-h*.65);ctx.lineTo(as*.7,-h*.65+as);ctx.moveTo(-as*.7,h*.65-as);ctx.lineTo(0,h*.65);ctx.lineTo(as*.7,h*.65-as);ctx.stroke();break;}
+    case 'ann-arr-lr':{const as=h*.3;ctx.beginPath();ctx.moveTo(-h*.65,0);ctx.lineTo(h*.65,0);ctx.moveTo(-h*.65+as,-as*.7);ctx.lineTo(-h*.65,0);ctx.lineTo(-h*.65+as,as*.7);ctx.moveTo(h*.65-as,-as*.7);ctx.lineTo(h*.65,0);ctx.lineTo(h*.65-as,as*.7);ctx.stroke();break;}
+    case 'ann-circ1':case 'ann-circ2':case 'ann-circ3':{
+      const num={'ann-circ1':'1','ann-circ2':'2','ann-circ3':'3'}[id];
+      ctx.beginPath();ctx.arc(0,0,h*.6,0,Math.PI*2);ctx.stroke();
+      ctx.font=`bold ${Math.round(h*.7)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(num,0,0);break;}
+    case 'ann-star':{const n=5,r1=h*.65,r2=h*.28;ctx.beginPath();for(let i=0;i<n*2;i++){const a=i*Math.PI/n-Math.PI/2,r=i%2?r2:r1;i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);}ctx.closePath();ctx.fill();break;}
+    case 'ann-x':{ctx.beginPath();ctx.arc(0,0,h*.6,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(-h*.38,-h*.38);ctx.lineTo(h*.38,h*.38);ctx.moveTo(h*.38,-h*.38);ctx.lineTo(-h*.38,h*.38);ctx.stroke();break;}
+    case 'ann-dim-h':{const cap=h*.35;ctx.beginPath();ctx.moveTo(-h*.7,-cap);ctx.lineTo(-h*.7,cap);ctx.moveTo(-h*.7,0);ctx.lineTo(h*.7,0);ctx.moveTo(h*.7,-cap);ctx.lineTo(h*.7,cap);ctx.stroke();break;}
     default:
       ctx.beginPath();ctx.arc(0,0,h*.5,0,Math.PI*2);ctx.stroke();
   }
@@ -2205,10 +2234,31 @@ function restoreCanvas(){
 
 /* ===================== STITCH SHELF ===================== */
 function renderShelf(){
+  const isAnn=G.shelfType==='annotation';
   const type=G.cur?.type||'crochet';
   const list=$('stitch-list');
   list.innerHTML='';
-  $('stl-title').textContent=type==='crochet'?'코바늘':'대바늘';
+  $('stl-title').textContent=isAnn?'주석':type==='crochet'?'코바늘':'대바늘';
+  if(isAnn){
+    STITCHES.annotation.forEach(s=>{
+      const el=document.createElement('div');
+      el.className='sc'+(s.id===G.stitch?' act':'');
+      const cvEl=document.createElement('canvas');
+      cvEl.width=cvEl.height=34;cvEl.className='sc-svg';
+      drawSVGStitch(cvEl.getContext('2d'),17,17,s.id,G.toolColors[s.id]||G.color,24,0);
+      const nm=document.createElement('div');nm.className='sc-nm';nm.textContent=s.name;
+      el.appendChild(cvEl);el.appendChild(nm);
+      el.addEventListener('click',()=>{
+        document.querySelectorAll('.sc').forEach(x=>x.classList.remove('act'));
+        el.classList.add('act');G.stitch=s.id;
+        setMode('stamp');
+        document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.classList.remove('act'));
+        document.querySelectorAll('.tbtn[data-shelf="annotation"]').forEach(b=>b.classList.add('act'));
+      });
+      list.appendChild(el);
+    });
+    return;
+  }
   const defs=STITCHES[type];
   const order=G.stitchOrder[type];
   const searchQ=(($('stitch-search')||{}).value||'').trim().toLowerCase();
@@ -3273,7 +3323,8 @@ function bindAll(){
   $('btn-theme').addEventListener('click',()=>{const lt=document.documentElement.getAttribute('data-theme')==='light';const ic=$('btn-theme').querySelector('.mi');if(lt){document.documentElement.removeAttribute('data-theme');G.bgColor='#202024';if(ic)ic.textContent='🌙';}else{document.documentElement.setAttribute('data-theme','light');G.bgColor='#ffffff';if(ic)ic.textContent='☀️';}if(bgCtx)drawBg();});
   
   // TOOLS
-  document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
+  document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.addEventListener('click',()=>{if(G.shelfType==='annotation'){G.shelfType=null;document.querySelectorAll('.tbtn[data-shelf]').forEach(x=>x.classList.remove('act'));renderShelf();}setMode(b.dataset.mode);}));
+  document.querySelectorAll('.tbtn[data-shelf]').forEach(b=>b.addEventListener('click',()=>{G.shelfType=b.dataset.shelf;document.querySelectorAll('.tbtn[data-mode]').forEach(x=>x.classList.remove('act'));document.querySelectorAll('.tbtn[data-shelf]').forEach(x=>x.classList.toggle('act',x===b));renderShelf();}));
   $('bsz').addEventListener('input',()=>{G.brushSz=parseInt($('bsz').value);$('bszv').textContent=G.brushSz+'px';});
   $('rsl').addEventListener('input',()=>{G.rot=parseInt($('rsl').value);$('rv').textContent=G.rot+'°';});
   $('rl').addEventListener('click',()=>{G.rot=(G.rot-45+360)%360;$('rsl').value=G.rot;$('rv').textContent=G.rot+'°';});
