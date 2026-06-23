@@ -1161,10 +1161,12 @@ body.ui-hidden #row-counter{display:none!important}
       <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">편집</div>
       <div><kbd>Ctrl+Z</kbd> 되돌리기</div><div><kbd>Ctrl+Y</kbd> 다시 실행</div>
       <div><kbd>Ctrl+A</kbd> 전체 선택</div><div><kbd>Ctrl+D</kbd> 선택 해제</div>
-      <div><kbd>Space</kbd> 이동(팬)</div><div><kbd>Shift</kbd> 직선 고정</div>
-      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">도형 편집 중</div>
-      <div><kbd>T</kbd> 도형 종류 변경</div><div><kbd>Enter</kbd> 확정</div>
-      <div><kbd>Esc</kbd> 취소</div><div></div>
+      <div><kbd>Ctrl+S</kbd> .cony 저장</div><div><kbd>Space</kbd> 이동(팬)</div>
+      <div><kbd>Shift</kbd> 직선 고정</div><div></div>
+      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">도형·자유변형 중</div>
+      <div><kbd>T</kbd> 도형 종류 변경</div><div><kbd>Enter</kbd> 확정/적용</div>
+      <div><kbd>Esc</kbd> 취소/삭제</div><div><kbd>Del</kbd> 변형 삭제</div>
+      <div><kbd>←→↑↓</kbd> 1px 이동</div><div><kbd>Shift+←→↑↓</kbd> 10px 이동</div>
     </div>
     <div class="mf"><button class="mb" onclick="closeM('m-keys')">닫기</button></div>
   </div>
@@ -3926,11 +3928,23 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
     if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'){e.preventDefault();e.shiftKey?redo():undo();}
     if((e.ctrlKey||e.metaKey)&&e.code==='KeyY'){e.preventDefault();redo();}
     if(G.isDrawing&&G.path&&G.path.length>=2&&(e.code==='ShiftLeft'||e.code==='ShiftRight'))enterSnap();
-    if(e.code==='Escape'){const qm=$('qmenu');if(qm&&qm.classList.contains('open')){qm.classList.remove('open');return;}}
+    if(e.code==='Escape'){const qm=$('qmenu');if(qm&&qm.classList.contains('open')){qm.classList.remove('open');return;}if(G.float){G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();showToast('변형 취소');return;}}
     if(G.editing){
       if(e.code==='Enter'){e.preventDefault();commitShape();}
       else if(e.code==='Escape')cancelShape();
       else if(e.code==='KeyT')cycleShapeType();
+    }
+    // 플로트(자유변형) 키보드 조작
+    if(G.float){
+      if(e.code==='Enter'){e.preventDefault();commitFloat();return;}
+      if(e.code==='Delete'||e.code==='Backspace'){e.preventDefault();G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();showToast('삭제됨');return;}
+      if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code)){
+        e.preventDefault();
+        const step=e.shiftKey?10:1;
+        const dx=e.code==='ArrowLeft'?-step:e.code==='ArrowRight'?step:0;
+        const dy=e.code==='ArrowUp'?-step:e.code==='ArrowDown'?step:0;
+        G.float.x+=dx;G.float.y+=dy;renderFloat();return;
+      }
     }
     // Procreate 스타일 단축키 (입력 필드 제외, 수정키 없을 때)
     if(!e.ctrlKey&&!e.metaKey&&!e.altKey&&!G.editing){
@@ -3961,6 +3975,7 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
     }
     // Ctrl/Cmd 단축키
     if(e.ctrlKey||e.metaKey){
+      if(e.code==='KeyS'){e.preventDefault();exportProject();}
       if(e.code==='KeyA'&&!e.shiftKey){
         e.preventDefault();
         setMode('select');G.selStart={x:0,y:0};G.selEnd={x:CW,y:CH};
