@@ -2258,6 +2258,20 @@ function renderShelf(){
       });
       list.appendChild(el);
     });
+    // 치수선 도구 버튼
+    const dimBtn=document.createElement('button');
+    dimBtn.className='tbtn'+(G.mode==='dimline'?' act':'');
+    dimBtn.style.cssText='width:100%;margin-top:8px;font-size:11px;padding:7px';
+    dimBtn.textContent='↔ 치수선 도구 (2점 클릭)';
+    dimBtn.addEventListener('click',()=>{
+      document.querySelectorAll('.sc').forEach(x=>x.classList.remove('act'));
+      setMode('dimline');
+      document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.classList.remove('act'));
+      document.querySelectorAll('.tbtn[data-shelf="annotation"]').forEach(b=>b.classList.add('act'));
+      dimBtn.classList.add('act');
+      showToast('치수선: 캔버스에 두 점을 차례로 클릭하세요');
+    });
+    list.appendChild(dimBtn);
     return;
   }
   const defs=STITCHES[type];
@@ -3259,6 +3273,7 @@ function showScreen(s){
 function setMode(m){
   if(G.editing)cancelShape();
   if(G.float)commitFloat();
+  if(G.mode==='dimline'&&m!=='dimline'){G._dimStart=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);}
   if(m==='pick'&&G.mode!=='pick')G.prevMode=G.mode;
   if(['stamp','draw','graph','text'].includes(m)){G.prevPaint=m;G.prevDraw=m;}
   else if(m==='eraser'||m==='smudge'||m==='liquify'||m==='gradient'){if(!G.prevDraw)G.prevDraw=G.prevPaint||'stamp';}
@@ -3944,6 +3959,33 @@ function selRect(){
   if(G.selMode==='lasso'){if(!G.selPath||G.selPath.length<3)return null;let a=1e9,b=1e9,c=-1e9,d=-1e9;G.selPath.forEach(p=>{a=Math.min(a,p.x);b=Math.min(b,p.y);c=Math.max(c,p.x);d=Math.max(d,p.y);});const w=c-a,h=d-b;return(w<2||h<2)?null:{x:a,y:b,w,h};}
   if(!G.selStart||!G.selEnd)return null;const x=Math.min(G.selStart.x,G.selEnd.x),y=Math.min(G.selStart.y,G.selEnd.y),w=Math.abs(G.selEnd.x-G.selStart.x),h=Math.abs(G.selEnd.y-G.selStart.y);return(w<2||h<2)?null:{x,y,w,h};}
 // 선택 모양 경로를 ctx에 그림(offset 만큼 평행이동). 사각형은 false 반환(마스크 불필요)
+/* ===== 치수선 도구 ===== */
+function drawDimLine(ctx,p1,p2){
+  if(!ctx)return;
+  const dx=p2.x-p1.x,dy=p2.y-p1.y,len=Math.hypot(dx,dy);
+  if(len<5)return;
+  const nx=dx/len,ny=dy/len,px=-ny,py=nx;
+  const col=G.color||'#333';
+  const gs=G.stampSz||48;
+  const lw=Math.max(1.5,gs*0.04),capH=gs*0.25,arrSz=gs*0.15;
+  ctx.save();
+  ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=lw;ctx.setLineDash([]);ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();
+  [[p1.x,p1.y],[p2.x,p2.y]].forEach(([ax,ay])=>{ctx.beginPath();ctx.moveTo(ax+px*capH,ay+py*capH);ctx.lineTo(ax-px*capH,ay-py*capH);ctx.stroke();});
+  const drawArrow=(tip,dir)=>{ctx.beginPath();ctx.moveTo(tip.x,tip.y);ctx.lineTo(tip.x-dir.x*arrSz+px*arrSz*.5,tip.y-dir.y*arrSz+py*arrSz*.5);ctx.lineTo(tip.x-dir.x*arrSz-px*arrSz*.5,tip.y-dir.y*arrSz-py*arrSz*.5);ctx.closePath();ctx.fill();};
+  drawArrow(p1,{x:-nx,y:-ny});drawArrow(p2,{x:nx,y:ny});
+  const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
+  const cnt=Math.round(len/gs);
+  const lbl=cnt>0?`${cnt}${Math.abs(dy)>Math.abs(dx)?'단':'코'}`:`${Math.round(len)}px`;
+  const fs=Math.max(12,gs*0.32);
+  ctx.font=`bold ${fs}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  const tw=ctx.measureText(lbl).width,pad=fs*0.35,ang=Math.atan2(dy,dx);
+  ctx.save();ctx.translate(mx,my);ctx.rotate(ang);
+  ctx.fillStyle='rgba(255,255,255,.92)';
+  ctx.beginPath();if(ctx.roundRect)ctx.roundRect(-tw/2-pad,-fs/2-pad/2,tw+pad*2,fs+pad,[fs*.3]);else ctx.rect(-tw/2-pad,-fs/2-pad/2,tw+pad*2,fs+pad);ctx.fill();
+  ctx.fillStyle=col;ctx.fillText(lbl,0,0);
+  ctx.restore();ctx.restore();
+}
 /* ===== 마칭 앤츠 선택 애니메이션 ===== */
 let _marchOff=0,_marchRaf=null;
 function drawSelOutline(){
@@ -4845,6 +4887,16 @@ function onDown(e){
     }
   }
   else if(G.mode==='gradient'){G.gradStart=pos;}
+  else if(G.mode==='dimline'){
+    if(!G._dimStart){
+      G._dimStart=pos;
+      if(prevCtx){prevCtx.clearRect(0,0,CW,CH);prevCtx.save();prevCtx.fillStyle=G.color||'#a855f7';prevCtx.beginPath();prevCtx.arc(pos.x,pos.y,5/G.zoom,0,7);prevCtx.fill();prevCtx.restore();}
+    }else{
+      drawDimLine(mainCtx,G._dimStart,pos);
+      G._dimStart=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();saveH();
+    }
+    G.isDrawing=false;return;
+  }
   else if(G.mode==='selection'||G.mode==='select'){
     if(G.float){
       const f=G.float,h=floatRotHandle(f),hitR=Math.max(14,18/G.zoom);
@@ -4867,6 +4919,12 @@ function onMove(e){
   if(G.multi)return;
   if(G.editing){if(G.dragH){const ep=G.dragH==='rot'?getPos(e):snapToGrid(getPos(e));dragHandle(G.shape,G.dragH,ep);renderEdit();}return;}
   if(G.isPanning){const raw=getRaw(e);G.pan={x:raw.x-G.panStart.x,y:raw.y-G.panStart.y};applyTransform();return;}
+  // 치수선 미리보기 (G.isDrawing=false 상태에서도 작동)
+  if(G.mode==='dimline'&&G._dimStart){
+    const pos=getPos(e);
+    if(prevCtx){prevCtx.clearRect(0,0,CW,CH);drawDimLine(prevCtx,G._dimStart,pos);prevCtx.save();prevCtx.fillStyle=G.color||'#a855f7';prevCtx.beginPath();prevCtx.arc(G._dimStart.x,G._dimStart.y,5/G.zoom,0,7);prevCtx.fill();prevCtx.restore();}
+    return;
+  }
   // 데스크탑: 브러시 커서 프리뷰 (비그리기 상태)
   if(!G.isDrawing&&!e.touches){
     const raw=getRaw(e);
