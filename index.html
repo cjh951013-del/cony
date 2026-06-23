@@ -621,6 +621,9 @@ body.ui-hidden #row-counter{display:none!important}
     <button class="mrow" id="btn-img"><span class="mi">🖼</span><span>이미지 가져오기 (따라 그리기)</span></button>
     <button class="mrow" id="btn-refov"><span class="mi">📌</span><span>레퍼런스 오버레이 (투명)</span></button>
     <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
+    <button class="mrow" id="btn-save-cony"><span class="mi">💾</span><span>도안 파일(.cony) 저장</span></button>
+    <button class="mrow" id="btn-load-cony"><span class="mi">📂</span><span>도안 파일(.cony) 불러오기</span></button>
+    <input type="file" id="cony-input" accept=".cony,application/json" style="display:none">
     <button class="mrow" id="btn-col-stat"><span class="mi">📊</span><span>색상 사용 통계</span></button>
     <button class="mrow" id="btn-recolor"><span class="mi">🎨</span><span>색상 교체 (Recolor)</span></button>
     <button class="mrow" id="btn-tile-prev"><span class="mi">⊞</span><span>패턴 반복 미리보기</span></button>
@@ -3225,6 +3228,35 @@ FO: Sl st, fasten off, weave in ends.`;
 }
 
 
+/* ===================== PROJECT FILE (.cony) ===================== */
+function exportProject(){
+  if(!G.cur){showToast('열린 도안이 없습니다');return;}
+  const data={cony_version:1,name:G.cur.name,type:G.cur.type||'crochet',frame:G.cur.frame||'none',date:G.cur.date||new Date().toLocaleDateString('ko-KR'),toolColors:G.toolColors||{},usedSymbols:G.usedSymbols||[],layers:serializeLayers()};
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const fname=(G.cur.name||'cony_pattern').replace(/[\s\/\\]+/g,'_')+'.cony';
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;a.click();
+  showToast('도안 파일 저장: '+fname);
+}
+function importProject(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.cony_version!==1||!Array.isArray(data.layers)){showToast('올바른 .cony 파일이 아닙니다');return;}
+      const id='p_'+Date.now();
+      const proj={id,name:data.name||'가져온 도안',type:data.type||'crochet',frame:data.frame||'none',date:data.date||new Date().toLocaleDateString('ko-KR'),thumb:null};
+      try{localStorage.setItem('cony_layers_'+id,JSON.stringify(data.layers));}catch(err){}
+      G.projects.unshift(proj);persistProjects();
+      if(data.toolColors)Object.assign(G.toolColors,data.toolColors);
+      if(data.usedSymbols)G.usedSymbols=data.usedSymbols;
+      openP(id);
+      showToast('도안 불러오기 완료 — '+proj.name);
+    }catch(err){showToast('파일 오류: '+err.message);}
+  };
+  reader.readAsText(file);
+}
+
 /* ===================== EXPORT ===================== */
 function doExport(fmt){
   if(fmt==='pdf'){exportPrintable();return;}
@@ -3485,6 +3517,9 @@ function bindAll(){
   $('btn-img').addEventListener('click',()=>{$('morepop').classList.remove('open');$('img-input').click();});
   $('img-input').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];importImageFile(f);e.target.value='';});
   $('btn-exp2').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-exp');});
+  $('btn-save-cony').addEventListener('click',()=>{$('morepop').classList.remove('open');exportProject();});
+  $('btn-load-cony').addEventListener('click',()=>{$('morepop').classList.remove('open');$('cony-input').click();});
+  $('cony-input').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];importProject(f);e.target.value='';});
   document.addEventListener('click',e=>{
     const cp=$('colpop');if(cp&&cp.classList.contains('open')&&!cp.contains(e.target)&&e.target.id!=='topcol')cp.classList.remove('open');
     const mp=$('morepop');if(mp&&mp.classList.contains('open')&&!mp.contains(e.target)&&!e.target.closest('#btn-more'))mp.classList.remove('open');
