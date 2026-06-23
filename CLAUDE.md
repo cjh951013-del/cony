@@ -16,14 +16,7 @@ npx serve . -l 3940   # http://localhost:3940
 - **상세 아키텍처**: `@docs/ARCH.md`
 
 ## 현재 상태
-Procreate 감성 기능 완료 (2026-06-23):
-레이어 시스템(P1~P5) + QuickMenu 커스터마이즈 + 레이어마스크 + 아이드로퍼 루페 + 마칭앤츠 선택 + Free Transform 핸들 + 스와이프-to-reveal + Drawing Assist 배지 + Undo 플래시 등.  
-**전체 이력**: `@docs/HISTORY.md`
-
-## 다음 우선순위
-1. Toss 실키 교체 + 서버사이드 confirm 엔드포인트 구축 (현재 프론트만 연결)
-2. `npm install && npx cap add android && npx cap add ios` → 실기기 테스트
-3. 와디즈 펀딩 페이지 작성 + 스토어 스크린샷 촬영
+Procreate 감성 기능 완료 (2026-06-23). 이력: `docs/HISTORY.md` | 남은 작업: `docs/ROADMAP.md`
 
 ## 제약
 - 에러 0 (전 플랫폼 출시). 변경은 작게, 매 커밋마다 `node -e "new Function(js)"` 검증.
