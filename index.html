@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>CONY · 코니</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#13131f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Crochet Flow">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -3230,7 +3237,14 @@ function doExport(fmt){
     ctx.globalAlpha=.45;ctx.fillStyle='rgba(120,120,200,.6)';ctx.font='bold 26px sans-serif';
     ctx.fillText('CONY · 멈춰도 돼, 포기만 안 하면',20,CH-28);ctx.globalAlpha=1;
   }
-  cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fname+'.'+fmt;a.click();},(fmt==='jpg'?'image/jpeg':'image/png'),.95);
+  const mime=fmt==='jpg'?'image/jpeg':'image/png';
+  cv.toBlob(async b=>{
+    const file=new File([b],fname+'.'+fmt,{type:mime});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file],title:'Crochet Flow 도안'});return;}catch(e){if(e.name==='AbortError')return;}
+    }
+    const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fname+'.'+fmt;a.click();
+  },mime,.95);
 }
 // 인쇄용 도안 PDF: 브라우저 인쇄 파이프라인(오프라인·모바일 OK). 차트+범례+제목.
 function exportPrintable(){
