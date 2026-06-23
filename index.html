@@ -2344,6 +2344,7 @@ function renderShelf(){
       document.querySelectorAll('.sc').forEach(x=>x.classList.remove('act'));
       el.classList.add('act');
       G.stitch=s.id;
+      if(G.toolColors[s.id])setColor(G.toolColors[s.id]);
       G.mode='stamp';
       setMode('stamp');
     });
@@ -2370,7 +2371,7 @@ function renderShelf(){
     el.appendChild(cvEl);el.appendChild(nm);
     el.addEventListener('click',()=>{
       document.querySelectorAll('.sc').forEach(x=>x.classList.remove('act'));
-      el.classList.add('act');G.stitch=s.id;G.mode='stamp';setMode('stamp');
+      el.classList.add('act');G.stitch=s.id;if(G.toolColors[s.id])setColor(G.toolColors[s.id]);G.mode='stamp';setMode('stamp');
     });
     // 길게 누르기 = 삭제 확인
     let delT=null;
@@ -2481,7 +2482,7 @@ function renderToolColors(){
     const sw=document.createElement('input');
     sw.type='color';sw.className='tc-swatch';
     sw.value=G.toolColors[s.id]||G.color;
-    sw.addEventListener('input',()=>{G.toolColors[s.id]=sw.value;renderShelf();});
+    sw.addEventListener('input',()=>{G.toolColors[s.id]=sw.value;if(G.stitch===s.id)setColor(sw.value);renderShelf();});
     row.appendChild(nm);row.appendChild(sw);
     list.appendChild(row);
   });
