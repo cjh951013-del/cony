@@ -2300,6 +2300,8 @@ function persistProjects(){
 function loadPersisted(){
   try{const s=localStorage.getItem('cony_projects_v1');if(s){const arr=JSON.parse(s);if(Array.isArray(arr)&&arr.length)G.projects=arr;}}catch(e){}
   try{const p=localStorage.getItem('cony_plan');if(p==='pro'||p==='pro2')G.plan=p;}catch(e){}
+  try{const cp=localStorage.getItem('cony_custom_palette');if(cp){const arr=JSON.parse(cp);if(Array.isArray(arr))G.customPalette=arr;}}catch(e){}
+  try{const ch=localStorage.getItem('cony_color_hist');if(ch){const arr=JSON.parse(ch);if(Array.isArray(arr))G.colorHist=arr;}}catch(e){}
 }
 function restoreCanvas(){
   setActiveCtx();
@@ -2691,6 +2693,7 @@ function extractPaletteFromImage(file){
       if(!unique.some(u=>{const[ur,ug,ub]=hex2rgb(u);return Math.abs(cr-ur)+Math.abs(cg-ug)+Math.abs(cb-ub)<48;}))unique.push(c);
     });
     G.customPalette=unique.slice(0,12);
+    try{localStorage.setItem('cony_custom_palette',JSON.stringify(G.customPalette));}catch(e){}
     renderPalettes();showToast('팔레트 '+unique.length+'색 추출 완료');
   };img.src=url;
 }
@@ -2998,6 +3001,7 @@ function pushColorHist(c){
   if(!c)return;if(!G.colorHist)G.colorHist=[];
   G.colorHist=G.colorHist.filter(x=>x!==c);G.colorHist.unshift(c);
   if(G.colorHist.length>10)G.colorHist.pop();
+  try{localStorage.setItem('cony_color_hist',JSON.stringify(G.colorHist));}catch(e){}
   renderColHistBar();
 }
 /* ===== 단/코 카운터 위젯 ===== */
