@@ -1161,9 +1161,10 @@ body.ui-hidden #row-counter{display:none!important}
       <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">편집</div>
       <div><kbd>Ctrl+Z</kbd> 되돌리기</div><div><kbd>Ctrl+Y</kbd> 다시 실행</div>
       <div><kbd>Ctrl+A</kbd> 전체 선택</div><div><kbd>Ctrl+D</kbd> 선택 해제</div>
-      <div><kbd>Ctrl+S</kbd> .cony 저장</div><div><kbd>Ctrl++</kbd> 줌 인</div>
-      <div><kbd>Ctrl+-</kbd> 줌 아웃</div><div><kbd>Ctrl+0</kbd> 화면 맞춤</div>
-      <div><kbd>Space</kbd> 이동(팬)</div><div><kbd>Shift</kbd> 직선 고정</div>
+      <div><kbd>Ctrl+S</kbd> .cony 저장</div><div><kbd>Ctrl+E</kbd> 내보내기</div>
+      <div><kbd>Ctrl++</kbd> 줌 인</div><div><kbd>Ctrl+-</kbd> 줌 아웃</div>
+      <div><kbd>Ctrl+0</kbd> 화면 맞춤</div><div><kbd>Space</kbd> 이동(팬)</div>
+      <div><kbd>Shift</kbd> 직선 고정</div><div></div>
       <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">레이어</div>
       <div><kbd>Alt+N</kbd> 새 레이어</div><div><kbd>Alt+]</kbd> 레이어 위로</div>
       <div><kbd>Alt+[</kbd> 레이어 아래로</div><div></div>
@@ -4004,6 +4005,7 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
       if(e.code==='Equal'||e.code==='NumpadAdd'){e.preventDefault();G.zoom=Math.min(8,G.zoom*1.25);applyTransform();showZoomHud();}
       if(e.code==='Minus'||e.code==='NumpadSubtract'){e.preventDefault();G.zoom=Math.max(0.08,G.zoom/1.25);applyTransform();showZoomHud();}
       if(e.code==='Digit0'||e.code==='Numpad0'){e.preventDefault();fitToScreen();showToast('화면 맞춤  Ctrl+0');}
+      if(e.code==='KeyE'){e.preventDefault();openM('m-exp');}
       if(e.code==='KeyS'){e.preventDefault();exportProject();}
       if(e.code==='KeyA'&&!e.shiftKey){
         e.preventDefault();
