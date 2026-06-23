@@ -3625,8 +3625,29 @@ function bindAll(){
     document.querySelectorAll('.ntb').forEach(x=>x.classList.remove('act'));b.classList.add('act');
     G.narrType=b.dataset.nt;$('narr-out').textContent=genNarrative(G.narrType);
   }));
-  $('btn-narr-copy').addEventListener('click',()=>{navigator.clipboard?.writeText($('narr-out').textContent);alert('복사됨!');});
-  $('btn-narr-pdf').addEventListener('click',()=>{if(!isPro2()){openM('m-pro');return;}alert('PDF 생성: jsPDF 연동 예정');});
+  $('btn-narr-copy').addEventListener('click',()=>{navigator.clipboard?.writeText($('narr-out').textContent).then(()=>showToast('서술도안 복사됨')).catch(()=>showToast('복사 실패 — 직접 선택 후 복사해주세요'));});
+  $('btn-narr-pdf').addEventListener('click',()=>{
+    if(!isPro2()){openM('m-pro');return;}
+    const text=$('narr-out')?.textContent||'';
+    const title=G.cur?.name||'도안';
+    const pw=window.open('','_blank','width=700,height=900');
+    if(!pw){showToast('팝업 차단 해제 후 시도해주세요');return;}
+    pw.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<title>${title} — 서술도안</title>
+<style>
+body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;margin:40px;color:#111;line-height:2}
+h1{font-size:16px;border-bottom:2px solid #7c3aed;padding-bottom:6px;margin-bottom:16px;color:#7c3aed}
+pre{white-space:pre-wrap;font-size:12px;font-family:inherit}
+footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;padding-top:8px}
+@media print{@page{margin:20mm}body{margin:0}}
+</style></head><body>
+<h1>📝 ${title} — 서술도안</h1>
+<pre>${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+<footer>CONY · Crochet Flow · ${new Date().toLocaleDateString('ko-KR')}</footer>
+<script>window.onload=()=>{window.print();}<\/script>
+</body></html>`);
+    pw.document.close();
+  });
   
   
   // LAYERS
@@ -5264,6 +5285,7 @@ let shTm;
 function scheduleSH(){clearTimeout(shTm);shTm=setTimeout(saveH,800);}
 
 /* ===================== INIT ===================== */
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
 (function init(){
   loadPersisted();
   // 토스페이먼츠 결제 완료 후 리다이렉트 처리
