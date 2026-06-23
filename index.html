@@ -3262,9 +3262,15 @@ function doExport(fmt){
   if(fmt==='pdf'){exportPrintable();return;}
   const cv=document.createElement('canvas');cv.width=CW;cv.height=CH;
   const ctx=cv.getContext('2d');
-  ctx.drawImage($('bg-c'),0,0);ctx.drawImage($('main-c'),0,0);
+  if(fmt==='jpg'){
+    // JPG: 흰 배경 + 격자 + 레이어 합성
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,CW,CH);
+    ctx.drawImage($('bg-c'),0,0);ctx.drawImage($('main-c'),0,0);
+  }else{
+    // PNG: 투명 배경 — 레이어 합성만 (격자·배경 제외)
+    ctx.drawImage($('main-c'),0,0);
+  }
   const fname=$('exp-nm').value||'cony_pattern';
-  if(fmt==='jpg'){ctx.globalCompositeOperation='destination-over';ctx.fillStyle='#fff';ctx.fillRect(0,0,CW,CH);}
   if(!isPro()){
     ctx.globalAlpha=.45;ctx.fillStyle='rgba(120,120,200,.6)';ctx.font='bold 26px sans-serif';
     ctx.fillText('CONY · 멈춰도 돼, 포기만 안 하면',20,CH-28);ctx.globalAlpha=1;
