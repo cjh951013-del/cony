@@ -52,3 +52,16 @@
 - .cony 프로젝트 파일 내보내기/불러오기 (레이어 PNG+메타 JSON)
 - 에디터 헤더 중앙 프로젝트 이름 편집 — blur/Enter 저장, hover 강조
 - fix: PNG 내보내기 투명 배경 (기존엔 bg-c 포함돼 불투명)
+
+## 2026-06-23 S6
+- Netlify Functions confirm-payment.js — Toss 서버사이드 결제 확인 (secretKey 서버만)
+- netlify.toml + .env.example + successUrl 환경 자동 감지 분기
+- docs/wadiz-copy.md — 와디즈 펀딩 전문 카피 (제목·스토리·리워드·FAQ)
+- CLAUDE.md 25줄 다이어트 + docs/ 서브MD 구조 재편 (HISTORY/ROADMAP/sessions/)
+- 키보드 단축키: B=브러시 E=지우개 S=스머지 P=색상추출 G=그라디언트 F=화면맞춤
+- 크기 단축키: [/] = 감소/증가 (모드별 자동 적용)
+- Ctrl+A/D/S/E/+/-/0, Alt+N/[/] 레이어 조작
+- ? 키 → 단축키 도움말 모달 (#m-keys, `<kbd>` 스타일)
+- 플로트 키보드: 화살표=1px 이동, Shift+화살표=10px, Enter=적용, Esc=취소, Del=삭제
+- fix: alert() 3곳 → showToast() 교체
+- fix: 색상 히스토리·커스텀 팔레트 localStorage 영속화 (앱 재시작 유지)
