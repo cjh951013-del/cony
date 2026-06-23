@@ -47,8 +47,15 @@
 - 다중 프레임 자유배치 canvasFrames (선택영역 → 네임드 프레임, bgCtx 보라점선+레이블, Pro)
 - 격자 스냅 stampAt (기호 스탬프를 40px 격자 칸 중앙에 자동 정렬, 토글 가능)
 
-## 남은 작업 (우선순위)
-1. 요금제 실결제 연동 (나이스페이먼츠·토스 SDK)
-2. Capacitor 패키징 → Android/iOS + 와디즈 펀딩 준비
-3. 색상 모델 정리 (#14 — 동일 색상 레이어 병합 최적화)
+## 2026-06-23 세션 4 추가 기능
+- 주석 탭 SVG 아이콘 (연필+측면선 경로, 5개 탭 모두 pc-ic 스타일 통일)
+- 토스페이먼츠 v1 실결제 연동 (SDK 로드·btn-pay→requestPayment·pay_ok URL 파라미터 처리)
+- plan localStorage 영속화 (loadPersisted에서 cony_plan 복원, co-done에서 저장)
+- Capacitor 패키징 스캐폴드 (package.json·capacitor.config.json·.gitignore)
+- 색상 모델 정리 (#14): 기호 선택 시 toolColor → G.color 동기화 (topcol 즉시 반영)
+
+## 남은 작업
+- Toss 실키 교체 + 서버사이드 `/payments/confirm` 엔드포인트 구축
+- `npm install && npx cap add android/ios` → 실기기 빌드 테스트
+- 와디즈 펀딩 페이지 작성 + 스토어 스크린샷
 - ⚠️ 단수표 자동(#16) 불가 — 래스터 비트맵이라 행별 코수 역산 불가

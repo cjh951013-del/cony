@@ -21,9 +21,9 @@ Procreate 감성 기능 완료 (2026-06-23):
 **전체 이력**: `@docs/HISTORY.md`
 
 ## 다음 우선순위
-1. 요금제 실결제 연동 (나이스페이먼츠/토스 SDK)
-2. Capacitor 패키징 → Android/iOS + 와디즈 펀딩
-3. 색상 모델 정리 (#14)
+1. Toss 실키 교체 + 서버사이드 confirm 엔드포인트 구축 (현재 프론트만 연결)
+2. `npm install && npx cap add android && npx cap add ios` → 실기기 테스트
+3. 와디즈 펀딩 페이지 작성 + 스토어 스크린샷 촬영
 
 ## 제약
 - 에러 0 (전 플랫폼 출시). 변경은 작게, 매 커밋마다 `node -e "new Function(js)"` 검증.
