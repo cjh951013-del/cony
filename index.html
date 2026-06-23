@@ -778,6 +778,7 @@ body.ui-hidden #row-counter{display:none!important}
           <button class="selb" id="sel-grow">⊕ 확장</button>
           <button class="selb" id="sel-shrink">⊖ 축소</button>
           <button class="selb" id="sel-tile">⊞ 패턴 반복</button>
+          <button class="selb" id="sel-frame" title="선택 영역을 레이아웃 프레임으로 저장 (Pro)">□ 프레임↑</button>
         </div>
       </div>
       <div id="shape-bar">
@@ -899,6 +900,7 @@ body.ui-hidden #row-counter{display:none!important}
           <div class="sw-wrap" style="margin-bottom:5px">
             <div class="sw" id="sw-rowctr"></div><span>단 계산기 (오른쪽 하단)</span>
           </div>
+          <button class="ib" id="btn-clr-frames" style="font-size:10px;padding:3px 7px;margin-top:3px" title="자유배치 프레임 모두 삭제">□ 프레임 초기화</button>
           <div class="sw-wrap" style="margin-bottom:5px">
             <div class="sw" id="sw-radial"></div><span>방사 정렬 (앵커 향해 회전)</span>
           </div>
@@ -1417,6 +1419,7 @@ let G={
   stitchVisible:{crochet:new Array(STITCHES.crochet.length).fill(true),knitting:new Array(STITCHES.knitting.length).fill(true),annotation:new Array(STITCHES.annotation.length).fill(true)},
   userYarns:[],
   userSymbols:[],
+  canvasFrames:[],
   longPressTimer:null,
   dragSrcIdx:null,
   narrType:'ko',
@@ -1836,6 +1839,7 @@ function drawBg(){
   if(G.perspGuide) drawPerspGrid(ctx);
   if(G.numbersOn) drawNumbers(ctx);
   drawFrame(ctx);
+  drawCanvasFrames(ctx);
   drawAnchor(ctx);
   if(G.symmetry)drawSymAxes(ctx);
 }
@@ -1875,6 +1879,22 @@ function drawPerspGrid(ctx){
   // VP 마커
   ctx.fillStyle='rgba(255,100,70,0.75)';ctx.beginPath();ctx.arc(vx,vy,4,0,Math.PI*2);ctx.fill();
   ctx.restore();
+}
+// 자유배치 프레임 레이아웃
+function drawCanvasFrames(ctx){
+  if(!G.canvasFrames||!G.canvasFrames.length)return;
+  G.canvasFrames.forEach(f=>{
+    ctx.save();
+    ctx.strokeStyle='rgba(168,85,247,.5)';ctx.lineWidth=1.5;ctx.setLineDash([8,5]);
+    ctx.strokeRect(f.x,f.y,f.w,f.h);
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(168,85,247,.07)';ctx.fillRect(f.x,f.y,f.w,f.h);
+    const fs=13,pad=6;ctx.font=`bold ${fs}px sans-serif`;
+    const tw=ctx.measureText(f.name).width;
+    ctx.fillStyle='rgba(20,0,40,.82)';if(ctx.roundRect)ctx.roundRect(f.x,f.y,tw+pad*2,fs+pad,[3]);else ctx.rect(f.x,f.y,tw+pad*2,fs+pad);ctx.fill();
+    ctx.fillStyle='#c084fc';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(f.name,f.x+pad,f.y+pad/2);
+    ctx.restore();
+  });
 }
 // 코·단 번호: 좌하단=1, 코(열)는 왼→오른쪽, 단(행)은 아래→위로 증가
 function drawNumbers(ctx){
@@ -3364,6 +3384,7 @@ function bindAll(){
   $('sw-persp').addEventListener('click',()=>{G.perspGuide=!G.perspGuide;$('sw-persp').classList.toggle('on',G.perspGuide);drawBg();renderDaBadge();if(G.perspGuide)showToast('원근 격자 켜짐 — 소실점: 캔버스 중앙 상단');});
   $('sw-nums').addEventListener('click',()=>{G.numbersOn=!G.numbersOn;$('sw-nums').classList.toggle('on',G.numbersOn);drawBg();});
   $('sw-rowctr').addEventListener('click',()=>{toggleRowCtr();$('sw-rowctr').classList.toggle('on',$('row-ctr')&&!$('row-ctr').classList.contains('hide'));});
+  $('btn-clr-frames').addEventListener('click',clearAllFrames);
   $('sw-radial').addEventListener('click',()=>{G.radial=!G.radial;$('sw-radial').classList.toggle('on',G.radial);});
   $('ring-n').addEventListener('input',()=>{G.radialN=Math.max(2,Math.min(120,parseInt($('ring-n').value)||12));});
   $('ring-r').addEventListener('input',()=>{G.radialR=Math.max(20,Math.min(580,parseInt($('ring-r').value)||200));});
@@ -3602,6 +3623,7 @@ function bindAll(){
   $('sel-fl').addEventListener('click',fillSelection);
   $('sel-pat').addEventListener('click',fillWithPattern);
   $('sel-tile').addEventListener('click',repeatTilePattern);
+  $('sel-frame').addEventListener('click',addFrame);
   $('sel-inv').addEventListener('click',invertSelection);
   $('sel-grow').addEventListener('click',()=>growShrinkSel(8));
   $('sel-shrink').addEventListener('click',()=>growShrinkSel(-8));
@@ -4073,6 +4095,23 @@ function fillWithPattern(){
   composite();saveH();
   if(r){$('sel-tb').style.display='none';prevCtx.clearRect(0,0,CW,CH);}
   showToast('기호 채우기 완료');
+}
+function addFrame(){
+  if(!isPro()){openM('m-pro');return;}
+  const r=selRect();if(!r||r.w<20||r.h<20){showToast('먼저 프레임 영역을 선택하세요');return;}
+  if(!G.canvasFrames)G.canvasFrames=[];
+  const dflt='프레임 '+(G.canvasFrames.length+1);
+  const name=prompt('프레임 이름',dflt);
+  if(!name)return;
+  G.canvasFrames.push({id:Date.now(),name:name.trim()||dflt,x:r.x,y:r.y,w:r.w,h:r.h});
+  G.selStart=G.selEnd=null;G.selPath=null;stopMarchAnts();
+  $('sel-tb').style.display='none';prevCtx.clearRect(0,0,CW,CH);
+  drawBg();showToast(`'${name}' 프레임 추가 (${G.canvasFrames.length}개)`);
+}
+function clearAllFrames(){
+  if(!G.canvasFrames||!G.canvasFrames.length)return;
+  if(!confirm(`${G.canvasFrames.length}개 프레임을 모두 삭제할까요?`))return;
+  G.canvasFrames=[];drawBg();showToast('프레임 초기화');
 }
 function repeatTilePattern(){
   const r=selRect();
