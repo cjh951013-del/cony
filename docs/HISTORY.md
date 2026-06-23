@@ -11,3 +11,4 @@
 | 2026-06-23 S4 | SVG아이콘·Toss결제·plan영속화·Capacitor·색상동기화 |
 | 2026-06-23 S5 | PWA·Web Share·.cony 파일·서술도안PDF·헤더이름편집·PNG투명수정 |
 | 2026-06-23 S6 | Netlify confirm·와디즈카피·키보드단축키(B/E/S/P/G/F/[]/Ctrl계열/Alt레이어)·플로트화살표·색상영속화 |
+| 2026-06-23 S7 | 기호별 회전 고정 (toolRots·rotLocked 잠금버튼·프리셋 45/90/135/-90°) |

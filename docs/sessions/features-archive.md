@@ -53,6 +53,13 @@
 - 에디터 헤더 중앙 프로젝트 이름 편집 — blur/Enter 저장, hover 강조
 - fix: PNG 내보내기 투명 배경 (기존엔 bg-c 포함돼 불투명)
 
+## 2026-06-23 S7
+- 기호별 회전 고정 (G.toolRots[stitch_id]): 기호 전환 시 마지막 각도 자동 복원
+- 회전 잠금버튼 (G.rotLocked + 🔓/🔒 토글): ON이면 기호 바꿔도 현재 각도 유지
+- 회전 프리셋 버튼 4개 (45°/90°/135°/-90°) 원클릭 설정
+- normRot/applyRot/setRot 전역 함수 분리 (renderShelf 클로저 스코프 문제 해결)
+- .cony 내보내기/불러오기에 toolRots 포함 (세션 재개 후 복원)
+
 ## 2026-06-23 S6
 - Netlify Functions confirm-payment.js — Toss 서버사이드 결제 확인 (secretKey 서버만)
 - netlify.toml + .env.example + successUrl 환경 자동 감지 분기

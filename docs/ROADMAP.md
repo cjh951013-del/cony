@@ -10,6 +10,7 @@
 - 와디즈 펀딩 등록: `docs/wadiz-copy.md` 카피 복붙 → 스크린샷 5장 첨부
 
 ## 완료
+- ✅ 기호별 회전 고정 (toolRots + rotLocked 잠금버튼 + 프리셋 45/90/135/-90°)
 - ✅ Netlify Functions confirm-payment.js (서버사이드 Toss 확인)
 - ✅ netlify.toml 설정
 - ✅ successUrl Netlify 자동 감지 분기
