@@ -880,7 +880,14 @@ body.ui-hidden #row-counter{display:none!important}
           <div style="display:flex;gap:3px;margin-bottom:4px">
             <button class="ib" id="rl" style="flex:1;font-size:10px">↺-45°</button>
             <button class="ib" id="rr2" style="flex:1;font-size:10px">↻+45°</button>
-            <button class="ib" id="r0" style="flex:1;font-size:10px;color:var(--danger)">0°</button>
+            <button class="ib" id="r0" style="flex:1;font-size:10px">0°</button>
+            <button class="ib" id="rot-lock" style="flex:1;font-size:11px" title="회전 고정 — ON이면 기호 바꿔도 각도 유지">🔓</button>
+          </div>
+          <div style="display:flex;gap:3px;margin-bottom:4px">
+            <button class="ib rot-pre" data-deg="45" style="flex:1;font-size:10px">45°</button>
+            <button class="ib rot-pre" data-deg="90" style="flex:1;font-size:10px">90°</button>
+            <button class="ib rot-pre" data-deg="135" style="flex:1;font-size:10px">135°</button>
+            <button class="ib rot-pre" data-deg="-90" style="flex:1;font-size:10px">-90°</button>
           </div>
           <div class="rr"><input type="range" id="rsl" min="-180" max="180" value="0"><span class="rv" id="rv">0°</span></div>
           <div class="sw-wrap" style="margin-top:5px">
@@ -1423,6 +1430,8 @@ let G={
   color:'#ffffff',
   colorHist:[],
   toolColors:{},
+  toolRots:{},    // 기호별 회전 각도 기억
+  rotLocked:false,// true = 기호 바꿔도 회전 유지
   bgColor:'#202024',
   brushSz:3,
   brushSoftness:0,
@@ -1533,6 +1542,9 @@ function resetLayers(){ // 새 프로젝트: 단일 빈 레이어로 초기화
 
 /* ===================== UTILS ===================== */
 const $=id=>document.getElementById(id);
+function normRot(v){return v>180?v-360:v<-180?v+360:v;}
+function applyRot(v){G.rot=v;const s=$('rsl');if(s)s.value=v;const r=$('rv');if(r)r.textContent=v+'°';}
+function setRot(v){applyRot(v);if(G.stitch)G.toolRots[G.stitch]=v;}
 /* ===== 프로크리에이트식 라인 아이콘 (이모지 대체) ===== */
 const ICONS={
   wrench:'<path d="M14.8 6.2a3.7 3.7 0 0 0-4.9 4.7l-5 5a1.7 1.7 0 1 0 2.4 2.4l5-5a3.7 3.7 0 0 0 4.7-4.9l-2.2 2.2-2.1-.4-.4-2.1z"/>',
@@ -2336,6 +2348,7 @@ function renderShelf(){
       el.addEventListener('click',()=>{
         document.querySelectorAll('.sc').forEach(x=>x.classList.remove('act'));
         el.classList.add('act');G.stitch=s.id;
+        if(!G.rotLocked&&G.toolRots[s.id]!==undefined)applyRot(G.toolRots[s.id]);
         setMode('stamp');
         document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.classList.remove('act'));
         document.querySelectorAll('.tbtn[data-shelf="annotation"]').forEach(b=>b.classList.add('act'));
@@ -2387,6 +2400,7 @@ function renderShelf(){
       el.classList.add('act');
       G.stitch=s.id;
       if(G.toolColors[s.id])setColor(G.toolColors[s.id]);
+      if(!G.rotLocked&&G.toolRots[s.id]!==undefined)applyRot(G.toolRots[s.id]);
       G.mode='stamp';
       setMode('stamp');
     });
@@ -2413,7 +2427,7 @@ function renderShelf(){
     el.appendChild(cvEl);el.appendChild(nm);
     el.addEventListener('click',()=>{
       document.querySelectorAll('.sc').forEach(x=>x.classList.remove('act'));
-      el.classList.add('act');G.stitch=s.id;if(G.toolColors[s.id])setColor(G.toolColors[s.id]);G.mode='stamp';setMode('stamp');
+      el.classList.add('act');G.stitch=s.id;if(G.toolColors[s.id])setColor(G.toolColors[s.id]);if(!G.rotLocked&&G.toolRots[s.id]!==undefined)applyRot(G.toolRots[s.id]);G.mode='stamp';setMode('stamp');
     });
     // 길게 누르기 = 삭제 확인
     let delT=null;
@@ -3265,7 +3279,7 @@ FO: Sl st, fasten off, weave in ends.`;
 /* ===================== PROJECT FILE (.cony) ===================== */
 function exportProject(){
   if(!G.cur){showToast('열린 도안이 없습니다');return;}
-  const data={cony_version:1,name:G.cur.name,type:G.cur.type||'crochet',frame:G.cur.frame||'none',date:G.cur.date||new Date().toLocaleDateString('ko-KR'),toolColors:G.toolColors||{},usedSymbols:G.usedSymbols||[],layers:serializeLayers()};
+  const data={cony_version:1,name:G.cur.name,type:G.cur.type||'crochet',frame:G.cur.frame||'none',date:G.cur.date||new Date().toLocaleDateString('ko-KR'),toolColors:G.toolColors||{},toolRots:G.toolRots||{},usedSymbols:G.usedSymbols||[],layers:serializeLayers()};
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
   const fname=(G.cur.name||'cony_pattern').replace(/[\s\/\\]+/g,'_')+'.cony';
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;a.click();
@@ -3283,6 +3297,7 @@ function importProject(file){
       try{localStorage.setItem('cony_layers_'+id,JSON.stringify(data.layers));}catch(err){}
       G.projects.unshift(proj);persistProjects();
       if(data.toolColors)Object.assign(G.toolColors,data.toolColors);
+      if(data.toolRots)Object.assign(G.toolRots,data.toolRots);
       if(data.usedSymbols)G.usedSymbols=data.usedSymbols;
       openP(id);
       showToast('도안 불러오기 완료 — '+proj.name);
@@ -3478,10 +3493,17 @@ function bindAll(){
   document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.addEventListener('click',()=>{if(G.shelfType==='annotation'){G.shelfType=null;document.querySelectorAll('.tbtn[data-shelf]').forEach(x=>x.classList.remove('act'));renderShelf();}setMode(b.dataset.mode);}));
   document.querySelectorAll('.tbtn[data-shelf]').forEach(b=>b.addEventListener('click',()=>{G.shelfType=b.dataset.shelf;document.querySelectorAll('.tbtn[data-mode]').forEach(x=>x.classList.remove('act'));document.querySelectorAll('.tbtn[data-shelf]').forEach(x=>x.classList.toggle('act',x===b));renderShelf();}));
   $('bsz').addEventListener('input',()=>{G.brushSz=parseInt($('bsz').value);$('bszv').textContent=G.brushSz+'px';});
-  $('rsl').addEventListener('input',()=>{G.rot=parseInt($('rsl').value);$('rv').textContent=G.rot+'°';});
-  $('rl').addEventListener('click',()=>{G.rot=(G.rot-45+360)%360;$('rsl').value=G.rot;$('rv').textContent=G.rot+'°';});
-  $('rr2').addEventListener('click',()=>{G.rot=(G.rot+45)%360;$('rsl').value=G.rot;$('rv').textContent=G.rot+'°';});
-  $('r0').addEventListener('click',()=>{G.rot=0;$('rsl').value=0;$('rv').textContent='0°';});
+  $('rsl').addEventListener('input',()=>{setRot(parseInt($('rsl').value));});
+  $('rl').addEventListener('click',()=>{setRot(normRot(G.rot-45));});
+  $('rr2').addEventListener('click',()=>{setRot(normRot(G.rot+45));});
+  $('r0').addEventListener('click',()=>{setRot(0);});
+  $('rot-lock').addEventListener('click',()=>{
+    G.rotLocked=!G.rotLocked;
+    $('rot-lock').textContent=G.rotLocked?'🔒':'🔓';
+    $('rot-lock').style.background=G.rotLocked?'rgba(168,85,247,.25)':'';
+    showToast(G.rotLocked?'회전 고정 ON — 기호 바꿔도 각도 유지':'회전 고정 OFF — 기호별 각도 기억');
+  });
+  document.querySelectorAll('.rot-pre').forEach(b=>b.addEventListener('click',()=>{setRot(parseInt(b.dataset.deg));}));
   $('frame-sel').addEventListener('change',()=>{G.frame=$('frame-sel').value;drawBg();});
   $('frounds').addEventListener('input',()=>{G.fRounds=parseInt($('frounds').value);$('frv').textContent=G.fRounds;drawBg();});
   $('sw-grid').addEventListener('click',()=>{G.gridOn=!G.gridOn;$('sw-grid').classList.toggle('on',G.gridOn);drawBg();});
