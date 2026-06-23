@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>CONY 아이콘 생성기</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#13131f;color:#e2e8f0;padding:30px;display:flex;flex-direction:column;align-items:center;gap:16px}
+canvas{border-radius:22%;box-shadow:0 8px 32px rgba(168,85,247,.4)}
+button{background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:14px;cursor:pointer;margin-top:8px}
+button:hover{background:#a855f7}
+p{color:#94a3b8;font-size:12px;margin:0}
+</style>
+</head>
+<body>
+<h2>Crochet Flow 아이콘 생성</h2>
+<canvas id="c512" width="512" height="512"></canvas>
+<p>512×512 (Capacitor Android/iOS, PWA)</p>
+<button onclick="dl('c512','icon-512.png')">⬇ icon-512.png 다운로드</button>
+
+<canvas id="c192" width="192" height="192"></canvas>
+<p>192×192 (PWA manifest)</p>
+<button onclick="dl('c192','icon-192.png')">⬇ icon-192.png 다운로드</button>
+
+<script>
+function drawIcon(cv) {
+  const sz = cv.width;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, sz, sz);
+
+  // rounded rect clip
+  const r = sz * 0.22;
+  ctx.beginPath();
+  ctx.roundRect(0, 0, sz, sz, r);
+  ctx.clip();
+
+  // background
+  ctx.fillStyle = '#13131f';
+  ctx.fillRect(0, 0, sz, sz);
+
+  // purple gradient circle
+  const grd = ctx.createRadialGradient(sz * 0.48, sz * 0.42, sz * 0.04, sz * 0.5, sz * 0.5, sz * 0.46);
+  grd.addColorStop(0, '#d8b4fe');
+  grd.addColorStop(0.5, '#a855f7');
+  grd.addColorStop(1, '#6d28d9');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(sz / 2, sz / 2, sz * 0.42, 0, Math.PI * 2);
+  ctx.fill();
+
+  // crochet loop symbol
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = sz * 0.075;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // main loop (chain stitch inspired oval)
+  ctx.beginPath();
+  ctx.ellipse(sz * 0.5, sz * 0.46, sz * 0.2, sz * 0.15, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // two legs (like a stitch going down)
+  ctx.beginPath();
+  ctx.moveTo(sz * 0.38, sz * 0.58);
+  ctx.lineTo(sz * 0.3, sz * 0.74);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(sz * 0.62, sz * 0.58);
+  ctx.lineTo(sz * 0.7, sz * 0.74);
+  ctx.stroke();
+
+  // small hook at top right of oval
+  ctx.beginPath();
+  ctx.arc(sz * 0.62, sz * 0.36, sz * 0.07, Math.PI * 1.1, Math.PI * 2.2);
+  ctx.stroke();
+}
+
+function dl(id, fname) {
+  const cv = document.getElementById(id);
+  const a = document.createElement('a');
+  a.href = cv.toDataURL('image/png');
+  a.download = fname;
+  a.click();
+}
+
+drawIcon(document.getElementById('c512'));
+drawIcon(document.getElementById('c192'));
+</script>
+</body>
+</html>
