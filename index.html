@@ -771,6 +771,7 @@ body.ui-hidden #row-counter{display:none!important}
           <button class="selb" id="sel-inv">⊘ 반전</button>
           <button class="selb" id="sel-grow">⊕ 확장</button>
           <button class="selb" id="sel-shrink">⊖ 축소</button>
+          <button class="selb" id="sel-tile">⊞ 패턴 반복</button>
         </div>
       </div>
       <div id="shape-bar">
@@ -3590,6 +3591,7 @@ function bindAll(){
   $('sel-pa').addEventListener('click',pasteFloat);
   $('sel-fl').addEventListener('click',fillSelection);
   $('sel-pat').addEventListener('click',fillWithPattern);
+  $('sel-tile').addEventListener('click',repeatTilePattern);
   $('sel-inv').addEventListener('click',invertSelection);
   $('sel-grow').addEventListener('click',()=>growShrinkSel(8));
   $('sel-shrink').addEventListener('click',()=>growShrinkSel(-8));
@@ -4060,6 +4062,26 @@ function fillWithPattern(){
   composite();saveH();
   if(r){$('sel-tb').style.display='none';prevCtx.clearRect(0,0,CW,CH);}
   showToast('기호 채우기 완료');
+}
+function repeatTilePattern(){
+  const r=selRect();
+  if(!r||r.w<4||r.h<4){showToast('먼저 반복할 영역을 선택하세요');return;}
+  if(!mainCtx)return;
+  const tile=document.createElement('canvas');
+  tile.width=r.w;tile.height=r.h;
+  tile.getContext('2d').drawImage(mainCtx.canvas,r.x,r.y,r.w,r.h,0,0,r.w,r.h);
+  mainCtx.save();
+  for(let y=0;y<CH;y+=r.h){
+    for(let x=0;x<CW;x+=r.w){
+      if(x===Math.floor(r.x/r.w)*r.w&&y===Math.floor(r.y/r.h)*r.h)continue;
+      mainCtx.drawImage(tile,x,y);
+    }
+  }
+  mainCtx.restore();
+  composite();saveH();
+  $('sel-tb').style.display='none';prevCtx.clearRect(0,0,CW,CH);
+  stopMarchAnts();G.selStart=G.selEnd=null;G.selPath=null;
+  showToast('패턴 반복 채우기 완료');
 }
 function invertSelection(){
   const r=selRect();if(!r)return;
