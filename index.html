@@ -612,6 +612,7 @@ body.ui-hidden #row-counter{display:none!important}
       <button id="topcol" title="색상 선택"></button>
     </div>
     <input type="text" id="pn" value="무제 도안" title="도안 이름 (탭하여 수정)">
+    <span id="sst" style="font-size:10px;color:var(--text3);pointer-events:none;white-space:nowrap;opacity:0.7;flex-shrink:0"></span>
   </header>
 
   <div id="morepop">
@@ -5224,7 +5225,7 @@ function onDown(e){
       G.cloneSrc=pos;
       composite();
       _cloneCanvas=document.createElement('canvas');_cloneCanvas.width=CW;_cloneCanvas.height=CH;
-      _cloneCanvas.getContext('2d').drawImage(bgCtx.canvas,0,0);
+      _cloneCanvas.getContext('2d').drawImage(dispCtx.canvas,0,0);
       showCloneSrcInd(pos);showToast('복제 원본 설정 — 이제 붓으로 복사할 위치에 그리세요');
       G.isDrawing=false;return;
     }else{
