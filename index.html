@@ -3627,7 +3627,11 @@ function bindAll(){
     const orderName='Crochet Flow '+(plan==='pro2'?'Pro+':'Pro')+' 월 구독';
     const orderId='cony_'+Date.now();
     const base=location.origin+location.pathname;
-    const successUrl=base+'?pay_ok=1&plan='+plan;
+    // Netlify 환경이면 서버사이드 confirm, 아니면 직접 리다이렉트(테스트/GitHub Pages)
+    const isNetlify=location.hostname.includes('netlify.app')||location.hostname.includes('netlify.com');
+    const successUrl=isNetlify
+      ?location.origin+'/.netlify/functions/confirm-payment?plan='+plan
+      :base+'?pay_ok=1&plan='+plan;
     const failUrl=base+'?pay_fail=1';
     const methodMap={toss:'토스페이',kakao:'카카오페이',card:'카드'};
     if(typeof TossPayments==='undefined'){
