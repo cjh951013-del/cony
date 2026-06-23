@@ -1036,6 +1036,7 @@ body.ui-hidden #row-counter{display:none!important}
           <span style="font-size:11px;color:var(--text2)">레이어 <span id="lc">1</span>/50</span>
           <div style="display:flex;gap:4px">
             <button class="ib" id="btn-merge-vis" style="font-size:10px;padding:3px 7px" title="보이는 레이어 모두 합치기">⬇ 합치기</button>
+            <button class="ib" id="btn-add-ann" style="font-size:10px;padding:3px 7px;color:#f97316" title="주석 레이어 추가">✎ 주석</button>
             <button class="ib" id="btn-addl" style="font-size:10px;padding:3px 7px">＋ 추가</button>
           </div>
         </div>
@@ -2518,6 +2519,7 @@ function renderLayers(){
       for(let ty=0;ty<34;ty+=6)for(let tx=0;tx<34;tx+=6){tc.fillStyle=(Math.floor(tx/6)+Math.floor(ty/6))%2===0?'#ccc':'#eee';tc.fillRect(tx,ty,6,6);}
       if(l.cv)tc.drawImage(l.cv,0,0,34,34);
       if(l.isRef){tc.strokeStyle='#38bdf8';tc.lineWidth=2.5;tc.strokeRect(1,1,32,32);}
+      if(l.isAnnotation){tc.strokeStyle='#f97316';tc.lineWidth=2.5;tc.strokeRect(1,1,32,32);}
     }
     const info=document.createElement('div');info.className='linfo';
     info.innerHTML=`<div class="lname" data-lid="${l.id}" title="더블탭으로 이름 변경">${l.name}</div><div class="lop">${Math.round((l.opacity==null?1:l.opacity)*100)}%</div>`;
@@ -3539,6 +3541,15 @@ function bindAll(){
     if(!isPro()&&G.layers.length>=3){openM('m-pro');return;}
     const id=Date.now();G.layers.push({id,name:'레이어 '+(G.layers.length+1),visible:true,opacity:1});
     ensureLayerCanvases();G.activeL=id;setActiveCtx();renderLayers();composite();
+  });
+  $('btn-add-ann').addEventListener('click',()=>{
+    if(!isPro()&&G.layers.length>=3){openM('m-pro');return;}
+    const id=Date.now();G.layers.push({id,name:'주석 레이어',visible:true,opacity:1,isAnnotation:true});
+    ensureLayerCanvases();G.activeL=id;setActiveCtx();renderLayers();composite();
+    G.shelfType='annotation';
+    document.querySelectorAll('.tbtn[data-mode]').forEach(x=>x.classList.remove('act'));
+    document.querySelectorAll('.tbtn[data-shelf="annotation"]').forEach(x=>x.classList.add('act'));
+    renderShelf();showToast('주석 레이어 추가됨');
   });
   
   // TEXT TOOL
