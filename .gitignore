@@ -7,3 +7,5 @@ ios/
 dist/
 .env
 .env.local
+chrome-ext/app/
+chrome-ext/icons/

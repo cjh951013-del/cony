@@ -1,14 +1,12 @@
-const CACHE = 'cony-v1';
-const ASSETS = [
-  './',
-  './index.html',
+const CACHE = 'cony-v2';
+const SHELL = [
   './manifest.json',
   './icons/icon.svg'
 ];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())
   );
 });
 
@@ -21,12 +19,24 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Toss Payments SDK and other external resources: network first
+  // 외부 리소스 (Toss SDK 등): 네트워크 우선
   if (!e.request.url.startsWith(self.location.origin)) {
     e.respondWith(fetch(e.request).catch(() => new Response('', {status: 503})));
     return;
   }
-  // App shell: cache first, network fallback
+  // index.html: 네트워크 우선 → 앱 업데이트가 즉시 반영됨 (캐시는 오프라인 폴백용)
+  const url = new URL(e.request.url);
+  if (url.pathname === '/' || url.pathname.endsWith('/index.html')) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return res;
+      }).catch(() => caches.match(e.request).then(c => c || new Response('오프라인 상태입니다.', {status: 503})))
+    );
+    return;
+  }
+  // 기타 정적 자산: 캐시 우선
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       if (res.ok) {

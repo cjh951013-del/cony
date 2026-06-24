@@ -4,22 +4,51 @@
 <meta charset="UTF-8">
 <title>CONY 아이콘 생성기</title>
 <style>
-body{font-family:system-ui,sans-serif;background:#13131f;color:#e2e8f0;padding:30px;display:flex;flex-direction:column;align-items:center;gap:16px}
+body{font-family:system-ui,sans-serif;background:#13131f;color:#e2e8f0;padding:30px;display:flex;flex-direction:column;align-items:center;gap:12px}
 canvas{border-radius:22%;box-shadow:0 8px 32px rgba(168,85,247,.4)}
-button{background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:14px;cursor:pointer;margin-top:8px}
+button{background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:14px;cursor:pointer;margin-top:4px}
 button:hover{background:#a855f7}
 p{color:#94a3b8;font-size:12px;margin:0}
+h3{color:#a855f7;font-size:13px;margin-top:16px;margin-bottom:0}
+.row{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;align-items:flex-end}
+.col{display:flex;flex-direction:column;align-items:center;gap:6px}
 </style>
 </head>
 <body>
 <h2>Crochet Flow 아이콘 생성</h2>
-<canvas id="c512" width="512" height="512"></canvas>
-<p>512×512 (Capacitor Android/iOS, PWA)</p>
-<button onclick="dl('c512','icon-512.png')">⬇ icon-512.png 다운로드</button>
 
-<canvas id="c192" width="192" height="192"></canvas>
-<p>192×192 (PWA manifest)</p>
-<button onclick="dl('c192','icon-192.png')">⬇ icon-192.png 다운로드</button>
+<h3>PWA + Capacitor (Android / iOS)</h3>
+<div class="row">
+  <div class="col">
+    <canvas id="c512" width="512" height="512"></canvas>
+    <p>512×512</p>
+    <button onclick="dl('c512','icon-512.png')">⬇ icon-512.png</button>
+  </div>
+  <div class="col">
+    <canvas id="c192" width="192" height="192"></canvas>
+    <p>192×192</p>
+    <button onclick="dl('c192','icon-192.png')">⬇ icon-192.png</button>
+  </div>
+</div>
+
+<h3>Chrome Extension 전용 (chrome-ext/icons/ 폴더에 저장)</h3>
+<div class="row">
+  <div class="col">
+    <canvas id="c128" width="128" height="128"></canvas>
+    <p>128×128</p>
+    <button onclick="dl('c128','icon-128.png')">⬇ icon-128.png</button>
+  </div>
+  <div class="col">
+    <canvas id="c48" width="48" height="48"></canvas>
+    <p>48×48</p>
+    <button onclick="dl('c48','icon-48.png')">⬇ icon-48.png</button>
+  </div>
+  <div class="col">
+    <canvas id="c16" width="16" height="16"></canvas>
+    <p>16×16</p>
+    <button onclick="dl('c16','icon-16.png')">⬇ icon-16.png</button>
+  </div>
+</div>
 
 <script>
 function drawIcon(cv) {
@@ -83,8 +112,7 @@ function dl(id, fname) {
   a.click();
 }
 
-drawIcon(document.getElementById('c512'));
-drawIcon(document.getElementById('c192'));
+['c512','c192','c128','c48','c16'].forEach(id => drawIcon(document.getElementById(id)));
 </script>
 </body>
 </html>

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Crochet Flow · CONY",
+  "short_name": "Crochet Flow",
+  "version": "1.0.0",
+  "description": "코바늘·대바늘 도안 제작 앱 — 멈춰도 돼, 포기만 안 하면",
+  "icons": {
+    "16":  "icons/icon-16.png",
+    "48":  "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Crochet Flow 열기"
+  },
+  "permissions": ["tabs", "storage"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["app/index.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
