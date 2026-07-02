@@ -365,6 +365,9 @@ html[data-theme=light] #colpop{background:rgba(255,255,255,.9);border-color:rgba
 #cwheel{touch-action:none;cursor:crosshair;border-radius:50%}
 #colpop-hist:empty{display:none}
 #morepop{position:fixed;top:62px;left:10px;z-index:60;min-width:184px;max-height:calc(100dvh - 74px);overflow-y:auto;background:rgba(28,28,44,.9);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:6px;box-shadow:0 20px 50px rgba(0,0,0,.55);display:none;-webkit-backdrop-filter:blur(20px) saturate(1.3);backdrop-filter:blur(20px) saturate(1.3)}
+#frame-pick .fpb{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#eee;border-radius:9px;padding:9px 12px;font-size:12px;text-align:left;cursor:pointer;transition:background .12s}
+#frame-pick .fpb:hover{background:rgba(168,85,247,.25)}
+#frame-pick .fpb.d{color:#f87171}
 html[data-theme=light] #morepop{background:rgba(255,255,255,.9);border-color:rgba(0,0,0,.1)}
 #morepop.open{display:block}
 .mrow{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;text-align:left}
@@ -688,6 +691,7 @@ body.ui-hidden #row-counter{display:none!important}
     <button class="mrow" id="btn-col-stat"><span class="mi">📊</span><span>색상 사용 통계</span></button>
     <button class="mrow" id="btn-recolor"><span class="mi">🎨</span><span>색상 교체 (Recolor)</span></button>
     <button class="mrow" id="btn-tile-prev"><span class="mi">⊞</span><span>패턴 반복 미리보기</span></button>
+    <button class="mrow" id="btn-frames"><span class="mi">□</span><span>프레임 배치 (원형·반원·사각·격자)</span></button>
     <button class="mrow" id="btn-resize"><span class="mi">⤢</span><span>캔버스 크기 조정</span></button>
     <button class="mrow" id="btn-fliph"><span class="mi">⇋</span><span>좌우 반전</span></button>
     <button class="mrow" id="btn-flipv"><span class="mi">⤲</span><span>상하 반전</span></button>
@@ -2118,18 +2122,41 @@ function drawPerspGrid(ctx){
   ctx.fillStyle='rgba(255,100,70,0.75)';ctx.beginPath();ctx.arc(vx,vy,4,0,Math.PI*2);ctx.fill();
   ctx.restore();
 }
-// 자유배치 프레임 레이아웃
+// 자유배치 프레임 레이아웃: rect(구역)·circle(동심원+스포크)·semi(반원)·grid(방안 격자)
 function drawCanvasFrames(ctx){
   if(!G.canvasFrames||!G.canvasFrames.length)return;
+  const gap=G.stampGap||38;
   G.canvasFrames.forEach(f=>{
     ctx.save();
-    ctx.strokeStyle='rgba(168,85,247,.5)';ctx.lineWidth=1.5;ctx.setLineDash([8,5]);
-    ctx.strokeRect(f.x,f.y,f.w,f.h);
-    ctx.setLineDash([]);
-    ctx.fillStyle='rgba(168,85,247,.07)';ctx.fillRect(f.x,f.y,f.w,f.h);
+    ctx.strokeStyle='rgba(168,85,247,.5)';ctx.lineWidth=1.5;
+    const k=f.kind||'rect',cx=f.x+f.w/2;
+    if(k==='circle'){
+      const cy=f.y+f.h/2,rx=f.w/2,ry=f.h/2;
+      ctx.setLineDash([8,5]);ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+      ctx.strokeStyle='rgba(168,85,247,.22)';
+      const n=Math.max(1,Math.round(Math.min(rx,ry)/gap));
+      for(let i=1;i<n;i++){ctx.beginPath();ctx.ellipse(cx,cy,rx*i/n,ry*i/n,0,0,Math.PI*2);ctx.stroke();}
+      for(let i=0;i<12;i++){const a=i/12*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+rx*Math.cos(a),cy+ry*Math.sin(a));ctx.stroke();}
+    }else if(k==='semi'){
+      const cy=f.y,rx=f.w/2,ry=f.h;
+      ctx.setLineDash([8,5]);ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI);ctx.closePath();ctx.stroke();ctx.setLineDash([]);
+      ctx.strokeStyle='rgba(168,85,247,.22)';
+      const n=Math.max(1,Math.round(Math.min(rx,ry)/gap));
+      for(let i=1;i<n;i++){ctx.beginPath();ctx.ellipse(cx,cy,rx*i/n,ry*i/n,0,0,Math.PI);ctx.stroke();}
+      for(let i=0;i<=6;i++){const a=i/6*Math.PI;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+rx*Math.cos(a),cy+ry*Math.sin(a));ctx.stroke();}
+    }else if(k==='grid'){
+      ctx.setLineDash([8,5]);ctx.strokeRect(f.x,f.y,f.w,f.h);ctx.setLineDash([]);
+      ctx.strokeStyle='rgba(168,85,247,.22)';
+      const gs=40;
+      for(let x=f.x+gs;x<f.x+f.w;x+=gs){ctx.beginPath();ctx.moveTo(x,f.y);ctx.lineTo(x,f.y+f.h);ctx.stroke();}
+      for(let y=f.y+gs;y<f.y+f.h;y+=gs){ctx.beginPath();ctx.moveTo(f.x,y);ctx.lineTo(f.x+f.w,y);ctx.stroke();}
+    }else{
+      ctx.setLineDash([8,5]);ctx.strokeRect(f.x,f.y,f.w,f.h);ctx.setLineDash([]);
+      ctx.fillStyle='rgba(168,85,247,.07)';ctx.fillRect(f.x,f.y,f.w,f.h);
+    }
     const fs=13,pad=6;ctx.font=`bold ${fs}px sans-serif`;
     const tw=ctx.measureText(f.name).width;
-    ctx.fillStyle='rgba(20,0,40,.82)';if(ctx.roundRect)ctx.roundRect(f.x,f.y,tw+pad*2,fs+pad,[3]);else ctx.rect(f.x,f.y,tw+pad*2,fs+pad);ctx.fill();
+    ctx.fillStyle='rgba(20,0,40,.82)';ctx.beginPath();if(ctx.roundRect)ctx.roundRect(f.x,f.y,tw+pad*2,fs+pad,[3]);else ctx.rect(f.x,f.y,tw+pad*2,fs+pad);ctx.fill();
     ctx.fillStyle='#c084fc';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(f.name,f.x+pad,f.y+pad/2);
     ctx.restore();
   });
@@ -2557,11 +2584,12 @@ function restoreLayers(data,done){
 function snapshotCurrent(){
   if(!G.cur||!mainCtx)return;
   try{G.cur.data=$('main-c').toDataURL('image/png');}catch(e){}
+  G.cur.frames=(G.canvasFrames&&G.canvasFrames.length)?G.canvasFrames:null;
   persistLayers();
   persistProjects();
 }
 function persistProjects(){
-  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date}));
+  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date,frames:p.frames||null}));
   const full=G.projects.map((p,i)=>Object.assign({},meta[i],{data:p.data||null,thumb:p.thumb||null}));
   try{localStorage.setItem('cony_projects_v1',JSON.stringify(full));}
   catch(e){try{localStorage.setItem('cony_projects_v1',JSON.stringify(meta));}catch(e2){}}
@@ -3681,6 +3709,7 @@ function openP(id){
   G.cur=p;$('pn').value=p.name;G.frame=p.frame||'none';$('frame-sel').value=G.frame;
   if(p.cw&&p.ch&&(p.cw!==CW||p.ch!==CH)){CW=p.cw;CH=p.ch;}
   G.anchor={x:CW/2,y:CH/2};G.anchorMode=false;
+  G.canvasFrames=Array.isArray(p.frames)?p.frames:[];
   resetLayers();G.usedSymbols=[];
   drawBg();renderShelf();renderLayers();renderPalettes();renderColHistBar();
   G.hist=[];G.histIdx=-1;$('btn-undo').disabled=true;$('btn-redo').disabled=true;
@@ -3779,6 +3808,7 @@ function bindAll(){
   $('btn-tl').addEventListener('click',toggleTouchLock);
   // 손가락 잠금은 터치 기기에서만 의미 있음 — 데스크탑에선 숨김
   if(!('ontouchstart' in window)&&!(navigator.maxTouchPoints>0)){const _tl=$('btn-tl');if(_tl)_tl.style.display='none';}
+  $('btn-frames').addEventListener('click',openFramePicker);
   $('btn-undo').addEventListener('click',undo);
   $('btn-redo').addEventListener('click',redo);
   initDock();
@@ -4539,7 +4569,7 @@ function shapeFromType(type,bb){
   if(type==='rect')return{type:'rect',cx:bb.cx,cy:bb.cy,w:Math.max(4,bb.w),h:Math.max(4,bb.h),rot:0};
   return{type:'triangle',p:[{x:bb.cx,y:bb.y},{x:bb.x+bb.w,y:bb.y+bb.h},{x:bb.x,y:bb.y+bb.h}]};
 }
-function cycleShapeType(){if(!G.shape)return;const bb=bboxOf(shapeToPoly(G.shape)),n=G.shape.n;const i=SHAPE_CYCLE.indexOf(G.shape.type);G.shape=shapeFromType(SHAPE_CYCLE[(i+1)%SHAPE_CYCLE.length],bb);if(n)G.shape.n=n;showShapeBar();renderEdit();}
+function cycleShapeType(){if(!G.shape||G.frameKind)return;const bb=bboxOf(shapeToPoly(G.shape)),n=G.shape.n;const i=SHAPE_CYCLE.indexOf(G.shape.type);G.shape=shapeFromType(SHAPE_CYCLE[(i+1)%SHAPE_CYCLE.length],bb);if(n)G.shape.n=n;showShapeBar();renderEdit();}
 function shapeStitchCount(s){const L=polyLen(shapeToPoly(s));return Math.max(2,s.n||Math.round(L/(G.stampGap||38)));}
 function stampShape(ctx,s,ghost){
   const poly=shapeToPoly(s),L=polyLen(poly);if(L<=0)return;
@@ -4553,7 +4583,7 @@ function stampShape(ctx,s,ghost){
 }
 function shapeAddStitch(d){if(!G.shape||G.mode!=='stamp')return;G.shape.n=Math.max(2,shapeStitchCount(G.shape)+d);showShapeBar();renderEdit();}
 function cycleShapeTypeBtn(){cycleShapeType();}
-function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';const t=$('shape-type');if(t)t.textContent=(TYPE_LABEL[G.shape.type]||'모양');const cw=$('shape-count-wrap');if(cw)cw.style.display=G.mode==='stamp'?'inline-flex':'none';const cc=$('shape-count');if(cc&&G.mode==='stamp')cc.textContent=shapeStitchCount(G.shape)+'코';}
+function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';const t=$('shape-type');if(t)t.textContent=G.frameKind?'프레임':(TYPE_LABEL[G.shape.type]||'모양');const cw=$('shape-count-wrap');if(cw)cw.style.display=(G.mode==='stamp'&&!G.frameKind)?'inline-flex':'none';const cc=$('shape-count');if(cc&&G.mode==='stamp'&&!G.frameKind)cc.textContent=shapeStitchCount(G.shape)+'코';}
 function hideShapeBar(){const b=$('shape-bar');if(b)b.style.display='none';}
 function renderEdit(){
   if(!prevCtx||!G.shape)return;
@@ -4582,9 +4612,9 @@ function moveShapeBy(s,dx,dy){
   else{s.cx+=dx;s.cy+=dy;}
 }
 function centerShape(){if(!G.shape)return;const bb=bboxOf(shapeToPoly(G.shape));moveShapeBy(G.shape,CW/2-(bb.x+bb.w/2),CH/2-(bb.y+bb.h/2));renderEdit();}
-function commitShape(){if(!G.shape)return;if(G.mode==='stamp')stampShape(mainCtx,G.shape,false);else strokePolyCtx(mainCtx,shapeToPoly(G.shape));exitEdit();saveH();}
+function commitShape(){if(!G.shape)return;if(G.frameKind){commitFrame();return;}if(G.mode==='stamp')stampShape(mainCtx,G.shape,false);else strokePolyCtx(mainCtx,shapeToPoly(G.shape));exitEdit();saveH();}
 function cancelShape(){exitEdit();}
-function exitEdit(){G.editing=false;G.shape=null;G.dragH=null;G.awaitLift=false;G.path=null;G.snap=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);hideShapeBar();}
+function exitEdit(){G.editing=false;G.shape=null;G.dragH=null;G.awaitLift=false;G.frameKind=null;G.path=null;G.snap=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);hideShapeBar();}
 
 /* ----- selection float (move / paste) ----- */
 function clipToCanvas(img){const c=document.createElement('canvas');c.width=Math.max(1,img.width);c.height=Math.max(1,img.height);c.getContext('2d').putImageData(img,0,0);return c;}
@@ -4705,6 +4735,55 @@ function addFrame(){
   G.selStart=G.selEnd=null;G.selPath=null;stopMarchAnts();
   $('sel-tb').style.display='none';prevCtx.clearRect(0,0,CW,CH);
   drawBg();showToast(`'${name}' 프레임 추가 (${G.canvasFrames.length}개)`);
+}
+// 프레임 배치 v2: 종류 선택 → 도형 편집 핸들로 위치·크기 조절 → ✓로 확정
+function openFramePicker(){
+  $('morepop').classList.remove('open');
+  let p=$('frame-pick');
+  if(!p){
+    p=document.createElement('div');p.id='frame-pick';
+    p.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1300;background:rgba(28,28,44,.96);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 20px 60px rgba(0,0,0,.6);min-width:230px';
+    p.innerHTML='<div style="font-size:13px;font-weight:700;color:#fff">프레임 배치</div>'
+      +'<div style="font-size:10px;color:rgba(255,255,255,.45);margin-bottom:2px">가이드 구역을 만들고 그 위에 도안을 그리세요</div>'
+      +'<button class="fpb" data-k="circle">○ 원형 — 도일리·가방 바닥·모티브</button>'
+      +'<button class="fpb" data-k="semi">◗ 반원 — 가방·부채·우산</button>'
+      +'<button class="fpb" data-k="rect">▭ 사각 — 구역 나누기</button>'
+      +'<button class="fpb" data-k="grid">⊞ 격자 — 방안뜨기·패턴</button>'
+      +'<button class="fpb d" data-k="_clear">🗑 프레임 모두 지우기</button>'
+      +'<button class="fpb" data-k="_close">닫기</button>';
+    document.body.appendChild(p);
+    p.addEventListener('click',e=>{
+      const b=e.target.closest('.fpb');if(!b)return;
+      p.style.display='none';
+      const k=b.dataset.k;
+      if(k==='_close')return;
+      if(k==='_clear'){clearAllFrames();return;}
+      startFramePlace(k);
+    });
+  }
+  p.style.display='flex';
+}
+function startFramePlace(kind){
+  if(!isPro()&&(G.canvasFrames||[]).length>=1){openM('m-pro');showToast('무료는 프레임 1개까지 — Pro는 무제한');return;}
+  if(G.editing)exitEdit();
+  const R=Math.min(CW,CH)*0.22;
+  G.shape=(kind==='circle'||kind==='semi')?{type:'ellipse',cx:CW/2,cy:CH/2,rx:R,ry:R,rot:0}:{type:'rect',cx:CW/2,cy:CH/2,w:R*2,h:R*2,rot:0};
+  G.frameKind=kind;G.editing=true;G.isDrawing=false;G.awaitLift=false;
+  showShapeBar();renderEdit();
+  showToast(kind==='semi'?'반원 프레임 — 원의 아래 반쪽이 프레임이 됩니다. 조절 후 ✓':'핸들로 위치·크기 조절 후 ✓');
+}
+function commitFrame(){
+  const bb=bboxOf(shapeToPoly(G.shape)),kind=G.frameKind;
+  if(!G.canvasFrames)G.canvasFrames=[];
+  const names={circle:'원형',semi:'반원',rect:'사각',grid:'격자'};
+  const f=kind==='semi'
+    ?{id:Date.now(),name:names[kind]+' '+(G.canvasFrames.length+1),x:bb.x,y:bb.y+bb.h/2,w:bb.w,h:bb.h/2,kind}
+    :{id:Date.now(),name:names[kind]+' '+(G.canvasFrames.length+1),x:bb.x,y:bb.y,w:bb.w,h:bb.h,kind};
+  G.canvasFrames.push(f);
+  if(kind==='circle')G.anchor={x:f.x+f.w/2,y:f.y+f.h/2};
+  else if(kind==='semi')G.anchor={x:f.x+f.w/2,y:f.y};
+  exitEdit();drawBg();schedulePersist();
+  showToast(f.name+' 추가'+((kind==='circle'||kind==='semi')?' — 앵커가 중심에 설정됨 (방사 배치용)':''));
 }
 function clearAllFrames(){
   if(!G.canvasFrames||!G.canvasFrames.length)return;
