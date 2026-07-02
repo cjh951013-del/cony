@@ -299,6 +299,9 @@ body.ui-hidden #recent-bar{display:none!important}
 #prev-c{pointer-events:none}
 #snap-badge{position:absolute;top:68px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:5px 12px;border-radius:15px;font-size:11px;font-weight:600;display:none;pointer-events:none;z-index:10}
 #sel-tb{position:absolute;top:68px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 8px;gap:5px;display:none;z-index:10}
+.selb{white-space:nowrap}
+#sel-pat,#sel-gd,#sel-inv,#sel-grow,#sel-shrink,#sel-tile,#sel-frame{display:none}
+#btn-smudge{display:none}
 #sel-shape{position:absolute;top:68px;left:10px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px;gap:3px;display:none;z-index:10}
 #sel-shape.show{display:flex}
 .ssb{width:34px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);font-size:15px;cursor:pointer;padding:0}
@@ -873,6 +876,7 @@ body.ui-hidden #row-counter{display:none!important}
           <b id="shape-count">0</b>
           <button class="sb-ic" id="shape-more">＋</button>
         </span>
+        <button class="sb-ic" id="shape-center" title="캔버스 중앙 정렬">⊕</button>
         <span class="sb-sep"></span>
         <button class="sb-ic ok" id="shape-done" title="완료">✓</button>
         <button class="sb-ic no" id="shape-cancel" title="취소">✕</button>
@@ -3773,6 +3777,8 @@ function bindAll(){
     pnEl.addEventListener('keydown',e=>{if(e.key==='Enter'){pnEl.blur();}});
   }
   $('btn-tl').addEventListener('click',toggleTouchLock);
+  // 손가락 잠금은 터치 기기에서만 의미 있음 — 데스크탑에선 숨김
+  if(!('ontouchstart' in window)&&!(navigator.maxTouchPoints>0)){const _tl=$('btn-tl');if(_tl)_tl.style.display='none';}
   $('btn-undo').addEventListener('click',undo);
   $('btn-redo').addEventListener('click',redo);
   initDock();
@@ -4272,6 +4278,7 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
   $('shape-cycle').addEventListener('click',cycleShapeType);
   $('shape-done').addEventListener('click',commitShape);
   $('shape-cancel').addEventListener('click',cancelShape);
+  $('shape-center').addEventListener('click',centerShape);
   $('shape-less').addEventListener('click',()=>shapeAddStitch(-1));
   $('shape-more').addEventListener('click',()=>shapeAddStitch(1));
   
@@ -4480,7 +4487,10 @@ function detectShape(path){
   let v=rdp(raw,Math.max(3,diag*0.05));
   const cv=sharpCorners(v),ob=orientedBox(path);
   if(cv.length===3)return{type:'triangle',p:[{x:cv[0].x,y:cv[0].y},{x:cv[1].x,y:cv[1].y},{x:cv[2].x,y:cv[2].y}]};
-  if(cv.length===4)return{type:'rect',cx:ob.cx,cy:ob.cy,w:ob.w,h:ob.h,rot:ob.rot};
+  // 면적비 판별: 경로 면적/외접박스 면적 — 사각≈1.0, 타원≈0.785 (모서리 뭉개진 손그림 대응)
+  let A2=0;for(let i=0;i<raw.length;i++){const p=raw[i],q=raw[(i+1)%raw.length];A2+=p.x*q.y-q.x*p.y;}
+  const fillRatio=Math.abs(A2/2)/Math.max(1,ob.w*ob.h);
+  if(cv.length===4||fillRatio>0.86)return{type:'rect',cx:ob.cx,cy:ob.cy,w:ob.w,h:ob.h,rot:ob.rot};
   return{type:'ellipse',cx:ob.cx,cy:ob.cy,rx:Math.max(3,ob.w/2),ry:Math.max(3,ob.h/2),rot:ob.rot};
 }
 function shapeToPoly(s){
@@ -4565,6 +4575,13 @@ function enterSnap(){
   if(G.mode==='stamp')s.n=shapeStitchCount(s);
   G.shape=s;G.editing=true;G.isDrawing=false;G.awaitLift=true;clearTimeout(holdTm);showShapeBar();renderEdit();
 }
+function moveShapeBy(s,dx,dy){
+  if(s.type==='line'){s.a.x+=dx;s.a.y+=dy;s.b.x+=dx;s.b.y+=dy;}
+  else if(s.type==='curve')s.pts.forEach(p=>{p.x+=dx;p.y+=dy;});
+  else if(s.type==='triangle')s.p.forEach(p=>{p.x+=dx;p.y+=dy;});
+  else{s.cx+=dx;s.cy+=dy;}
+}
+function centerShape(){if(!G.shape)return;const bb=bboxOf(shapeToPoly(G.shape));moveShapeBy(G.shape,CW/2-(bb.x+bb.w/2),CH/2-(bb.y+bb.h/2));renderEdit();}
 function commitShape(){if(!G.shape)return;if(G.mode==='stamp')stampShape(mainCtx,G.shape,false);else strokePolyCtx(mainCtx,shapeToPoly(G.shape));exitEdit();saveH();}
 function cancelShape(){exitEdit();}
 function exitEdit(){G.editing=false;G.shape=null;G.dragH=null;G.awaitLift=false;G.path=null;G.snap=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);hideShapeBar();}
@@ -5854,6 +5871,16 @@ function onMove(e){
     if(G.brushSpray&&G.mode==='draw'){
       G.lastPos=pos;sprayAt(pos);composite();
     }else{
+      if(G.spaceDown&&G.path&&G.path.length>=1){
+        // 스페이스 = 직선 잠금: 시작점→현재점 직선, 수평·수직·45°는 자석 스냅
+        const s0=G.path[0],d=dist2(pos,s0);
+        let ang=Math.atan2(pos.y-s0.y,pos.x-s0.x);
+        const sn=Math.round(ang/(Math.PI/4))*(Math.PI/4);
+        if(Math.abs(ang-sn)<0.12)ang=sn;
+        G.path=[s0,{x:s0.x+Math.cos(ang)*d,y:s0.y+Math.sin(ang)*d,t:Date.now(),f:0}];
+        if(G.mode==='stamp'&&!G.editing)armHold();
+        renderPreview();return;
+      }
       const last=G.path[G.path.length-1];
       // draw 모드는 StreamLine 0.38 — 입력 안정화로 떨림 제거 (프로크리에이트 StreamLine)
       const fv=_penPressure>0?_penPressure:(e.touches&&e.touches[0]&&e.touches[0].force>0)?e.touches[0].force:0;

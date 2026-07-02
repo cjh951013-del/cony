@@ -1,4 +1,4 @@
-const CACHE = 'cony-v2';
+const CACHE = 'cony-v3';
 const SHELL = [
   './manifest.json',
   './icons/icon.svg'
@@ -24,9 +24,9 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(e.request).catch(() => new Response('', {status: 503})));
     return;
   }
-  // index.html: 네트워크 우선 → 앱 업데이트가 즉시 반영됨 (캐시는 오프라인 폴백용)
+  // 페이지 내비게이션: 네트워크 우선 → 앱 업데이트 즉시 반영 (GitHub Pages 하위경로 /cony/ 포함)
   const url = new URL(e.request.url);
-  if (url.pathname === '/' || url.pathname.endsWith('/index.html')) {
+  if (e.request.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('/index.html')) {
     e.respondWith(
       fetch(e.request).then(res => {
         const clone = res.clone();
