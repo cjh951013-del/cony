@@ -3794,8 +3794,10 @@ function bindAll(){
   $('btn-np').addEventListener('click',()=>openM('m-new'));
   $('btn-upgrade-dash').addEventListener('click',()=>openM('m-pro'));
   $('btn-create').addEventListener('click',()=>{
-    const nw=Math.round(Math.max(200,Math.min(4000,parseInt($('np-w').value)||1200)));
-    const nh=Math.round(Math.max(200,Math.min(4000,parseInt($('np-h').value)||1200)));
+    const maxSz=isPro()?4000:1200; // 무료 1200px, Pro 4000px
+    let nw=Math.round(Math.max(200,Math.min(4000,parseInt($('np-w').value)||1200)));
+    let nh=Math.round(Math.max(200,Math.min(4000,parseInt($('np-h').value)||1200)));
+    if((nw>maxSz||nh>maxSz)&&!isPro()){openM('m-pro');showToast('1200px 초과 대형 캔버스는 Pro 전용입니다');return;}
     const p={id:'p_'+Date.now(),name:$('np-nm').value||'새 도안',type:$('np-tp').value,frame:'none',cw:nw,ch:nh,date:new Date().toLocaleDateString('ko-KR'),thumb:null};
     G.projects.unshift(p);closeM('m-new');renderDash();openP(p.id);
   });
@@ -3833,7 +3835,7 @@ function bindAll(){
   $('btn-tile-refresh').addEventListener('click',()=>renderTilePreview());
   $('tile-n').addEventListener('change',()=>renderTilePreview());
   $('btn-resize').addEventListener('click',()=>{$('morepop').classList.remove('open');$('rz-w').value=CW;$('rz-h').value=CH;openM('m-resize');});
-  $('btn-resize-ok').addEventListener('click',()=>{const nw=parseInt($('rz-w').value),nh=parseInt($('rz-h').value);if(!nw||!nh)return;resizeCanvas(nw,nh,$('rz-anchor').checked);closeM('m-resize');});
+  $('btn-resize-ok').addEventListener('click',()=>{const nw=parseInt($('rz-w').value),nh=parseInt($('rz-h').value);if(!nw||!nh)return;if((nw>1200||nh>1200)&&!isPro()){openM('m-pro');showToast('1200px 초과 대형 캔버스는 Pro 전용입니다');return;}resizeCanvas(nw,nh,$('rz-anchor').checked);closeM('m-resize');});
   $('btn-ctr').addEventListener('click',()=>{fitToScreen();});
   // zoom-hud 탭 → 100%/Fit 토글, rot-hud 탭 → 회전 초기화 (Procreate-style)
   $('zoom-hud').addEventListener('click',e=>{e.stopPropagation();if(Math.abs(G.zoom-1)<0.05)fitToScreen();else{G.zoom=1;G.viewRot=0;const cwr=($('cw')||document.body).getBoundingClientRect();G.pan={x:cwr.width/2,y:cwr.height/2};applyTransform();showZoomHud();}});
