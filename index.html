@@ -4240,7 +4240,7 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
   mc.addEventListener('touchstart',onDown,{passive:false});mc.addEventListener('touchmove',onMove,{passive:false});mc.addEventListener('touchend',onUp);
   mc.addEventListener('wheel',onWheel,{passive:false});
   // 펜(스타일러스) 압력 캡처 — PointerEvent.pressure (0~1, 마우스=0.5 제외)
-  let _penPressure=0,_edgeSwipeX=null,_edgeSwipeY=null;
+  let _edgeSwipeX=null,_edgeSwipeY=null;
   mc.addEventListener('pointermove',e=>{if(e.pointerType==='pen')_penPressure=e.pressure;},{passive:true});
   mc.addEventListener('pointerdown',e=>{_penPressure=(e.pointerType==='pen')?e.pressure:0;});
   mc.addEventListener('pointerup',()=>{_penPressure=0;});
@@ -4415,6 +4415,7 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
 let pinchDist=0;
 const HOLD_MS=2000, HOLD_TOL=7, MIN_PT=2.4;
 let holdTm=null;
+let _penPressure=0; // 펜 압력 — bindAll의 pointer 핸들러가 쓰고 onMove(전역)가 읽음
 function dist2(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 function polyLen(p){let s=0;for(let i=1;i<p.length;i++)s+=dist2(p[i-1],p[i]);return s;}
 function rdp(pts,eps){
