@@ -1144,6 +1144,9 @@ body.ui-hidden #row-counter{display:none!important}
         <div class="cg" id="brush-opts-cg">
           <div class="cgl">펜 브러시 옵션</div>
           <div class="sw-wrap">
+            <div class="sw on" id="sw-symbrush"></div><span>기호 브러시 (드래그로 기호 잇기)</span>
+          </div>
+          <div class="sw-wrap">
             <div class="sw" id="sw-monoline"></div><span>모노라인 (균일 선폭)</span>
           </div>
           <div class="sw-wrap">
@@ -1568,7 +1571,7 @@ let G={
   cloneSrc:null,
   customPalette:[],
   stampSz:48,stampGap:38,livePath:null,
-  graphData:{},graphCols:50,scStitch:'sc',touchLock:false,dockFavs:['stamp','eraser','pick'],dockTab:'all',dockSide:'left',
+  graphData:{},graphCols:50,scStitch:'sc',symBrush:true,touchLock:false,dockFavs:['stamp','eraser','pick'],dockTab:'all',dockSide:'left',
   rot:0,
   viewRot:0,
   zoom:1,
@@ -3971,6 +3974,7 @@ function bindAll(){
   document.querySelectorAll('.bpreset').forEach(btn=>{btn.addEventListener('click',()=>{
     const p=BRUSH_PRESETS[btn.dataset.p];if(!p)return;
     G.brushSz=p.sz;G.brushSoftness=p.soft;G.brushMonoline=p.mono;G.brushSpray=p.spray;
+    G.symBrush=false;const _sb=$('sw-symbrush');if(_sb)_sb.classList.remove('on');
     $('bsz').value=p.sz;$('bszv').textContent=p.sz+'px';$('bsft').value=p.soft;$('bsftv').textContent=p.soft+'%';
     $('sw-monoline').classList.toggle('on',p.mono);$('sw-spray').classList.toggle('on',p.spray);
     document.querySelectorAll('.bpreset').forEach(b=>b.classList.toggle('act',b===btn));
@@ -4259,6 +4263,7 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
   $('btn-sh').addEventListener('click',applySharpness);
   $('btn-vg').addEventListener('click',applyVignette);
   // 모노라인 + 채우기 허용값
+  $('sw-symbrush').addEventListener('click',()=>{G.symBrush=!G.symBrush;$('sw-symbrush').classList.toggle('on',G.symBrush);showToast(G.symBrush?'기호 브러시 — 드래그로 기호를 이어 그립니다':'잉크 브러시 — 자유 선 그리기');});
   $('sw-monoline').addEventListener('click',()=>{G.brushMonoline=!G.brushMonoline;$('sw-monoline').classList.toggle('on',G.brushMonoline);});
   $('sw-spray').addEventListener('click',()=>{G.brushSpray=!G.brushSpray;$('sw-spray').classList.toggle('on',G.brushSpray);});
   $('fill-thr').addEventListener('input',()=>{G.fillThreshold=parseInt($('fill-thr').value);$('fill-thrv').textContent=G.fillThreshold;});
@@ -4581,9 +4586,9 @@ function stampShape(ctx,s,ghost){
   if(ghost)ctx.globalAlpha=1;
   if(!ghost)recordSymUse(G.stitch);
 }
-function shapeAddStitch(d){if(!G.shape||G.mode!=='stamp')return;G.shape.n=Math.max(2,shapeStitchCount(G.shape)+d);showShapeBar();renderEdit();}
+function shapeAddStitch(d){if(!G.shape)return;if(G.mode!=='stamp'&&!(G.mode==='draw'&&G.symBrush))return;G.shape.n=Math.max(2,shapeStitchCount(G.shape)+d);showShapeBar();renderEdit();}
 function cycleShapeTypeBtn(){cycleShapeType();}
-function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';const t=$('shape-type');if(t)t.textContent=G.frameKind?'프레임':(TYPE_LABEL[G.shape.type]||'모양');const cw=$('shape-count-wrap');if(cw)cw.style.display=(G.mode==='stamp'&&!G.frameKind)?'inline-flex':'none';const cc=$('shape-count');if(cc&&G.mode==='stamp'&&!G.frameKind)cc.textContent=shapeStitchCount(G.shape)+'코';}
+function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';const t=$('shape-type');if(t)t.textContent=G.frameKind?'프레임':(TYPE_LABEL[G.shape.type]||'모양');const sym=G.mode==='stamp'||(G.mode==='draw'&&G.symBrush);const cw=$('shape-count-wrap');if(cw)cw.style.display=(sym&&!G.frameKind)?'inline-flex':'none';const cc=$('shape-count');if(cc&&sym&&!G.frameKind)cc.textContent=shapeStitchCount(G.shape)+'코';}
 function hideShapeBar(){const b=$('shape-bar');if(b)b.style.display='none';}
 function renderEdit(){
   if(!prevCtx||!G.shape)return;
@@ -4602,7 +4607,7 @@ function renderEdit(){
 function enterSnap(){
   if(!G.path||G.path.length<2)return;
   const s=detectShape(G.path);if(!s)return;
-  if(G.mode==='stamp')s.n=shapeStitchCount(s);
+  if(G.mode==='stamp'||(G.mode==='draw'&&G.symBrush))s.n=shapeStitchCount(s);
   G.shape=s;G.editing=true;G.isDrawing=false;G.awaitLift=true;clearTimeout(holdTm);showShapeBar();renderEdit();
 }
 function moveShapeBy(s,dx,dy){
@@ -4612,7 +4617,7 @@ function moveShapeBy(s,dx,dy){
   else{s.cx+=dx;s.cy+=dy;}
 }
 function centerShape(){if(!G.shape)return;const bb=bboxOf(shapeToPoly(G.shape));moveShapeBy(G.shape,CW/2-(bb.x+bb.w/2),CH/2-(bb.y+bb.h/2));renderEdit();}
-function commitShape(){if(!G.shape)return;if(G.frameKind){commitFrame();return;}if(G.mode==='stamp')stampShape(mainCtx,G.shape,false);else strokePolyCtx(mainCtx,shapeToPoly(G.shape));exitEdit();saveH();}
+function commitShape(){if(!G.shape)return;if(G.frameKind){commitFrame();return;}if(G.mode==='stamp'||(G.mode==='draw'&&G.symBrush))stampShape(mainCtx,G.shape,false);else strokePolyCtx(mainCtx,shapeToPoly(G.shape));exitEdit();saveH();}
 function cancelShape(){exitEdit();}
 function exitEdit(){G.editing=false;G.shape=null;G.dragH=null;G.awaitLift=false;G.frameKind=null;G.path=null;G.snap=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);hideShapeBar();}
 
@@ -5324,11 +5329,11 @@ function stampPolyCtx(ctx,poly,ghost){
 function renderPreview(){
   if(!prevCtx)return;
   prevCtx.clearRect(0,0,CW,CH);
-  if(G.mode==='draw')strokePolyCtx(prevCtx,G.path);
+  if(G.mode==='draw'){if(G.symBrush)stampPolyCtx(prevCtx,G.path,true);else strokePolyCtx(prevCtx,G.path);}
   else if(G.mode==='stamp')stampPolyCtx(prevCtx,G.path,true);
 }
 // 2초 동안 가만히 누르고 있으면 도형 고정 (다른 손가락 터치/Shift는 즉시 — onDown/keydown에서 enterSnap)
-function armHold(){if(G.quickShape===false||G.mode!=='stamp')return;clearTimeout(holdTm);holdTm=setTimeout(()=>{if(G.isDrawing&&G.path&&!G.editing&&G.mode==='stamp')enterSnap();},HOLD_MS);}
+function armHold(){if(G.quickShape===false||G.mode!=='draw')return;clearTimeout(holdTm);holdTm=setTimeout(()=>{if(G.isDrawing&&G.path&&!G.editing&&G.mode==='draw')enterSnap();},HOLD_MS);}
 
 /* ===== 브러시 커서 프리뷰 (프로크리에이트식 원형) ===== */
 let _bcEl=null;
@@ -5337,7 +5342,7 @@ function showBrushCursor(screenX,screenY){
   const cwr=($('cw')||document.body).getBoundingClientRect();
   const isSpray=G.mode==='draw'&&G.brushSpray;
   const isClone=G.mode==='clone';
-  const sz=(G.mode==='stamp'?G.stampSz*G.zoom:G.mode==='eraser'?G.eraserSz*2*G.zoom:isSpray||isClone?G.brushSz*4*G.zoom:G.brushSz*G.zoom);
+  const sz=((G.mode==='stamp'||(G.mode==='draw'&&G.symBrush&&!isSpray))?G.stampSz*G.zoom:G.mode==='eraser'?G.eraserSz*2*G.zoom:isSpray||isClone?G.brushSz*4*G.zoom:G.brushSz*G.zoom);
   const d=Math.max(4,Math.round(sz*2));
   // 모드별 커서 색상: 지우개=빨간 점선, 스머지=보라, 스프레이=파란 점선, 복제=금색, 기본=흰 원
   const isErase=G.mode==='eraser',isSmudge=G.mode==='smudge',isLiquify=G.mode==='liquify';
@@ -5487,7 +5492,11 @@ function cancelLpPick(){
 
 function commitStroke(){
   if(G.mode==='draw'){
-    if(G.path&&G.path.length>1)strokePolyCtx(mainCtx,G.path);
+    if(G.symBrush){
+      if(G.path&&G.path.length===1){const p=G.gridOn?snapToGrid(G.path[0]):G.path[0];stampAt(p.x,p.y);}
+      else if(G.path&&G.path.length)stampPolyCtx(mainCtx,G.path,false);
+    }
+    else if(G.path&&G.path.length>1)strokePolyCtx(mainCtx,G.path);
     else if(G.path&&G.path.length>=1){mainCtx.fillStyle=G.color;mainCtx.beginPath();mainCtx.arc(G.path[0].x,G.path[0].y,Math.max(1,G.brushSz/2),0,7);mainCtx.fill();}
   }else if(G.mode==='stamp'){
     if(G.path&&G.path.length===1){const p=G.gridOn?snapToGrid(G.path[0]):G.path[0];stampAt(p.x,p.y);}
@@ -5930,7 +5939,7 @@ function onMove(e){
     const inCw=!!(e.target&&e.target.closest&&e.target.closest('#cw'));
     if(inCw&&['draw','stamp','eraser','smudge','liquify','graph','clone'].includes(G.mode))showBrushCursor(raw.x,raw.y);
     else hideBrushCursor();
-    if(inCw&&G.mode==='stamp'&&ghostCtx){
+    if(inCw&&(G.mode==='stamp'||(G.mode==='draw'&&G.symBrush&&!G.brushSpray))&&ghostCtx){
       const pos=getPos(e);
       ghostCtx.clearRect(0,0,CW,CH);
       const sz=G.stampSz||48,col=G.toolColors[G.stitch]||G.color;
@@ -5949,6 +5958,10 @@ function onMove(e){
   if(G.mode==='stamp'||G.mode==='draw'){
     if(G.brushSpray&&G.mode==='draw'){
       G.lastPos=pos;sprayAt(pos);composite();
+    }else if(G.mode==='stamp'){
+      // 도장 = 단발: 드래그로 위치 조정(스냅 프리뷰가 따라옴), 놓으면 1개 확정
+      G.path=[{...pos,t:Date.now(),f:0}];
+      renderPreview();
     }else{
       if(G.spaceDown&&G.path&&G.path.length>=1){
         // 스페이스 = 직선 잠금: 시작점→현재점 직선, 수평·수직·45°는 자석 스냅
@@ -5957,15 +5970,15 @@ function onMove(e){
         const sn=Math.round(ang/(Math.PI/4))*(Math.PI/4);
         if(Math.abs(ang-sn)<0.12)ang=sn;
         G.path=[s0,{x:s0.x+Math.cos(ang)*d,y:s0.y+Math.sin(ang)*d,t:Date.now(),f:0}];
-        if(G.mode==='stamp'&&!G.editing)armHold();
+        if(!G.editing)armHold();
         renderPreview();return;
       }
       const last=G.path[G.path.length-1];
       // draw 모드는 StreamLine 0.38 — 입력 안정화로 떨림 제거 (프로크리에이트 StreamLine)
       const fv=_penPressure>0?_penPressure:(e.touches&&e.touches[0]&&e.touches[0].force>0)?e.touches[0].force:0;
       const slFac=1-(G.streamLine||0.38);
-      const spos=G.mode==='draw'?{x:last.x+(pos.x-last.x)*slFac,y:last.y+(pos.y-last.y)*slFac,t:Date.now(),f:fv}:{...pos,t:Date.now(),f:fv};
-      if(dist2(spos,last)>=MIN_PT){G.path.push(spos);if(G.mode==='stamp'&&!G.editing)armHold();}
+      const spos={x:last.x+(pos.x-last.x)*slFac,y:last.y+(pos.y-last.y)*slFac,t:Date.now(),f:fv};
+      if(dist2(spos,last)>=MIN_PT){G.path.push(spos);if(!G.editing)armHold();}
       renderPreview();
     }
   }else if(G.mode==='graph'){fillCell(pos);composite();}
