@@ -4792,10 +4792,17 @@ function commitFrame(){
     ?{id:Date.now(),name:names[kind]+' '+(G.canvasFrames.length+1),x:bb.x,y:bb.y+bb.h/2,w:bb.w,h:bb.h/2,kind}
     :{id:Date.now(),name:names[kind]+' '+(G.canvasFrames.length+1),x:bb.x,y:bb.y,w:bb.w,h:bb.h,kind};
   G.canvasFrames.push(f);
-  if(kind==='circle')G.anchor={x:f.x+f.w/2,y:f.y+f.h/2};
-  else if(kind==='semi')G.anchor={x:f.x+f.w/2,y:f.y};
+  if(kind==='circle'||kind==='semi'){
+    G.anchor=kind==='circle'?{x:f.x+f.w/2,y:f.y+f.h/2}:{x:f.x+f.w/2,y:f.y};
+    // 다중 링 배치를 프레임 크기에 자동 정렬 — 가이드 동심원과 배치 반지름 일치
+    const R=kind==='circle'?Math.min(f.w,f.h)/2:Math.min(f.w/2,f.h);
+    const n=Math.max(1,Math.round(R/(G.stampGap||38)));
+    G.mringN=n;G.mringDR=Math.round(R/n);G.mringR0=G.mringDR;
+    const _s=(id,v)=>{const el=$(id);if(el)el.value=v;};
+    _s('mring-n',n);_s('mring-r0',G.mringR0);_s('mring-dr',G.mringDR);
+  }
   exitEdit();drawBg();schedulePersist();
-  showToast(f.name+' 추가'+((kind==='circle'||kind==='semi')?' — 앵커가 중심에 설정됨 (방사 배치용)':''));
+  showToast(f.name+' 추가'+((kind==='circle'||kind==='semi')?' — 앵커·다중 링이 프레임에 맞춰짐':''));
 }
 function clearAllFrames(){
   if(!G.canvasFrames||!G.canvasFrames.length)return;
