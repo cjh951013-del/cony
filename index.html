@@ -302,6 +302,7 @@ body.ui-hidden #recent-bar{display:none!important}
 .selb{white-space:nowrap}
 #sel-gd,#sel-inv,#sel-grow,#sel-shrink,#sel-tile,#sel-frame{display:none}
 #btn-smudge{display:none}
+#td-modes [data-mode="smudge"]{display:none}
 #sel-shape{position:absolute;top:68px;left:10px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px;gap:3px;display:none;z-index:10}
 #sel-shape.show{display:flex}
 .ssb{width:34px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);font-size:15px;cursor:pointer;padding:0}
@@ -1168,7 +1169,6 @@ body.ui-hidden #row-counter{display:none!important}
           <span style="font-size:11px;color:var(--text2)">레이어 <span id="lc">1</span>/50</span>
           <div style="display:flex;gap:4px">
             <button class="ib" id="btn-merge-vis" style="font-size:10px;padding:3px 7px" title="보이는 레이어 모두 합치기">⬇ 합치기</button>
-            <button class="ib" id="btn-add-ann" style="font-size:10px;padding:3px 7px;color:#f97316" title="주석 레이어 추가">✎ 주석</button>
             <button class="ib" id="btn-addl" style="font-size:10px;padding:3px 7px">＋ 추가</button>
           </div>
         </div>
@@ -2176,7 +2176,12 @@ function drawNumbers(ctx){
   for(let r=0;r<ny;r++) ctx.fillText(String(r+1), 14, CH-(r*gs+gs/2)); // 단(행)
   ctx.restore();
 }
-function snapToGrid(p){if(!G.gridOn)return p;const gs=40,a=G.anchor||{x:0,y:0};return{x:a.x+Math.round((p.x-a.x)/gs)*gs,y:a.y+Math.round((p.y-a.y)/gs)*gs};}
+function snapToGrid(p){
+  if(!G.gridOn)return p;
+  // stampAt·화면 격자(drawGrid)와 동일한 셀 중심 스냅 — 미리보기·커밋·지우개 격자 통일
+  if(G.stampSnap!==false){const gs=graphCellSz();return{x:Math.floor(p.x/gs)*gs+gs/2,y:Math.floor(p.y/gs)*gs+gs/2};}
+  const gs=40,a=G.anchor||{x:0,y:0};return{x:a.x+Math.round((p.x-a.x)/gs)*gs,y:a.y+Math.round((p.y-a.y)/gs)*gs};
+}
 function setAnchor(pos){G.anchor={x:pos.x,y:pos.y};G.anchorMode=false;const cw=$('cw');if(cw)cw.style.cursor='';const b=$('snap-badge');if(b)b.style.display='none';drawBg();renderRingPreview();}
 function renderRingPreview(){
   if(!prevCtx)return;
@@ -3146,12 +3151,12 @@ function erasePath(ctx,px,py,nx,ny,r){
   }
 }
 function eraseGridCell(ctx,x,y){
-  // 그리드 ON일 때: 기호가 있는 격자 셀 전체를 지움
-  const gs=40,a=G.anchor||{x:0,y:0};
-  const gx=a.x+Math.round((x-a.x)/gs)*gs,gy=a.y+Math.round((y-a.y)/gs)*gs;
+  // 기호 단위 지우기 — 도장과 동일한 스냅 지점을 중심으로 기호 크기 박스를 지움
+  const p=G.gridOn?snapToGrid({x,y}):{x,y};
+  const gs=G.gridOn?graphCellSz():40;
   const r=Math.max(gs/2,(G.stampSz||48)/2);
   ctx.save();ctx.globalCompositeOperation='destination-out';
-  ctx.fillStyle='#000';ctx.fillRect(gx-r,gy-r,r*2,r*2);
+  ctx.fillStyle='#000';ctx.fillRect(p.x-r,p.y-r,r*2,r*2);
   ctx.restore();
 }
 /* ===== Flood Fill (bucket) — 4-연결 BFS ===== */
@@ -4148,16 +4153,6 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
     const id=Date.now();G.layers.push({id,name:'레이어 '+(G.layers.length+1),visible:true,opacity:1});
     ensureLayerCanvases();G.activeL=id;setActiveCtx();renderLayers();composite();
   });
-  $('btn-add-ann').addEventListener('click',()=>{
-    if(!isPro()&&G.layers.length>=3){openM('m-pro');return;}
-    const id=Date.now();G.layers.push({id,name:'주석 레이어',visible:true,opacity:1,isAnnotation:true});
-    ensureLayerCanvases();G.activeL=id;setActiveCtx();renderLayers();composite();
-    G.shelfType='annotation';
-    document.querySelectorAll('.tbtn[data-mode]').forEach(x=>x.classList.remove('act'));
-    document.querySelectorAll('.tbtn[data-shelf="annotation"]').forEach(x=>x.classList.add('act'));
-    renderShelf();showToast('주석 레이어 추가됨');
-  });
-  
   // TEXT TOOL
   $('text-ok').addEventListener('click',commitTextEditor);
   $('text-x').addEventListener('click',cancelTextEditor);
@@ -4353,7 +4348,6 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
       if(e.code==='KeyT'&&!G.editing){e.preventDefault();toggleTouchLock();}
       if(e.code==='KeyB'){setMode('draw');showToast('브러시  B');}
       else if(e.code==='KeyE'){setMode('eraser');showToast('지우개  E');}
-      else if(e.code==='KeyM'){setMode('smudge');showToast('문지르기  M');}
       else if(e.code==='KeyS'){setMode('stamp');showToast('기호 도장  S');}
       else if(e.code==='KeyP'){setMode('pick');showToast('색상 추출  P');}
       else if(e.code==='KeyG'){setMode('graph');showToast('방안뜨기  G');}
@@ -4629,7 +4623,7 @@ function moveShapeBy(s,dx,dy){
   else{s.cx+=dx;s.cy+=dy;}
 }
 function centerShape(){if(!G.shape)return;const bb=bboxOf(shapeToPoly(G.shape));moveShapeBy(G.shape,CW/2-(bb.x+bb.w/2),CH/2-(bb.y+bb.h/2));renderEdit();}
-function commitShape(){if(!G.shape)return;if(G.frameKind){commitFrame();return;}if(G.mode==='stamp'||(G.mode==='draw'&&G.symBrush))stampShape(mainCtx,G.shape,false);else strokePolyCtx(mainCtx,shapeToPoly(G.shape));exitEdit();saveH();}
+function commitShape(){if(!G.shape)return;if(G.frameKind){commitFrame();return;}if(G.mode==='stamp'||(G.mode==='draw'&&G.symBrush))stampShape(mainCtx,G.shape,false);else strokePolyCtx(mainCtx,shapeToPoly(G.shape));exitEdit();composite();saveH();}
 function cancelShape(){exitEdit();}
 function exitEdit(){G.editing=false;G.shape=null;G.dragH=null;G.awaitLift=false;G.frameKind=null;G.path=null;G.snap=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);hideShapeBar();}
 
@@ -5516,7 +5510,7 @@ function commitStroke(){
     else stampPolyCtx(mainCtx,G.path,false);
   }
 }
-function endStroke(){clearTimeout(holdTm);if(prevCtx)prevCtx.clearRect(0,0,CW,CH);G.path=null;G.snap=null;renderSymGuide();}
+function endStroke(){clearTimeout(holdTm);if(prevCtx)prevCtx.clearRect(0,0,CW,CH);G.path=null;G.snap=null;const _sb=$('snap-badge');if(_sb)_sb.style.display='none';renderSymGuide();}
 
 /* ===== 라이브 패스 자간 조절 (그린 후 핀치) ===== */
 function _livePolyLen(poly){let l=0;for(let i=1;i<poly.length;i++)l+=Math.hypot(poly[i].x-poly[i-1].x,poly[i].y-poly[i-1].y);return l;}
@@ -5865,7 +5859,8 @@ function onDown(e){
   if(G.anchorMode){setAnchor(pos);return;}
   if(G.mode==='pick'){pickColorAt(pos);if(G.prevMode&&G.prevMode!=='pick')setMode(G.prevMode);return;}
   if(G.editing){G.dragH=hitHandle(G.shape,pos,Math.max(14,18/G.zoom));return;}
-  if(G.spaceDown||e.button===1){
+  if(e.button===1||(G.spaceDown&&G.mode!=='draw')){
+    // 스페이스+드래그 = 팬. 단, draw 모드에선 스페이스 = 직선 잠금이므로 그리기로 진행
     G.isPanning=true;const raw=getRaw(e);G.panStart={x:raw.x-G.pan.x,y:raw.y-G.pan.y};return;
   }
   if(G.mode==='text'){
@@ -5889,8 +5884,7 @@ function onDown(e){
   }
   else if(G.mode==='graph'){fillCell(pos);composite();}
   else if(G.mode==='eraser'){
-    if(G.gridOn)eraseGridCell(mainCtx,pos.x,pos.y);
-    else eraseCircle(mainCtx,pos.x,pos.y,G.eraserSz);
+    eraseGridCell(mainCtx,pos.x,pos.y);
     composite();
     if(e.touches)startLpPick(e);
   }
@@ -5984,6 +5978,7 @@ function onMove(e){
         if(Math.abs(ang-sn)<0.12)ang=sn;
         G.path=[s0,{x:s0.x+Math.cos(ang)*d,y:s0.y+Math.sin(ang)*d,t:Date.now(),f:0}];
         if(!G.editing)armHold();
+        const _sb=$('snap-badge');if(_sb)_sb.style.display='block';
         renderPreview();return;
       }
       const last=G.path[G.path.length-1];
@@ -5996,9 +5991,7 @@ function onMove(e){
     }
   }else if(G.mode==='graph'){fillCell(pos);composite();}
   else if(G.mode==='eraser'){
-    if(G.gridOn)eraseGridCell(mainCtx,pos.x,pos.y);
-    else if(G.lastPos)erasePath(mainCtx,G.lastPos.x,G.lastPos.y,pos.x,pos.y,G.eraserSz);
-    else eraseCircle(mainCtx,pos.x,pos.y,G.eraserSz);
+    eraseGridCell(mainCtx,pos.x,pos.y);
     G.lastPos=pos;composite();
   }
   else if(G.mode==='smudge'){if(G.lastPos){smudgeStep(G.lastPos.x,G.lastPos.y,pos.x,pos.y);}G.lastPos=pos;composite();}
@@ -6120,15 +6113,7 @@ function onUp(e){
   }
   else if(G.mode==='clone'){if(_cloneDragStart){_cloneDragStart=null;composite();saveH();}}
   else if(G.mode==='graph'){composite();saveH();pushColorHist(G.color);}
-  // 더블탭 줌 토글 (단일 손가락, 그리기 동작 없을 때만) — Procreate-style
-  if(!e.touches&&!G.isDrawing&&G.mode!=='text'){
-    const now=Date.now(),raw=getRaw(e);
-    if(_dblTapT&&now-_dblTapT<320&&Math.hypot(raw.x-_dblTapX,raw.y-_dblTapY)<30){
-      _dblTapT=0;
-      if(Math.abs(G.zoom-1)<0.05)fitToScreen();
-      else{G.zoom=1;G.viewRot=0;const cwr=($('cw')||document.body).getBoundingClientRect();G.pan={x:cwr.width/2,y:cwr.height/2};applyTransform();}
-    }else{_dblTapT=now;_dblTapX=raw.x;_dblTapY=raw.y;}
-  }
+  // 마우스 더블탭 줌 제거 — 도장·지우개 연속 탭에서 화면이 튀는 원인 (줌은 휠·줌HUD 사용)
 }
 let _dblTapT=0,_dblTapX=0,_dblTapY=0;
 function onWheel(e){e.preventDefault();const _wf=e.deltaY>0?0.9:1.12;const _wz=Math.max(.2,Math.min(4,G.zoom*_wf));if(!G.viewRot){const _cw=$('cw');if(_cw){const _wr=_cw.getBoundingClientRect(),_mx=e.clientX-_wr.left,_my=e.clientY-_wr.top,_ratio=_wz/G.zoom;G.pan.x=_mx-(_mx-G.pan.x)*_ratio;G.pan.y=_my-(_my-G.pan.y)*_ratio;}}G.zoom=_wz;applyTransform();showZoomHud();}
