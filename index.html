@@ -419,7 +419,7 @@ html[data-theme=light] #morepop{background:rgba(255,255,255,.9);border-color:rgb
 .leye{background:none;border:none;cursor:pointer;font-size:14px;flex-shrink:0;padding:2px}
 .lctrl{background:var(--panel);border:1px solid var(--primary);border-top:none;border-radius:0 0 6px 6px;margin-top:-4px;padding:6px 8px 7px;display:flex;flex-direction:column;gap:6px}
 .lctrl .lopr{width:100%;accent-color:var(--primary)}
-.lctrl .lblend{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:3px 4px}
+.lctrl .lblend{display:none} /* 블렌드 모드 — 사진 합성 기능, 도안과 무관하여 숨김 */
 .lbtns{display:flex;gap:4px}
 .lbtns button{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:10px;padding:4px 2px;cursor:pointer}
 .lbtns button:hover{border-color:var(--primary);color:var(--primary)}
@@ -657,7 +657,6 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="el">
       <button class="pc-tb txt" id="btn-back" title="갤러리"><span class="glab">갤러리</span></button>
       <button class="pc-tb" id="btn-more" title="동작·내보내기">🔧</button>
-      <button class="pc-tb" id="btn-adjust" title="가이드·대칭·프레임">🪄</button>
       <button class="pc-tb" id="btn-sel-top" title="선택 영역">⬚</button>
       <button class="pc-tb" id="btn-trans" title="이동·변형">⤢</button>
     </div>
@@ -672,6 +671,7 @@ body.ui-hidden #row-counter{display:none!important}
         <button class="pc-tb" id="btn-erase" title="지우개  E"></button>
       </div>
       <button class="pc-tb" id="btn-ref" title="레퍼런스 이미지"></button>
+      <button class="pc-tb" id="btn-adjust" title="가이드·대칭·프레임 (패널이 이쪽에서 열림)">🪄</button>
       <button class="pc-tb" id="btn-qm" title="빠른 메뉴 (두 손가락 길게 누르기)"></button>
       <button class="pc-tb" id="btn-layers" title="레이어" style="position:relative"><span id="layer-badge"></span></button>
       <button id="topcol" title="색상 선택"></button>
@@ -947,16 +947,16 @@ body.ui-hidden #row-counter{display:none!important}
           <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px" id="brush-presets">
             <button class="ib bpreset act" data-p="ink" style="flex:1;min-width:60px;font-size:10px">✒ 잉크</button>
             <button class="ib bpreset" data-p="pencil" style="flex:1;min-width:60px;font-size:10px">✏ 연필</button>
-            <button class="ib bpreset" data-p="airbrush" style="flex:1;min-width:60px;font-size:10px">💨 에어</button>
+            <button class="ib bpreset" data-p="airbrush" style="display:none">💨 에어</button>
             <button class="ib bpreset" data-p="marker" style="flex:1;min-width:60px;font-size:10px">🖊 마커</button>
-            <button class="ib bpreset" data-p="brush" style="flex:1;min-width:60px;font-size:10px">🖌 붓</button>
+            <button class="ib bpreset" data-p="brush" style="display:none">🖌 붓</button>
           </div>
           <div class="cgl">크기</div>
           <div class="rr"><input type="range" id="bsz" min="1" max="30" value="3"><span class="rv" id="bszv">3px</span></div>
-          <div class="cgl">부드러움</div>
-          <div class="rr"><input type="range" id="bsft" min="0" max="100" value="0" step="5"><span class="rv" id="bsftv">0%</span></div>
-          <div class="cgl">StreamLine (획 안정화)</div>
-          <div class="rr"><input type="range" id="bstl" min="0" max="95" value="38" step="5"><span class="rv" id="bstlv">38%</span></div>
+          <div class="cgl" style="display:none">부드러움</div>
+          <div class="rr" style="display:none"><input type="range" id="bsft" min="0" max="100" value="0" step="5"><span class="rv" id="bsftv">0%</span></div>
+          <div class="cgl" style="display:none">StreamLine (획 안정화)</div>
+          <div class="rr" style="display:none"><input type="range" id="bstl" min="0" max="95" value="38" step="5"><span class="rv" id="bstlv">38%</span></div>
         </div>
 
         <div class="cg" id="stamp-cg">
@@ -1076,7 +1076,7 @@ body.ui-hidden #row-counter{display:none!important}
         </div>
 
 
-        <div class="cg">
+        <div class="cg" style="display:none"><!-- 사진 보정 기능 — 도안 제작과 무관하여 숨김 -->
           <div class="cgl">🎨 레이어 조정 (현재 레이어)</div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
             <span style="font-size:9px;color:var(--text2)">커브</span>
@@ -1152,7 +1152,7 @@ body.ui-hidden #row-counter{display:none!important}
           <div class="sw-wrap">
             <div class="sw on" id="sw-monoline"></div><span>모노라인 (균일 선폭)</span>
           </div>
-          <div class="sw-wrap">
+          <div class="sw-wrap" style="display:none">
             <div class="sw" id="sw-spray"></div><span>스프레이 (분무기)</span>
           </div>
           <div class="rr" style="margin-top:4px"><span style="font-size:9px;min-width:50px">채우기 허용값</span><input type="range" id="fill-thr" min="0" max="200" value="40"><span class="rv" id="fill-thrv">40</span></div>
@@ -4350,6 +4350,8 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
       if(e.code==='KeyB'){setMode('draw');showToast('브러시  B');}
       else if(e.code==='KeyE'){setMode('eraser');showToast('지우개  E');}
       else if(e.code==='KeyS'){setMode('stamp');showToast('기호 도장  S');}
+      else if(e.code==='KeyQ'){setRot((((G.rot||0)-15+180)%360+360)%360-180);showToast('기호 회전 '+G.rot+'°  (Q/R)');}
+      else if(e.code==='KeyR'){setRot((((G.rot||0)+15+180)%360+360)%360-180);showToast('기호 회전 '+G.rot+'°  (Q/R)');}
       else if(e.code==='KeyP'){setMode('pick');showToast('색상 추출  P');}
       else if(e.code==='KeyG'){setMode('graph');showToast('방안뜨기  G');}
       else if(e.code==='KeyF'){e.preventDefault();fitToScreen();showToast('화면 맞춤  F');}
@@ -4510,6 +4512,14 @@ function sharpCorners(v){const m=v.length,out=[];for(let i=0;i<m;i++){const a=v[
 function cornersWithAngles(v){const m=v.length,out=[];for(let i=0;i<m;i++){const a=v[(i-1+m)%m],b=v[i],c=v[(i+1)%m];const ax=b.x-a.x,ay=b.y-a.y,bx=c.x-b.x,by=c.y-b.y;const ang=Math.atan2(ax*by-ay*bx,ax*bx+ay*by);if(Math.abs(ang)>0.55)out.push({p:b,a:Math.abs(ang),i});}return out;}
 function detectShape(path){
   if(!path||path.length<2)return null;
+  {// 오버슈트 트림: 끝이 시작점을 지나쳐 겹치는(열려 보이는) 경로만 되감아 닫음 — 이미 닫힌 도형은 그대로
+    const bb0=bboxOf(path),dg0=Math.hypot(bb0.w,bb0.h)||1,s0=path[0];
+    if(dist2(path[path.length-1],s0)>=dg0*0.12){
+      for(let i=Math.floor(path.length*0.6);i<path.length;i++){
+        if(dist2(path[i],s0)<dg0*0.12){path=path.slice(0,i+1);break;}
+      }
+    }
+  }
   const a=path[0],b=path[path.length-1],L=polyLen(path)||1,chord=dist2(a,b),bb=bboxOf(path),diag=Math.hypot(bb.w,bb.h)||1;
   if(chord>=0.30*diag){
     if(chord/L>0.92)return{type:'line',a:{x:a.x,y:a.y},b:{x:b.x,y:b.y}};
@@ -4523,13 +4533,13 @@ function detectShape(path){
   // 면적비 판별: 경로 면적/외접박스 면적 — 사각≈1.0, 타원≈0.785, 삼각≈0.5
   let A2=0;for(let i=0;i<raw.length;i++){const p=raw[i],q=raw[(i+1)%raw.length];A2+=p.x*q.y-q.x*p.y;}
   const fillRatio=Math.abs(A2/2)/Math.max(1,ob.w*ob.h);
-  if(cv.length===3)return{type:'triangle',p:[{x:cv[0].x,y:cv[0].y},{x:cv[1].x,y:cv[1].y},{x:cv[2].x,y:cv[2].y}]};
-  // 꼭짓점이 3개로 안 잡혀도 면적비가 삼각 범위면 각도 상위 3개 꼭짓점으로 삼각형 구성
-  if(fillRatio<0.68&&cv.length>3){
+  // 면적비 우선 판별 — 매끈한 원도 RDP 후 꼭짓점 3~5개로 잡히므로 꼭짓점 수는 보조로만 사용
+  if(fillRatio<0.68){
+    if(cv.length===3)return{type:'triangle',p:[{x:cv[0].x,y:cv[0].y},{x:cv[1].x,y:cv[1].y},{x:cv[2].x,y:cv[2].y}]};
     const cw=cornersWithAngles(v).sort((p,q)=>q.a-p.a).slice(0,3);
     if(cw.length===3){cw.sort((p,q)=>p.i-q.i);return{type:'triangle',p:cw.map(c=>({x:c.p.x,y:c.p.y}))};}
   }
-  if(cv.length===4||fillRatio>0.86)return{type:'rect',cx:ob.cx,cy:ob.cy,w:ob.w,h:ob.h,rot:ob.rot};
+  if(fillRatio>0.86)return{type:'rect',cx:ob.cx,cy:ob.cy,w:ob.w,h:ob.h,rot:ob.rot};
   return{type:'ellipse',cx:ob.cx,cy:ob.cy,rx:Math.max(3,ob.w/2),ry:Math.max(3,ob.h/2),rot:ob.rot};
 }
 function shapeToPoly(s){
