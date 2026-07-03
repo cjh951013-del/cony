@@ -141,9 +141,10 @@ canvas{touch-action:none}
 /* 상단 바: 반투명 오버레이, 좌/우 클러스터 (프로크리에이트 그대로) */
 #eh{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
     padding:8px 10px;gap:6px;background:linear-gradient(180deg,rgba(12,12,20,.82) 60%,rgba(12,12,20,0));
-    border:none;flex-wrap:nowrap;-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4)}
+    border:none;flex-wrap:nowrap;-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);
+    pointer-events:none} /* 헤더 빈 영역이 캔버스 클릭을 삼키지 않도록 — 버튼만 클릭 가능 */
 html[data-theme=light] #eh{background:linear-gradient(180deg,rgba(248,248,252,.88) 60%,rgba(248,248,252,0));-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4)}
-#eh .el,#eh .er{display:flex;align-items:center;gap:4px;flex:0 0 auto;min-width:0}
+#eh .el,#eh .er{display:flex;align-items:center;gap:4px;flex:0 0 auto;min-width:0;pointer-events:auto}
 #eh .em{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;overflow:hidden;gap:1px;pointer-events:none}
 #eh .em #pn{pointer-events:auto}
 #eh .ec{display:none}
@@ -830,6 +831,7 @@ body.ui-hidden #row-counter{display:none!important}
           <button class="td-btn" data-mode="selection" title="선택 영역&#10;길게 눌러 즐겨찾기 토글">⬚</button>
         </div>
         <div class="pc-div"></div>
+        <button class="ib" id="btn-frames2" title="프레임 배치 (원형·반원·사각·격자)">◫</button>
         <button class="ib" id="btn-tl" title="손가락 잠금 — 그리는 중 터치 차단, 제스처 유지  T">🔓</button>
         <button class="ib" id="btn-undo" title="실행취소" disabled>↩</button>
         <button class="ib" id="btn-redo" title="다시실행" disabled>↪</button>
@@ -1011,10 +1013,10 @@ body.ui-hidden #row-counter{display:none!important}
           <div class="sw-wrap" style="margin-bottom:5px">
             <div class="sw on" id="sw-grid"></div><span>격자(Grid)</span>
           </div>
-          <div class="sw-wrap" style="margin-bottom:5px">
+          <div class="sw-wrap" style="margin-bottom:5px;display:none">
             <div class="sw" id="sw-iso"></div><span>등각(Isometric) 그리드</span>
           </div>
-          <div class="sw-wrap" style="margin-bottom:5px">
+          <div class="sw-wrap" style="margin-bottom:5px;display:none">
             <div class="sw" id="sw-persp"></div><span>원근 격자(Perspective Grid)</span>
           </div>
           <div class="sw-wrap" style="margin-bottom:5px">
@@ -1148,7 +1150,7 @@ body.ui-hidden #row-counter{display:none!important}
             <div class="sw on" id="sw-symbrush"></div><span>기호 브러시 (드래그로 기호 잇기)</span>
           </div>
           <div class="sw-wrap">
-            <div class="sw" id="sw-monoline"></div><span>모노라인 (균일 선폭)</span>
+            <div class="sw on" id="sw-monoline"></div><span>모노라인 (균일 선폭)</span>
           </div>
           <div class="sw-wrap">
             <div class="sw" id="sw-spray"></div><span>스프레이 (분무기)</span>
@@ -1563,7 +1565,7 @@ let G={
   bgColor:'#202024',
   brushSz:3,
   brushSoftness:0,
-  brushMonoline:false,
+  brushMonoline:true,
   brushSpray:false,
   eraserSz:6,
   fillThreshold:40,
@@ -3151,12 +3153,10 @@ function erasePath(ctx,px,py,nx,ny,r){
   }
 }
 function eraseGridCell(ctx,x,y){
-  // 기호 단위 지우기 — 도장과 동일한 스냅 지점을 중심으로 기호 크기 박스를 지움
-  const p=G.gridOn?snapToGrid({x,y}):{x,y};
-  const gs=G.gridOn?graphCellSz():40;
-  const r=Math.max(gs/2,(G.stampSz||48)/2);
+  // 기호 단위 지우기 — 포인터 아래를 원형으로 지움 (링·도형 배치 등 격자 밖 기호도 지워지도록 스냅 없음)
+  const r=Math.max(20,(G.stampSz||48)*0.55);
   ctx.save();ctx.globalCompositeOperation='destination-out';
-  ctx.fillStyle='#000';ctx.fillRect(p.x-r,p.y-r,r*2,r*2);
+  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle='#000';ctx.fill();
   ctx.restore();
 }
 /* ===== Flood Fill (bucket) — 4-연결 BFS ===== */
@@ -3820,6 +3820,7 @@ function bindAll(){
   // 손가락 잠금은 터치 기기에서만 의미 있음 — 데스크탑에선 숨김
   if(!('ontouchstart' in window)&&!(navigator.maxTouchPoints>0)){const _tl=$('btn-tl');if(_tl)_tl.style.display='none';}
   $('btn-frames').addEventListener('click',openFramePicker);
+  $('btn-frames2').addEventListener('click',openFramePicker);
   $('btn-undo').addEventListener('click',undo);
   $('btn-redo').addEventListener('click',redo);
   initDock();
@@ -4506,10 +4507,11 @@ function unproj(u,v,a){return{x:u*Math.cos(a)-v*Math.sin(a),y:u*Math.sin(a)+v*Ma
 function pcaAngle(pts){let mx=0,my=0;for(const p of pts){mx+=p.x;my+=p.y;}mx/=pts.length;my/=pts.length;let sxx=0,syy=0,sxy=0;for(const p of pts){const dx=p.x-mx,dy=p.y-my;sxx+=dx*dx;syy+=dy*dy;sxy+=dx*dy;}return 0.5*Math.atan2(2*sxy,sxx-syy);}
 function orientedBox(pts){const a=pcaAngle(pts);let mnu=1e9,mxu=-1e9,mnv=1e9,mxv=-1e9;for(const p of pts){const u=projU(p,a),v=projV(p,a);if(u<mnu)mnu=u;if(u>mxu)mxu=u;if(v<mnv)mnv=v;if(v>mxv)mxv=v;}const c=unproj((mnu+mxu)/2,(mnv+mxv)/2,a);return{cx:c.x,cy:c.y,w:Math.max(4,mxu-mnu),h:Math.max(4,mxv-mnv),rot:a};}
 function sharpCorners(v){const m=v.length,out=[];for(let i=0;i<m;i++){const a=v[(i-1+m)%m],b=v[i],c=v[(i+1)%m];const ax=b.x-a.x,ay=b.y-a.y,bx=c.x-b.x,by=c.y-b.y;const ang=Math.atan2(ax*by-ay*bx,ax*bx+ay*by);if(Math.abs(ang)>0.7)out.push(b);}return out;}
+function cornersWithAngles(v){const m=v.length,out=[];for(let i=0;i<m;i++){const a=v[(i-1+m)%m],b=v[i],c=v[(i+1)%m];const ax=b.x-a.x,ay=b.y-a.y,bx=c.x-b.x,by=c.y-b.y;const ang=Math.atan2(ax*by-ay*bx,ax*bx+ay*by);if(Math.abs(ang)>0.55)out.push({p:b,a:Math.abs(ang),i});}return out;}
 function detectShape(path){
   if(!path||path.length<2)return null;
   const a=path[0],b=path[path.length-1],L=polyLen(path)||1,chord=dist2(a,b),bb=bboxOf(path),diag=Math.hypot(bb.w,bb.h)||1;
-  if(chord>=0.22*diag){
+  if(chord>=0.30*diag){
     if(chord/L>0.92)return{type:'line',a:{x:a.x,y:a.y},b:{x:b.x,y:b.y}};
     const simp=rdp(path,Math.max(2,L*0.02));
     return{type:'curve',pts:simp.length>=2?simp:[a,b]};
@@ -4518,10 +4520,15 @@ function detectShape(path){
   if(raw.length>3&&dist2(raw[0],raw[raw.length-1])<diag*0.12)raw=raw.slice(0,-1);
   let v=rdp(raw,Math.max(3,diag*0.05));
   const cv=sharpCorners(v),ob=orientedBox(path);
-  if(cv.length===3)return{type:'triangle',p:[{x:cv[0].x,y:cv[0].y},{x:cv[1].x,y:cv[1].y},{x:cv[2].x,y:cv[2].y}]};
-  // 면적비 판별: 경로 면적/외접박스 면적 — 사각≈1.0, 타원≈0.785 (모서리 뭉개진 손그림 대응)
+  // 면적비 판별: 경로 면적/외접박스 면적 — 사각≈1.0, 타원≈0.785, 삼각≈0.5
   let A2=0;for(let i=0;i<raw.length;i++){const p=raw[i],q=raw[(i+1)%raw.length];A2+=p.x*q.y-q.x*p.y;}
   const fillRatio=Math.abs(A2/2)/Math.max(1,ob.w*ob.h);
+  if(cv.length===3)return{type:'triangle',p:[{x:cv[0].x,y:cv[0].y},{x:cv[1].x,y:cv[1].y},{x:cv[2].x,y:cv[2].y}]};
+  // 꼭짓점이 3개로 안 잡혀도 면적비가 삼각 범위면 각도 상위 3개 꼭짓점으로 삼각형 구성
+  if(fillRatio<0.68&&cv.length>3){
+    const cw=cornersWithAngles(v).sort((p,q)=>q.a-p.a).slice(0,3);
+    if(cw.length===3){cw.sort((p,q)=>p.i-q.i);return{type:'triangle',p:cw.map(c=>({x:c.p.x,y:c.p.y}))};}
+  }
   if(cv.length===4||fillRatio>0.86)return{type:'rect',cx:ob.cx,cy:ob.cy,w:ob.w,h:ob.h,rot:ob.rot};
   return{type:'ellipse',cx:ob.cx,cy:ob.cy,rx:Math.max(3,ob.w/2),ry:Math.max(3,ob.h/2),rot:ob.rot};
 }
@@ -5334,7 +5341,7 @@ function stampPolyCtx(ctx,poly,ghost){
   if(!poly||poly.length<1)return;
   const col=G.toolColors[G.stitch]||G.color;
   let pts=poly.length<2?[poly[0]]:resampleAlong(poly,(G.stampGap||38));
-  pts=snapPts(pts);
+  if(!G._lineLock)pts=snapPts(pts); // 직선 잠금 중엔 스냅 생략 — 균등 간격 유지
   ctx.globalAlpha=ghost?0.55:G.opacity;
   symXf().forEach(T=>{for(const p of pts){const q=T(p);const rot=G.radial?radialRotFor(q.x,q.y)+(G.rot||0):G.rot;drawSVGStitch(ctx,q.x,q.y,G.stitch,col,G.stampSz||48,rot);}});
   ctx.globalAlpha=1;
@@ -5356,7 +5363,7 @@ function showBrushCursor(screenX,screenY){
   const cwr=($('cw')||document.body).getBoundingClientRect();
   const isSpray=G.mode==='draw'&&G.brushSpray;
   const isClone=G.mode==='clone';
-  const sz=((G.mode==='stamp'||(G.mode==='draw'&&G.symBrush&&!isSpray))?G.stampSz*G.zoom:G.mode==='eraser'?G.eraserSz*2*G.zoom:isSpray||isClone?G.brushSz*4*G.zoom:G.brushSz*G.zoom);
+  const sz=((G.mode==='stamp'||(G.mode==='draw'&&G.symBrush&&!isSpray))?G.stampSz*G.zoom:G.mode==='eraser'?Math.max(20,(G.stampSz||48)*0.55)*G.zoom:isSpray||isClone?G.brushSz*4*G.zoom:G.brushSz*G.zoom);
   const d=Math.max(4,Math.round(sz*2));
   // 모드별 커서 색상: 지우개=빨간 점선, 스머지=보라, 스프레이=파란 점선, 복제=금색, 기본=흰 원
   const isErase=G.mode==='eraser',isSmudge=G.mode==='smudge',isLiquify=G.mode==='liquify';
@@ -5517,7 +5524,7 @@ function commitStroke(){
     else stampPolyCtx(mainCtx,G.path,false);
   }
 }
-function endStroke(){clearTimeout(holdTm);if(prevCtx)prevCtx.clearRect(0,0,CW,CH);G.path=null;G.snap=null;const _sb=$('snap-badge');if(_sb)_sb.style.display='none';renderSymGuide();}
+function endStroke(){clearTimeout(holdTm);if(prevCtx)prevCtx.clearRect(0,0,CW,CH);G.path=null;G.snap=null;G._lineLock=false;const _sb=$('snap-badge');if(_sb)_sb.style.display='none';renderSymGuide();}
 
 /* ===== 라이브 패스 자간 조절 (그린 후 핀치) ===== */
 function _livePolyLen(poly){let l=0;for(let i=1;i<poly.length;i++)l+=Math.hypot(poly[i].x-poly[i-1].x,poly[i].y-poly[i-1].y);return l;}
@@ -5984,13 +5991,14 @@ function onMove(e){
         const sn=Math.round(ang/(Math.PI/4))*(Math.PI/4);
         if(Math.abs(ang-sn)<0.12)ang=sn;
         G.path=[s0,{x:s0.x+Math.cos(ang)*d,y:s0.y+Math.sin(ang)*d,t:Date.now(),f:0}];
+        G._lineLock=true; // 직선 잠금 중엔 격자 스냅 없이 균등 간격 배치
         if(!G.editing)armHold();
         const _sb=$('snap-badge');if(_sb)_sb.style.display='block';
         renderPreview();return;
       }
       const last=G.path[G.path.length-1];
       // draw 모드는 StreamLine 0.38 — 입력 안정화로 떨림 제거 (프로크리에이트 StreamLine)
-      const fv=_penPressure>0?_penPressure:(e.touches&&e.touches[0]&&e.touches[0].force>0)?e.touches[0].force:0;
+      const fv=0; // 필압 미사용 — 도안 기호·선은 균일 굵기가 기준 (사용자 요청)
       const slFac=1-(G.streamLine||0.38);
       const spos={x:last.x+(pos.x-last.x)*slFac,y:last.y+(pos.y-last.y)*slFac,t:Date.now(),f:fv};
       if(dist2(spos,last)>=MIN_PT){G.path.push(spos);if(!G.editing)armHold();}
