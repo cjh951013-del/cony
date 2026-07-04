@@ -2144,7 +2144,7 @@ function drawPerspGrid(ctx){
 // 자유배치 프레임 레이아웃: rect(구역)·circle(동심원+스포크)·semi(반원)·grid(방안 격자)
 function drawCanvasFrames(ctx){
   if(!G.canvasFrames||!G.canvasFrames.length)return;
-  G.canvasFrames.forEach(f=>drawFrameGuide(ctx,f));
+  G.canvasFrames.forEach(f=>{if(G.frameEditId===f.id)return;drawFrameGuide(ctx,f);});
 }
 function drawFrameGuide(ctx,f){
   const gap=G.stampGap||38;
@@ -2276,6 +2276,9 @@ function updateSeqHud(){
 function snapToGrid(p){
   if(!G.gridOn)return p;
   const fs=frameSnap(p);if(fs)return fs; // 프레임 안이면 프레임 스냅 우선
+  // 격자 프레임 안: 그 프레임의 칸 중심 (칸 크기는 프레임별 f.cell)
+  const gf=(G.canvasFrames||[]).find(f=>(f.kind==='grid')&&p.x>=f.x&&p.x<=f.x+f.w&&p.y>=f.y&&p.y<=f.y+f.h);
+  if(gf){const gs=gf.cell||40;return{x:gf.x+Math.floor((p.x-gf.x)/gs)*gs+gs/2,y:gf.y+Math.floor((p.y-gf.y)/gs)*gs+gs/2};}
   // stampAt·화면 격자(drawGrid)와 동일한 셀 중심 스냅 — 미리보기·커밋·지우개 격자 통일
   if(G.stampSnap!==false){const gs=graphCellSz();return{x:Math.floor(p.x/gs)*gs+gs/2,y:Math.floor(p.y/gs)*gs+gs/2};}
   const gs=40,a=G.anchor||{x:0,y:0};return{x:a.x+Math.round((p.x-a.x)/gs)*gs,y:a.y+Math.round((p.y-a.y)/gs)*gs};
@@ -2504,12 +2507,15 @@ function symName(id){
 }
 // 방안뜨기(그래프) 색칠: 보이는 격자(40px)에 맞춰 한 칸을 현재 색으로 채움
 function fillCell(p){
-  const gs=graphCellSz();mainCtx.fillStyle=G.color;
+  // 격자 프레임 안이면 그 프레임의 칸 크기·원점 기준으로 칠함 (프레임 = 방안 작업 영역)
+  const gf=(G.canvasFrames||[]).find(f=>(f.kind==='grid')&&p.x>=f.x&&p.x<=f.x+f.w&&p.y>=f.y&&p.y<=f.y+f.h);
+  const gs=gf?(gf.cell||40):graphCellSz(), ox=gf?gf.x:0, oy=gf?gf.y:0;
+  mainCtx.fillStyle=G.color;
   symXf().forEach(T=>{
-    const q=T(p);const cx=Math.floor(q.x/gs)*gs,cy=Math.floor(q.y/gs)*gs;
+    const q=T(p);const cx=ox+Math.floor((q.x-ox)/gs)*gs,cy=oy+Math.floor((q.y-oy)/gs)*gs;
     if(cx>=0&&cy>=0&&cx<CW&&cy<CH){
       mainCtx.fillRect(cx,cy,gs,gs);
-      const col=Math.floor(q.x/gs),row=Math.floor((CH-1-cy)/gs);
+      const col=Math.floor((q.x-ox)/gs),row=Math.floor(((gf?gf.y+gf.h:CH)-1-cy)/gs);
       G.graphData[col+','+row]=G.color;
     }
   });
@@ -4731,9 +4737,11 @@ function stampShape(ctx,s,ghost){
   if(ghost)ctx.globalAlpha=1;
   if(!ghost)recordSymUse(G.stitch);
 }
-function shapeAddStitch(d){if(!G.shape)return;if(G.mode!=='stamp'&&!(G.mode==='draw'&&G.symBrush))return;G.shape.n=Math.max(2,shapeStitchCount(G.shape)+d);showShapeBar();renderEdit();}
+function shapeAddStitch(d){if(!G.shape)return;
+  if(G.frameKind==='grid'){G._frameCell=Math.max(16,Math.min(120,(G._frameCell||40)+d*8));showShapeBar();renderEdit();return;}
+  if(G.mode!=='stamp'&&!(G.mode==='draw'&&G.symBrush))return;G.shape.n=Math.max(2,shapeStitchCount(G.shape)+d);showShapeBar();renderEdit();}
 function cycleShapeTypeBtn(){cycleShapeType();}
-function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';const t=$('shape-type');if(t)t.textContent=G.frameKind?'프레임':(TYPE_LABEL[G.shape.type]||'모양');const sym=G.mode==='stamp'||(G.mode==='draw'&&G.symBrush);const cw=$('shape-count-wrap');if(cw)cw.style.display=(sym&&!G.frameKind)?'inline-flex':'none';const cc=$('shape-count');if(cc&&sym&&!G.frameKind)cc.textContent=shapeStitchCount(G.shape)+'코';}
+function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';const t=$('shape-type');if(t)t.textContent=G.frameKind?'프레임':(TYPE_LABEL[G.shape.type]||'모양');const sym=G.mode==='stamp'||(G.mode==='draw'&&G.symBrush);const isGridF=G.frameKind==='grid';const cw=$('shape-count-wrap');if(cw)cw.style.display=(isGridF||(sym&&!G.frameKind))?'inline-flex':'none';const cc=$('shape-count');if(cc){if(isGridF)cc.textContent='칸 '+(G._frameCell||40)+'px';else if(sym&&!G.frameKind)cc.textContent=shapeStitchCount(G.shape)+'코';}}
 function hideShapeBar(){const b=$('shape-bar');if(b)b.style.display='none';}
 function renderEdit(){
   if(!prevCtx||!G.shape)return;
@@ -4742,6 +4750,7 @@ function renderEdit(){
     // 프레임 배치 미리보기: 확정 후 모습(반원·링·단 번호) 그대로 표시
     const bb=bboxOf(shapeToPoly(G.shape)),kind=G.frameKind;
     const tf=kind==='semi'?{x:bb.x,y:bb.y+bb.h/2,w:bb.w,h:bb.h/2,kind,name:''}:{x:bb.x,y:bb.y,w:bb.w,h:bb.h,kind,name:''};
+    if(kind==='grid')tf.cell=G._frameCell||40;
     drawFrameGuide(prevCtx,tf);
   }
   else if(G.mode==='stamp'||(G.mode==='draw'&&G.symBrush))stampShape(prevCtx,G.shape,true);
@@ -4800,7 +4809,7 @@ function moveShapeBy(s,dx,dy){
 function centerShape(){if(!G.shape)return;const bb=bboxOf(shapeToPoly(G.shape));moveShapeBy(G.shape,CW/2-(bb.x+bb.w/2),CH/2-(bb.y+bb.h/2));renderEdit();}
 function commitShape(){if(!G.shape)return;if(G.frameKind){commitFrame();return;}if(G.mode==='stamp'||(G.mode==='draw'&&G.symBrush))stampShape(mainCtx,G.shape,false);else strokePolyCtx(mainCtx,shapeToPoly(G.shape));exitEdit();composite();saveH();}
 function cancelShape(){exitEdit();}
-function exitEdit(){G.editing=false;G.shape=null;G.dragH=null;G.awaitLift=false;G.frameKind=null;G.path=null;G.snap=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);hideShapeBar();}
+function exitEdit(){const hadFE=!!G.frameEditId;G.editing=false;G.shape=null;G.dragH=null;G.awaitLift=false;G.frameKind=null;G.frameEditId=null;G.path=null;G.snap=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);hideShapeBar();if(hadFE)drawBg();}
 
 /* ----- selection float (move / paste) ----- */
 function clipToCanvas(img){const c=document.createElement('canvas');c.width=Math.max(1,img.width);c.height=Math.max(1,img.height);c.getContext('2d').putImageData(img,0,0);return c;}
@@ -4936,10 +4945,17 @@ function openFramePicker(){
       +'<button class="fpb" data-k="semi">◗ 반원 — 가방·부채·우산</button>'
       +'<button class="fpb" data-k="rect">▭ 사각 — 구역 나누기</button>'
       +'<button class="fpb" data-k="grid">⊞ 격자 — 방안뜨기·패턴</button>'
+      +'<div id="fp-list" style="display:flex;flex-direction:column;gap:4px;max-height:150px;overflow-y:auto"></div>'
       +'<button class="fpb d" data-k="_clear">🗑 프레임 모두 지우기</button>'
       +'<button class="fpb" data-k="_close">닫기</button>';
     document.body.appendChild(p);
     p.addEventListener('click',e=>{
+      const eb=e.target.closest('[data-fedit]');
+      if(eb){p.style.display='none';editFrame(+eb.dataset.fedit);return;}
+      const db=e.target.closest('[data-fdel]');
+      if(db){const id=+db.dataset.fdel;const fr=(G.canvasFrames||[]).find(x=>x.id===id);
+        if(fr&&confirm(`'${fr.name}' 프레임을 삭제할까요?`)){G.canvasFrames=G.canvasFrames.filter(x=>x.id!==id);drawBg();schedulePersist();renderFrameList(p);}
+        return;}
       const b=e.target.closest('.fpb');if(!b)return;
       p.style.display='none';
       const k=b.dataset.k;
@@ -4948,13 +4964,39 @@ function openFramePicker(){
       startFramePlace(k);
     });
   }
+  renderFrameList(p);
   p.style.display='flex';
+}
+function renderFrameList(p){
+  const list=p.querySelector('#fp-list');if(!list)return;
+  const fr=G.canvasFrames||[];
+  list.innerHTML=fr.length?fr.map(f=>`<div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border-radius:8px;padding:5px 8px">
+    <span style="flex:1;font-size:11px;color:#ddd">${f.name}</span>
+    <button data-fedit="${f.id}" style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(168,85,247,.25);color:#e9d5ff;cursor:pointer">✎ 편집</button>
+    <button data-fdel="${f.id}" style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#f87171;cursor:pointer">🗑</button>
+  </div>`).join(''):'<div style="font-size:10px;color:rgba(255,255,255,.35);text-align:center;padding:2px">배치된 프레임 없음</div>';
+}
+// 기존 프레임 재편집: 크기·위치를 핸들로 수정 (패턴이 커지면 프레임을 늘리는 용도)
+function editFrame(id){
+  const f=(G.canvasFrames||[]).find(x=>x.id===id);if(!f)return;
+  if(G.editing)exitEdit();
+  const k=f.kind||'rect';
+  if(k==='circle')G.shape={type:'ellipse',cx:f.x+f.w/2,cy:f.y+f.h/2,rx:f.w/2,ry:f.h/2,rot:0};
+  else if(k==='semi')G.shape={type:'ellipse',cx:f.x+f.w/2,cy:f.y,rx:f.w/2,ry:f.h,rot:0};
+  else G.shape={type:'rect',cx:f.x+f.w/2,cy:f.y+f.h/2,w:f.w,h:f.h,rot:0};
+  G.frameKind=k;G.frameEditId=id;
+  if(k==='grid')G._frameCell=f.cell||40;
+  G.editing=true;G.isDrawing=false;G.awaitLift=false;
+  drawBg(); // 편집 중 원본 프레임은 숨김 (drawCanvasFrames에서 스킵)
+  showShapeBar();renderEdit();
+  showToast(f.name+' 편집 — 핸들로 조절 후 ✓');
 }
 function startFramePlace(kind){
   if(!isPro()&&(G.canvasFrames||[]).length>=3){openM('m-pro');showToast('무료는 프레임 3개까지 — Pro는 무제한');return;}
   if(G.editing)exitEdit();
   const R=Math.min(CW,CH)*0.22;
   G.shape=(kind==='circle'||kind==='semi')?{type:'ellipse',cx:CW/2,cy:CH/2,rx:R,ry:R,rot:0}:{type:'rect',cx:CW/2,cy:CH/2,w:R*2,h:R*2,rot:0};
+  if(kind==='grid')G._frameCell=40;
   G.frameKind=kind;G.editing=true;G.isDrawing=false;G.awaitLift=false;
   showShapeBar();renderEdit();
   showToast(kind==='semi'?'반원 프레임 — 원의 아래 반쪽이 프레임이 됩니다. 조절 후 ✓':'핸들로 위치·크기 조절 후 ✓');
@@ -4966,8 +5008,13 @@ function commitFrame(){
   const f=kind==='semi'
     ?{id:Date.now(),name:names[kind]+' '+(G.canvasFrames.length+1),x:bb.x,y:bb.y+bb.h/2,w:bb.w,h:bb.h/2,kind}
     :{id:Date.now(),name:names[kind]+' '+(G.canvasFrames.length+1),x:bb.x,y:bb.y,w:bb.w,h:bb.h,kind};
-  if(kind==='grid')f.cell=graphCellSz(); // 방안 열 수 설정에 따른 칸 크기 고정
-  G.canvasFrames.push(f);
+  if(kind==='grid')f.cell=G._frameCell||40; // 편집 중 −/＋로 정한 칸 크기
+  if(G.frameEditId){ // 기존 프레임 재편집: 교체 (id·이름 유지)
+    const i=G.canvasFrames.findIndex(x=>x.id===G.frameEditId);
+    if(i>=0){f.id=G.frameEditId;f.name=G.canvasFrames[i].name;G.canvasFrames[i]=f;}
+    else G.canvasFrames.push(f);
+    G.frameEditId=null;
+  }else G.canvasFrames.push(f);
   if(kind==='circle'||kind==='semi'){
     G.anchor=kind==='circle'?{x:f.x+f.w/2,y:f.y+f.h/2}:{x:f.x+f.w/2,y:f.y};
     // 다중 링 배치를 프레임 크기에 자동 정렬 — 가이드 동심원과 배치 반지름 일치
