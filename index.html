@@ -165,10 +165,6 @@ html[data-theme=light] .pc-tb.act{background:rgba(0,0,0,.82);border-color:rgba(0
 #zoom-hud.show,#rot-hud.show{opacity:1;pointer-events:auto}
 #rot-hud{top:calc(50% + 52px)}
 /* 단 계산기 */
-#row-ctr{position:absolute;right:12px;bottom:12px;z-index:43;background:rgba(20,10,40,.82);color:#c084fc;border:1.5px solid rgba(168,85,247,.5);border-radius:14px;padding:6px 14px;font-size:14px;font-weight:700;cursor:pointer;user-select:none;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;align-items:center;gap:8px;transition:transform .12s}
-#row-ctr:active{transform:scale(.93)}
-#row-ctr .rc-lbl{font-size:9px;font-weight:500;color:rgba(192,132,252,.7);letter-spacing:.5px}
-#row-ctr.hide{display:none}
 /* 길게 누르기 색 추출 링 */
 #lp-ring{position:absolute;pointer-events:none;border-radius:50%;width:80px;height:80px;transform:translate(-50%,-120%) scale(0);display:none;z-index:36;transition:transform .25s cubic-bezier(.34,1.56,.64,1),opacity .2s;opacity:0;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.55),0 0 0 2px rgba(255,255,255,.8)}
 #lp-ring.arm{display:block;transform:translate(-50%,-120%) scale(1);opacity:1}
@@ -795,7 +791,6 @@ body.ui-hidden #row-counter{display:none!important}
       </div>
       <div id="zoom-hud">100%</div>
       <div id="rot-hud">0°</div>
-      <div id="row-ctr" class="hide"><span class="rc-lbl">단</span><span id="rc-hud-num">1</span></div>
       <div id="lp-ring">
         <canvas id="lp-loupe" width="80" height="80"></canvas>
         <div id="lp-swatch"><div class="lp-sw" id="lp-sw-old"></div><div class="lp-sw" id="lp-sw-new"></div></div>
@@ -1028,7 +1023,7 @@ body.ui-hidden #row-counter{display:none!important}
             <div class="sw" id="sw-nums"></div><span>코·단 번호 (좌하단=1)</span>
           </div>
           <div class="sw-wrap" style="margin-bottom:5px">
-            <div class="sw" id="sw-rowctr"></div><span>단 계산기 (오른쪽 하단)</span>
+            <div class="sw on" id="sw-rowctr"></div><span>단 계산기 표시 (우측 상단, 드래그로 이동)</span>
           </div>
           <button class="ib" id="btn-clr-frames" style="font-size:10px;padding:3px 7px;margin-top:3px" title="자유배치 프레임 모두 삭제">□ 프레임 초기화</button>
           <div class="sw-wrap" style="margin-bottom:5px">
@@ -2257,14 +2252,15 @@ function seqNextPos(p0){
       const pos=frameSlotPos(info.f,ring,slot);
       showToast((ring-1)+'단 완료 — '+ring+'단 시작 ('+pos.count+'코)');
       G.seq={frameId:info.f.id,ring,slot,count:pos.count};
-      updateSeqHud();return pos;
+      updateSeqHud();setRowCounter(ring); // 단 계산기 자동 연동 — 실제 뜨는 단과 항상 일치
+      return pos;
     }
     const pos=frameSlotPos(info.f,ring,slot);
     G.seq={frameId:info.f.id,ring,slot,count:G.seq.count};
     updateSeqHud();return pos;
   }
   G.seq={frameId:info.f.id,ring,slot,count};
-  updateSeqHud();
+  updateSeqHud();setRowCounter(ring);
   return{x:info.x,y:info.y};
 }
 function updateSeqHud(){
@@ -3461,14 +3457,14 @@ function pushColorHist(c){
   renderColHistBar();
 }
 /* ===== 단/코 카운터 위젯 ===== */
-function updateRowCounter(){const n=$('rc-num');if(n)n.textContent=G.rowCount;}
+function updateRowCounter(){const n=$('rc-num');if(n)n.textContent=G.rowCount;try{localStorage.setItem('rc_count',G.rowCount);}catch(e){}}
 function initRowCounter(){
   updateRowCounter();
-  $('rc-inc').addEventListener('click',e=>{e.stopPropagation();G.rowCount=Math.max(1,G.rowCount+1);updateRowCounter();showToast('단 '+G.rowCount);schedulePersist();});
-  $('rc-dec').addEventListener('click',e=>{e.stopPropagation();if(G.rowCount>1){G.rowCount--;updateRowCounter();showToast('단 '+G.rowCount);schedulePersist();}});
+  $('rc-inc').addEventListener('click',e=>{e.stopPropagation();setRowCounter(G.rowCount+1);showToast('단 '+G.rowCount);schedulePersist();});
+  $('rc-dec').addEventListener('click',e=>{e.stopPropagation();if(G.rowCount>1){setRowCounter(G.rowCount-1);showToast('단 '+G.rowCount);schedulePersist();}});
   // 길게 눌러 리셋
   let _rcLpTm=null;
-  $('rc-val').addEventListener('pointerdown',()=>{_rcLpTm=setTimeout(()=>{G.rowCount=1;updateRowCounter();showToast('단 카운터 초기화');schedulePersist();},700);});
+  $('rc-val').addEventListener('pointerdown',()=>{_rcLpTm=setTimeout(()=>{setRowCounter(1);showToast('단 카운터 초기화');schedulePersist();},700);});
   $('rc-val').addEventListener('pointerup',()=>{clearTimeout(_rcLpTm);});
   $('rc-val').addEventListener('pointerleave',()=>{clearTimeout(_rcLpTm);});
   // 드래그로 이동
@@ -4000,7 +3996,7 @@ function bindAll(){
   $('sw-nums').addEventListener('click',()=>{G.numbersOn=!G.numbersOn;$('sw-nums').classList.toggle('on',G.numbersOn);drawBg();});
   {const sn=$('sw-snap');if(sn){sn.classList.toggle('on',G.stampSnap!==false);sn.addEventListener('click',()=>{G.stampSnap=!G.stampSnap;sn.classList.toggle('on',G.stampSnap);showToast(G.stampSnap?'격자 스냅 ON — 기호가 칸 중앙에 고정됩니다':'격자 스냅 OFF');});}}
   {const sq=$('sw-seq');if(sq){sq.classList.toggle('on',G.seqOn!==false);sq.addEventListener('click',()=>{G.seqOn=G.seqOn===false;sq.classList.toggle('on',G.seqOn!==false);if(G.seqOn===false&&G.seq){G.seq=null;updateSeqHud();}showToast(G.seqOn!==false?'연속 배치 ON — 프레임 안에서 탭마다 다음 코':'연속 배치 OFF — 탭한 자리에 스냅');});}}
-  $('sw-rowctr').addEventListener('click',()=>{toggleRowCtr();$('sw-rowctr').classList.toggle('on',$('row-ctr')&&!$('row-ctr').classList.contains('hide'));});
+  $('sw-rowctr').addEventListener('click',()=>{toggleRowCtr();$('sw-rowctr').classList.toggle('on',$('row-counter')&&!$('row-counter').classList.contains('hidden'));});
   $('btn-clr-frames').addEventListener('click',clearAllFrames);
   $('sw-radial').addEventListener('click',()=>{G.radial=!G.radial;$('sw-radial').classList.toggle('on',G.radial);});
   $('ring-n').addEventListener('input',()=>{G.radialN=Math.max(2,Math.min(120,parseInt($('ring-n').value)||12));});
@@ -5603,23 +5599,16 @@ function drawGhostAt(pos){
   symXf().forEach(T=>{const q=T(p);drawSVGStitch(ghostCtx,q.x,q.y,G.stitch,col,sz,rot);});
 }
 
-/* ===== 단 계산기 ===== */
+/* ===== 단 계산기 — row-counter(우측 상단) 하나로 통합, 연속 배치와 자동 연동 ===== */
 function initRowCtr(){
   try{G.rowCount=parseInt(localStorage.getItem('rc_count')||'1')||1;}catch(e){G.rowCount=1;}
-  const el=$('row-ctr');if(!el)return;
-  const num=$('rc-hud-num');
-  function update(){if(num)num.textContent=G.rowCount;try{localStorage.setItem('rc_count',G.rowCount);}catch(e){}}
-  update();
-  let _rcHold=null;
-  el.addEventListener('click',()=>{G.rowCount=Math.max(1,G.rowCount+1);update();});
-  el.addEventListener('contextmenu',e=>{e.preventDefault();if(confirm('단 계산기를 1로 초기화할까요?')){G.rowCount=1;update();}});
-  el.addEventListener('touchstart',()=>{_rcHold=setTimeout(()=>{if(confirm('단 계산기를 1로 초기화할까요?')){G.rowCount=1;update();}},700);},{passive:true});
-  el.addEventListener('touchend',()=>{clearTimeout(_rcHold);_rcHold=null;});
+  updateRowCounter();
 }
+function setRowCounter(n){G.rowCount=Math.max(1,n|0);updateRowCounter();try{localStorage.setItem('rc_count',G.rowCount);}catch(e){}}
 function toggleRowCtr(){
-  const el=$('row-ctr');if(!el)return;
-  el.classList.toggle('hide');
-  showToast(el.classList.contains('hide')?'단 계산기 숨김':'단 계산기 표시 (클릭=+1, 우클릭·길게누르기=초기화)');
+  const el=$('row-counter');if(!el)return;
+  el.classList.toggle('hidden');
+  showToast(el.classList.contains('hidden')?'단 계산기 숨김':'단 계산기 표시됨');
 }
 /* ===== 핀치 줌 HUD ===== */
 let _toastTm=null;
