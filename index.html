@@ -2582,7 +2582,30 @@ function flipLayerCv(l,dir){
   if(dir==='h'){l.ctx.translate(CW,0);l.ctx.scale(-1,1);}else{l.ctx.translate(0,CH);l.ctx.scale(1,-1);}
   l.ctx.drawImage(t,0,0);l.ctx.restore();
 }
-function flipCanvas(dir){G.layers.forEach(l=>flipLayerCv(l,dir));composite();renderLayers();saveHMulti();}
+// 캔버스 변형(뒤집기·회전·크기조정) 시 프레임 좌표도 함께 이동 — 안 하면 도안과 가이드가 어긋남
+function transformCanvasFrames(op,a,b){
+  if(!G.canvasFrames||!G.canvasFrames.length)return;
+  let skippedSemi=false;
+  G.canvasFrames=G.canvasFrames.map(f=>{
+    const k=f.kind||'rect';
+    if(op==='fliph')return Object.assign({},f,{x:CW-f.x-f.w});
+    if(op==='flipv'){
+      if(k==='semi'){skippedSemi=true;return f;}
+      return Object.assign({},f,{y:CH-f.y-f.h});
+    }
+    if(op==='rot'){
+      if(k==='semi'){skippedSemi=true;return f;}
+      const cx=CW/2,cy=CH/2,fcx=f.x+f.w/2,fcy=f.y+f.h/2,dx=fcx-cx,dy=fcy-cy;
+      const [ndx,ndy]=a==='cw'?[-dy,dx]:[dy,-dx];
+      const nw=f.h,nh=f.w;
+      return Object.assign({},f,{x:cx+ndx-nw/2,y:cy+ndy-nh/2,w:nw,h:nh});
+    }
+    if(op==='shift')return Object.assign({},f,{x:f.x+a,y:f.y+b});
+    return f;
+  });
+  if(skippedSemi)showToast('반원 프레임은 위치가 어긋날 수 있어요 — 프레임 편집으로 다시 맞춰주세요');
+}
+function flipCanvas(dir){G.layers.forEach(l=>flipLayerCv(l,dir));transformCanvasFrames(dir==='h'?'fliph':'flipv');drawBg();composite();renderLayers();saveHMulti();}
 // 이미지 가져오기: 새 레이어(반투명)에 캔버스 맞춤 배치 → 그 위에 따라 그리기
 function importImageFromURL(url,done){
   const img=new Image();
@@ -2613,7 +2636,8 @@ function rotateCanvas(dir){
     tc.save();tc.translate(CW/2,CH/2);tc.rotate(dir==='cw'?Math.PI/2:-Math.PI/2);tc.drawImage(l.cv,-CW/2,-CH/2);tc.restore();
     l.ctx.clearRect(0,0,CW,CH);l.ctx.drawImage(tmp,0,0);
   });
-  composite();renderLayers();saveHMulti();
+  transformCanvasFrames('rot',dir);
+  drawBg();composite();renderLayers();saveHMulti();
 }
 function clearCv(){if(mainCtx)mainCtx.clearRect(0,0,CW,CH);G.usedSymbols=[];composite();}
 function resizeCanvas(nw,nh,anchor){
@@ -2628,6 +2652,7 @@ function resizeCanvas(nw,nh,anchor){
     l.cv=tmp;l.ctx=tmp.getContext('2d');
     applyLayerLock(l);
   });
+  transformCanvasFrames('shift',ox,oy);
   // 2) DOM 캔버스 크기 변경 (clearRect는 필요 없음 — width 재할당이 자동 클리어)
   CW=nw;CH=nh;
   const bgEl=$('bg-c');if(bgEl){bgEl.width=nw;bgEl.height=nh;bgCtx=bgEl.getContext('2d');}
