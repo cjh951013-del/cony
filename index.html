@@ -3583,12 +3583,12 @@ function recolorLayer(fromHex,toHex,threshold){
 function analyzeColorUsage(){
   const box=$('colstat-list');if(!box)return;
   box.innerHTML='<div style="font-size:11px;color:var(--text3)">분석 중...</div>';
-  requestAnimationFrame(()=>{
+  setTimeout(()=>{ // rAF는 탭이 가려지면 발화하지 않아 '분석 중'에 멈춤 — setTimeout으로 보장
     const gs=40,buckets={};
     // 모든 레이어를 임시 캔버스에 합성
+    // 배경은 깔지 않음 — 빈 칸이 배경색으로 잡혀 '사용 색상'과 실 소요량을 오염시키던 버그
     const tmp=document.createElement('canvas');tmp.width=CW;tmp.height=CH;
     const tc=tmp.getContext('2d');
-    tc.fillStyle=G.bgColor||'#fff';tc.fillRect(0,0,CW,CH);
     G.layers.forEach(l=>{if(l.visible&&l.cv){tc.globalAlpha=(l.opacity==null?1:l.opacity);tc.globalCompositeOperation=l.blend||'source-over';tc.drawImage(l.cv,0,0);}});
     tc.globalAlpha=1;tc.globalCompositeOperation='source-over';
     const imgD=tc.getImageData(0,0,CW,CH);const d=imgD.data;
@@ -3606,12 +3606,22 @@ function analyzeColorUsage(){
     box.innerHTML='';
     if(!sorted.length){box.innerHTML='<div style="font-size:11px;color:var(--text3)">사용된 색상 없음</div>';return;}
     const total=Math.max(1,totalNonEmpty);
+    // 색상별 실 소요량 추정: 칸(40px)≈1코, 현재 기법의 코당 실 소모 근사(중세사 기준 cm)
+    const YARN_PER_ST={ch:1.5,slst:1.2,sc:2.2,hdc:3.2,dc:4.5,tr:6,dtr:7.5};
+    const perCm=YARN_PER_ST[G.stitch]||3, stName=symName(G.stitch)||'기타';
+    const fmtM=cm=>cm>=100?(cm/100).toFixed(1)+'m':Math.round(cm)+'cm';
+    let sumCm=0;
     sorted.forEach(([hex,cnt])=>{
       const pct=Math.round(cnt/total*100);
+      const yarnCm=cnt*perCm;sumCm+=yarnCm;
       const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)';
-      row.innerHTML=`<div style="width:24px;height:24px;border-radius:4px;border:1px solid var(--border);flex-shrink:0;background:${hex}"></div><span style="font-family:monospace;font-size:11px;flex-shrink:0">${hex}</span><div style="flex:1;background:var(--panel2);border-radius:4px;overflow:hidden;height:8px"><div style="width:${pct}%;background:${hex};height:100%;min-width:2px;border-radius:4px"></div></div><span style="font-size:10px;color:var(--text2);flex-shrink:0">${cnt}칸 (${pct}%)</span><button style="font-size:9px;padding:1px 5px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);cursor:pointer" onclick="setColor('${hex}');syncWheelFromColor&&syncWheelFromColor();closeM('m-colstat')">선택</button>`;
+      row.innerHTML=`<div style="width:24px;height:24px;border-radius:4px;border:1px solid var(--border);flex-shrink:0;background:${hex}"></div><span style="font-family:monospace;font-size:11px;flex-shrink:0">${hex}</span><div style="flex:1;background:var(--panel2);border-radius:4px;overflow:hidden;height:8px"><div style="width:${pct}%;background:${hex};height:100%;min-width:2px;border-radius:4px"></div></div><span style="font-size:10px;color:var(--text2);flex-shrink:0">${cnt}칸 (${pct}%) · 실 ≈${fmtM(yarnCm)}</span><button style="font-size:9px;padding:1px 5px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);cursor:pointer" onclick="setColor('${hex}');syncWheelFromColor&&syncWheelFromColor();closeM('m-colstat')">선택</button>`;
       box.appendChild(row);
     });
+    const foot=document.createElement('div');
+    foot.style.cssText='font-size:10px;color:var(--text3);padding:8px 0 2px;line-height:1.5';
+    foot.innerHTML=`합계 실 소요 ≈ <b style="color:var(--text2)">${fmtM(sumCm)}</b><br>※ 추정치: 칸(40px)≈1코, ${stName} 기준 코당 ${perCm}cm(중세사 근사). 방안(칸 채색) 도안에 정확하며, 실 굵기·장력에 따라 ±30% 이상 달라질 수 있어요.`;
+    box.appendChild(foot);
   });
 }
 function renderTilePreview(){
