@@ -977,6 +977,15 @@ body.ui-hidden #row-counter{display:none!important}
           <div class="sw-wrap" style="margin-top:5px">
             <div class="sw on" id="sw-seq"></div><span>연속 배치 (프레임 안 탭마다 다음 코)</span>
           </div>
+          <div id="annnum-cg" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+            <div class="cgl">번호 마커 값</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+              <button class="ib" id="annnum-m" style="width:26px;font-size:13px">−</button>
+              <input type="number" id="annnum-val" value="1" min="1" max="999" style="flex:1;text-align:center;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px">
+              <button class="ib" id="annnum-p" style="width:26px;font-size:13px">＋</button>
+            </div>
+            <div class="sw-wrap"><div class="sw on" id="sw-annnum-auto"></div><span>찍을 때마다 +1 (반복 구간 번호 매기기)</span></div>
+          </div>
         </div>
 
         <!-- 방안뜨기 전용 패널 (graph 모드일 때만 표시) -->
@@ -1525,6 +1534,7 @@ STITCHES.annotation=[
   {id:'ann-star',name:'별 마커',svg:'ann-star',visible:true},
   {id:'ann-x',name:'금지 표시',svg:'ann-x',visible:true},
   {id:'ann-dim-h',name:'가로 치수',svg:'ann-dim-h',visible:true},
+  {id:'ann-num',name:'번호 마커',svg:'ann-num',visible:true},
 ];
 const YARN_DB=[
   {brand:'DMC',name:'Natura XL',color:'크림',hex:'#f5f0e0',weight:'중세',mpg:'2.5m/g'},
@@ -1563,6 +1573,7 @@ let G={
   cur:null,
   mode:'stamp',
   stitch:'ch',
+  annNum:1,annNumAuto:true,
   prevMode:'stamp',
   usedSymbols:[],
   color:'#ffffff',
@@ -1927,6 +1938,12 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
       const num={'ann-circ1':'1','ann-circ2':'2','ann-circ3':'3'}[id];
       ctx.beginPath();ctx.arc(0,0,h*.6,0,Math.PI*2);ctx.stroke();
       ctx.font=`bold ${Math.round(h*.7)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(num,0,0);break;}
+    case 'ann-num':{
+      // 자유 숫자 마커 — 원하는 번호를 원 안에 (반복 구간·단 표시용, 옵션 패널에서 값 지정)
+      const num=String(G.annNum!=null?G.annNum:1);
+      ctx.beginPath();ctx.arc(0,0,h*.6,0,Math.PI*2);ctx.stroke();
+      const fsz=Math.round(h*.7*Math.min(1,2.2/Math.max(2,num.length+1)));
+      ctx.font=`bold ${fsz}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(num,0,0);break;}
     case 'ann-star':{const n=5,r1=h*.65,r2=h*.28;ctx.beginPath();for(let i=0;i<n*2;i++){const a=i*Math.PI/n-Math.PI/2,r=i%2?r2:r1;i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);}ctx.closePath();ctx.fill();break;}
     case 'ann-x':{ctx.beginPath();ctx.arc(0,0,h*.6,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(-h*.38,-h*.38);ctx.lineTo(h*.38,h*.38);ctx.moveTo(h*.38,-h*.38);ctx.lineTo(-h*.38,h*.38);ctx.stroke();break;}
     case 'ann-dim-h':{const cap=h*.35;ctx.beginPath();ctx.moveTo(-h*.7,-cap);ctx.lineTo(-h*.7,cap);ctx.moveTo(-h*.7,0);ctx.lineTo(h*.7,0);ctx.moveTo(h*.7,-cap);ctx.lineTo(h*.7,cap);ctx.stroke();break;}
@@ -3876,6 +3893,19 @@ function showScreen(s){
 }
 
 /* ===================== SET MODE ===================== */
+// 번호 마커 옵션 패널: 도장 모드에서 '번호 마커' 기호를 골랐을 때만 노출
+function updateAnnNumUI(){
+  const box=$('annnum-cg');if(!box)return;
+  const show=G.mode==='stamp'&&G.stitch==='ann-num';
+  box.style.display=show?'block':'none';
+  if(show){const v=$('annnum-val');if(v)v.value=G.annNum;}
+}
+// 번호 마커를 찍은 직후 호출 — '자동 증가'면 다음 번호로 넘어감
+function bumpAnnNumIfNeeded(){
+  if(G.mode!=='stamp'||G.stitch!=='ann-num'||G.annNumAuto===false)return;
+  G.annNum=Math.min(999,G.annNum+1);
+  const v=$('annnum-val');if(v)v.value=G.annNum;
+}
 function setMode(m){
   if(G.editing)cancelShape();
   if(G.float)commitFloat();
@@ -3885,6 +3915,7 @@ function setMode(m){
   else if(m==='eraser'||m==='smudge'||m==='liquify'||m==='gradient'){if(!G.prevDraw)G.prevDraw=G.prevPaint||'stamp';}
   G.mode=m;
   if(m!=='stamp'&&G.seq){G.seq=null;updateSeqHud();}
+  updateAnnNumUI();
   document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
   document.querySelectorAll('.td-btn[data-mode]').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
   // 상단 바 도구 버튼 하이라이트 동기화 (프로크리에이트식)
@@ -4021,6 +4052,11 @@ function bindAll(){
   $('sw-nums').addEventListener('click',()=>{G.numbersOn=!G.numbersOn;$('sw-nums').classList.toggle('on',G.numbersOn);drawBg();});
   {const sn=$('sw-snap');if(sn){sn.classList.toggle('on',G.stampSnap!==false);sn.addEventListener('click',()=>{G.stampSnap=!G.stampSnap;sn.classList.toggle('on',G.stampSnap);showToast(G.stampSnap?'격자 스냅 ON — 기호가 칸 중앙에 고정됩니다':'격자 스냅 OFF');});}}
   {const sq=$('sw-seq');if(sq){sq.classList.toggle('on',G.seqOn!==false);sq.addEventListener('click',()=>{G.seqOn=G.seqOn===false;sq.classList.toggle('on',G.seqOn!==false);if(G.seqOn===false&&G.seq){G.seq=null;updateSeqHud();}showToast(G.seqOn!==false?'연속 배치 ON — 프레임 안에서 탭마다 다음 코':'연속 배치 OFF — 탭한 자리에 스냅');});}}
+  // 번호 마커: 값 입력·증감·자동증가 토글
+  {const av=$('annnum-val');if(av)av.addEventListener('input',()=>{G.annNum=Math.max(1,Math.min(999,parseInt(av.value)||1));});}
+  {const am=$('annnum-m');if(am)am.addEventListener('click',()=>{G.annNum=Math.max(1,G.annNum-1);$('annnum-val').value=G.annNum;});}
+  {const ap=$('annnum-p');if(ap)ap.addEventListener('click',()=>{G.annNum=Math.min(999,G.annNum+1);$('annnum-val').value=G.annNum;});}
+  {const sa=$('sw-annnum-auto');if(sa){sa.classList.toggle('on',G.annNumAuto!==false);sa.addEventListener('click',()=>{G.annNumAuto=!(G.annNumAuto!==false);sa.classList.toggle('on',G.annNumAuto);});}}
   $('sw-rowctr').addEventListener('click',()=>{toggleRowCtr();$('sw-rowctr').classList.toggle('on',$('row-counter')&&!$('row-counter').classList.contains('hidden'));});
   $('btn-clr-frames').addEventListener('click',clearAllFrames);
   $('sw-radial').addEventListener('click',()=>{G.radial=!G.radial;$('sw-radial').classList.toggle('on',G.radial);});
@@ -6339,6 +6375,7 @@ function onUp(e){
     }else{
       if(G.path)commitStroke();
       composite();endStroke();saveH();pushColorHist(G.color);
+      bumpAnnNumIfNeeded();
     }
   }
   else if(G.mode==='selection'||G.mode==='select'){
