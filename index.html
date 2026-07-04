@@ -977,6 +977,9 @@ body.ui-hidden #row-counter{display:none!important}
           <div class="sw-wrap" style="margin-top:5px">
             <div class="sw on" id="sw-snap"></div><span>격자 스냅 (기호를 칸 중앙에 고정)</span>
           </div>
+          <div class="sw-wrap" style="margin-top:5px">
+            <div class="sw on" id="sw-seq"></div><span>연속 배치 (프레임 안 탭마다 다음 코)</span>
+          </div>
         </div>
 
         <!-- 방안뜨기 전용 패널 (graph 모드일 때만 표시) -->
@@ -2192,7 +2195,23 @@ function drawNumbers(ctx){
   ctx.restore();
 }
 // 원형·반원 프레임 안: 단(링) 반지름 + 그 단 코 수의 각도에 스냅 — 프레임 안에서 정확한 간격 자동 배치
-function frameSnap(p){
+// slot 기준: 원형=12시 시작 반시계(코바늘 관례), 반원=왼쪽 끝(π)에서 시계 방향(왼→오)
+function frameRingCount(f,ring){
+  const n0=Math.max(2,G.mringStart|0)||6, inc=Math.max(0,G.mringInc|0);
+  return Math.max(2,n0+(ring-1)*inc);
+}
+function frameSlotPos(f,ring,slot){
+  const k=f.kind||'circle';
+  const cx=f.x+f.w/2, cy=k==='semi'?f.y:f.y+f.h/2;
+  const rx=f.w/2, ry=k==='semi'?f.h:f.h/2;
+  const R=Math.min(rx,ry), n=Math.max(1,Math.round(R/(G.stampGap||38)));
+  const cnt=frameRingCount(f,ring);
+  const stepA=(k==='semi'?Math.PI:2*Math.PI)/cnt;
+  const th=k==='semi'?Math.PI-slot*stepA:-Math.PI/2-slot*stepA;
+  const rr=Math.min(ring,n)/n;
+  return{x:cx+Math.cos(th)*rx*rr, y:cy+Math.sin(th)*ry*rr, count:k==='semi'?cnt+1:cnt, rings:n};
+}
+function frameSnapInfo(p){
   for(const f of (G.canvasFrames||[])){
     const k=f.kind||'rect';
     if(k!=='circle'&&k!=='semi')continue;
@@ -2205,17 +2224,47 @@ function frameSnap(p){
     const R=Math.min(rx,ry);
     const n=Math.max(1,Math.round(R/(G.stampGap||38)));
     const ring=Math.max(1,Math.min(n,Math.round(d*n)));
-    const n0=Math.max(2,G.mringStart|0)||6, inc=Math.max(0,G.mringInc|0);
-    const cnt=Math.max(2,n0+(ring-1)*inc);
-    const full=k==='semi'?Math.PI:2*Math.PI;
-    let th=Math.atan2(dy,dx);
-    const stepA=full/cnt;
-    th=Math.round(th/stepA)*stepA;
-    if(k==='semi')th=Math.max(0,Math.min(Math.PI,th));
-    const rr=ring/n;
-    return{x:cx+Math.cos(th)*rx*rr,y:cy+Math.sin(th)*ry*rr};
+    const cnt=frameRingCount(f,ring);
+    const stepA=(k==='semi'?Math.PI:2*Math.PI)/cnt;
+    const th=Math.atan2(dy,dx);
+    let slot;
+    if(k==='semi'){slot=Math.max(0,Math.min(cnt,Math.round((Math.PI-Math.max(0,Math.min(Math.PI,th)))/stepA)));}
+    else{slot=((Math.round((-Math.PI/2-th)/stepA))%cnt+cnt)%cnt;}
+    const pos=frameSlotPos(f,ring,slot);
+    return{x:pos.x,y:pos.y,f,ring,slot,count:pos.count,rings:n};
   }
   return null;
+}
+function frameSnap(p){const i=frameSnapInfo(p);return i?{x:i.x,y:i.y}:null;}
+// 연속 배치: 프레임 안 도장 탭마다 다음 코 자리로 자동 진행, 단이 차면 다음 단 (뜨개 순서 그대로)
+function seqNextPos(p0){
+  if(G.seqOn===false||!G.gridOn||G.mode!=='stamp')return null;
+  const info=frameSnapInfo(p0);
+  if(!info){if(G.seq){G.seq=null;updateSeqHud();}return null;}
+  let ring=info.ring,slot=info.slot,count=info.count;
+  if(G.seq&&G.seq.frameId===info.f.id&&info.ring===G.seq.ring){
+    slot=G.seq.slot+1;
+    if(slot>=G.seq.count){
+      if(G.seq.ring>=info.rings){showToast('마지막 단까지 완료! 🧶');G.seq=null;updateSeqHud();return null;}
+      ring=G.seq.ring+1;slot=0;
+      const pos=frameSlotPos(info.f,ring,slot);
+      showToast((ring-1)+'단 완료 — '+ring+'단 시작 ('+pos.count+'코)');
+      G.seq={frameId:info.f.id,ring,slot,count:pos.count};
+      updateSeqHud();return pos;
+    }
+    const pos=frameSlotPos(info.f,ring,slot);
+    G.seq={frameId:info.f.id,ring,slot,count:G.seq.count};
+    updateSeqHud();return pos;
+  }
+  G.seq={frameId:info.f.id,ring,slot,count};
+  updateSeqHud();
+  return{x:info.x,y:info.y};
+}
+function updateSeqHud(){
+  let h=$('seq-hud');
+  if(!h){h=document.createElement('div');h.id='seq-hud';h.style.cssText='position:absolute;top:68px;left:50%;transform:translateX(-50%);background:rgba(20,10,40,.85);color:#c084fc;border:1px solid rgba(168,85,247,.5);border-radius:14px;padding:4px 14px;font-size:12px;font-weight:700;pointer-events:none;z-index:32;display:none';const cw=$('cw');if(cw)cw.appendChild(h);}
+  if(G.seq){h.style.display='block';h.textContent=G.seq.ring+'단 '+(G.seq.slot+1)+'/'+G.seq.count+'코 — 탭하면 다음 코';}
+  else h.style.display='none';
 }
 function snapToGrid(p){
   if(!G.gridOn)return p;
@@ -2501,6 +2550,7 @@ function _urFlash(col){
 }
 function undo(){
   if(G.histIdx<=0){showToast('더 이상 실행취소 없음');return;}
+  if(G.seq){G.seq=null;updateSeqHud();} // 연속 배치 카운터는 undo와 어긋나므로 리셋
   const cur=G.hist[G.histIdx];
   const affected=cur.multi?cur.multi.map(x=>x.lid):[cur.lid];
   affected.forEach(lid=>{const prev=prevDataFor(lid,G.histIdx-1),l=layerById(lid);if(l){if(prev)l.ctx.putImageData(prev,0,0);else l.ctx.clearRect(0,0,CW,CH);}});
@@ -3799,6 +3849,7 @@ function setMode(m){
   if(['stamp','draw','graph','text'].includes(m)){G.prevPaint=m;G.prevDraw=m;}
   else if(m==='eraser'||m==='smudge'||m==='liquify'||m==='gradient'){if(!G.prevDraw)G.prevDraw=G.prevPaint||'stamp';}
   G.mode=m;
+  if(m!=='stamp'&&G.seq){G.seq=null;updateSeqHud();}
   document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
   document.querySelectorAll('.td-btn[data-mode]').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
   // 상단 바 도구 버튼 하이라이트 동기화 (프로크리에이트식)
@@ -3933,6 +3984,7 @@ function bindAll(){
   $('sw-persp').addEventListener('click',()=>{G.perspGuide=!G.perspGuide;$('sw-persp').classList.toggle('on',G.perspGuide);drawBg();renderDaBadge();if(G.perspGuide)showToast('원근 격자 켜짐 — 소실점: 캔버스 중앙 상단');});
   $('sw-nums').addEventListener('click',()=>{G.numbersOn=!G.numbersOn;$('sw-nums').classList.toggle('on',G.numbersOn);drawBg();});
   {const sn=$('sw-snap');if(sn){sn.classList.toggle('on',G.stampSnap!==false);sn.addEventListener('click',()=>{G.stampSnap=!G.stampSnap;sn.classList.toggle('on',G.stampSnap);showToast(G.stampSnap?'격자 스냅 ON — 기호가 칸 중앙에 고정됩니다':'격자 스냅 OFF');});}}
+  {const sq=$('sw-seq');if(sq){sq.classList.toggle('on',G.seqOn!==false);sq.addEventListener('click',()=>{G.seqOn=G.seqOn===false;sq.classList.toggle('on',G.seqOn!==false);if(G.seqOn===false&&G.seq){G.seq=null;updateSeqHud();}showToast(G.seqOn!==false?'연속 배치 ON — 프레임 안에서 탭마다 다음 코':'연속 배치 OFF — 탭한 자리에 스냅');});}}
   $('sw-rowctr').addEventListener('click',()=>{toggleRowCtr();$('sw-rowctr').classList.toggle('on',$('row-ctr')&&!$('row-ctr').classList.contains('hide'));});
   $('btn-clr-frames').addEventListener('click',clearAllFrames);
   $('sw-radial').addEventListener('click',()=>{G.radial=!G.radial;$('sw-radial').classList.toggle('on',G.radial);});
@@ -5600,7 +5652,12 @@ function commitStroke(){
     else if(G.path&&G.path.length>1)strokePolyCtx(mainCtx,G.path);
     else if(G.path&&G.path.length>=1){mainCtx.fillStyle=G.color;mainCtx.beginPath();mainCtx.arc(G.path[0].x,G.path[0].y,Math.max(1,G.brushSz/2),0,7);mainCtx.fill();}
   }else if(G.mode==='stamp'){
-    if(G.path&&G.path.length===1){const p=G.gridOn?snapToGrid(G.path[0]):G.path[0];stampAt(p.x,p.y);}
+    if(G.path&&G.path.length===1){
+      const p0=G.path[0];
+      const sp=seqNextPos(p0); // 연속 배치 (프레임 안)
+      const p=sp||(G.gridOn?snapToGrid(p0):p0);
+      stampAt(p.x,p.y);
+    }
     else stampPolyCtx(mainCtx,G.path,false);
   }
 }
