@@ -1242,6 +1242,14 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="fg"><label>공예 종류</label>
       <select id="np-tp"><option value="crochet">코바늘 (Crochet)</option><option value="knitting">대바늘 (Knitting)</option></select>
     </div>
+    <div class="fg"><label>시작 템플릿</label>
+      <select id="np-tpl">
+        <option value="">빈 캔버스</option>
+        <option value="motif">○ 원형 모티브 (도일리·코스터)</option>
+        <option value="graphgrid">⊞ 방안뜨기 (격자)</option>
+        <option value="bag">◗ 가방 (반원 바닥 + 격자 몸판)</option>
+      </select>
+    </div>
     <div class="fg"><label>캔버스 크기</label>
       <div style="display:flex;gap:8px;align-items:center">
         <input id="np-w" type="number" value="1200" min="200" max="4000" step="100" style="width:80px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:13px;text-align:center">
@@ -2143,6 +2151,9 @@ function drawCanvasFrames(ctx){
       const n=Math.max(1,Math.round(Math.min(rx,ry)/gap));
       for(let i=1;i<n;i++){ctx.beginPath();ctx.ellipse(cx,cy,rx*i/n,ry*i/n,0,0,Math.PI*2);ctx.stroke();}
       for(let i=0;i<12;i++){const a=i/12*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+rx*Math.cos(a),cy+ry*Math.sin(a));ctx.stroke();}
+      // 단 번호: 각 링 위쪽에 표기 (전문 도안 표준)
+      ctx.fillStyle='rgba(168,85,247,.75)';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      for(let i=1;i<=n;i++)ctx.fillText(String(i),cx,cy-ry*i/n+ry/n/2);
     }else if(k==='semi'){
       const cy=f.y,rx=f.w/2,ry=f.h;
       ctx.setLineDash([8,5]);ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI);ctx.closePath();ctx.stroke();ctx.setLineDash([]);
@@ -2150,6 +2161,8 @@ function drawCanvasFrames(ctx){
       const n=Math.max(1,Math.round(Math.min(rx,ry)/gap));
       for(let i=1;i<n;i++){ctx.beginPath();ctx.ellipse(cx,cy,rx*i/n,ry*i/n,0,0,Math.PI);ctx.stroke();}
       for(let i=0;i<=6;i++){const a=i/6*Math.PI;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+rx*Math.cos(a),cy+ry*Math.sin(a));ctx.stroke();}
+      ctx.fillStyle='rgba(168,85,247,.75)';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      for(let i=1;i<=n;i++)ctx.fillText(String(i),cx,cy+ry*i/n-ry/n/2);
     }else if(k==='grid'){
       ctx.setLineDash([8,5]);ctx.strokeRect(f.x,f.y,f.w,f.h);ctx.setLineDash([]);
       ctx.strokeStyle='rgba(168,85,247,.22)';
@@ -3548,54 +3561,54 @@ function renderYarnList(filter=''){
 }
 
 /* ===================== NARRATIVE ===================== */
+// 서술도안: 다중 링 설정(단 수·1단 코 수·단마다 증가)과 현재 기호를 실제로 반영해 생성
 function genNarrative(type){
-  const s=STITCHES[G.cur?.type||'crochet'];
-  const frameDesc={'circle':'원형','square':'사각형','hexagon':'육각형','oval':'타원형','triangle':'삼각형','stripe':'줄무늬','none':'자유'}[G.frame]||'';
+  const rings=Math.max(1,G.mringN|0),n0=Math.max(2,G.mringStart|0),inc=Math.max(0,G.mringInc|0);
+  const stKo=symName(G.stitch)||'짧은뜨기';
+  const stAb=(G.stitch||'sc').replace(/^cus_.*/,'st');
+  const used=(G.usedSymbols||[]).map(symName).filter(Boolean);
+  const rowKo=(k)=>{
+    const n=n0+(k-1)*inc,prev=n0+(k-2)*inc;
+    if(k===1)return `1단: 매직링에 ${stKo} ${n0}코 = ${n0}코`;
+    if(inc===0)return `${k}단: 각 코에 ${stKo} 1코 = ${n}코`;
+    const plain=Math.max(0,Math.floor((prev-inc)/inc));
+    return plain===0?`${k}단: 늘리기 × ${inc} = ${n}코`:`${k}단: (${stKo} ${plain}코, 늘리기 1) × ${inc} = ${n}코`;
+  };
+  const rowAb=(k,en)=>{
+    const n=n0+(k-1)*inc,prev=n0+(k-2)*inc;
+    if(k===1)return en?`Rnd 1: ${n0} ${stAb} in magic ring. (${n0})`:`Rnd 1: ${stAb} ${n0} (${n0})`;
+    if(inc===0)return `Rnd ${k}: ${stAb} in each st. (${n})`;
+    const plain=Math.max(0,Math.floor((prev-inc)/inc));
+    return plain===0?`Rnd ${k}: [inc] ×${inc} (${n})`:`Rnd ${k}: [${stAb}${plain}, inc] ×${inc} (${n})`;
+  };
+  const rowsOf=(fn)=>Array.from({length:rings},(_,i)=>fn(i+1)).join('\n');
   if(type==='ko'){
-    return `[${frameDesc} 뜨개 도안 — 서술도안]
+    return `[뜨개 도안 — 서술도안]
 작성: ${G.cur?.name||'도안'}
+사용 기호: ${used.length?used.join(', '):stKo}
 재료: 코바늘 4호 / 중세사 (면사 또는 아크릴)
 
-시작: 매직링에 짧은뜨기 6코
-1단: 짧은뜨기 늘리기 × 6 = 12코
-2단: (짧은뜨기 1, 늘리기 1) × 6 = 18코
-3단: (짧은뜨기 2, 늘리기 1) × 6 = 24코
-4단: (짧은뜨기 3, 늘리기 1) × 6 = 30코
-5단: (짧은뜨기 4, 늘리기 1) × 6 = 36코
-6단: (짧은뜨기 5, 늘리기 1) × 6 = 40코
+${rowsOf(rowKo)}
 
-마무리: 빼뜨기로 닫기, 실 정리`;
+마무리: 빼뜨기로 닫기, 실 정리
+※ 단 수·코 수는 '다중 링' 설정(왼쪽 패널)을 따릅니다. 프레임을 배치하면 자동으로 맞춰집니다.`;
   }
   if(type==='abbr'){
     if(!isPro()) return '⚠️ 약어 보기는 Pro 이상에서 사용 가능합니다.';
-    return `[${frameDesc} Pattern — Abbreviated KO]
+    return `[Pattern — Abbreviated KO]
 재료: 코바늘 4호 / 중세사
-게이지: sc 10코 = 5cm
 
 CO: Magic ring
-Rnd 1: sc 6 (6)
-Rnd 2: [inc] ×6 (12)
-Rnd 3: [sc1, inc] ×6 (18)
-Rnd 4: [sc2, inc] ×6 (24)
-Rnd 5: [sc3, inc] ×6 (30)
-Rnd 6: [sc4, inc] ×6 (36)
-Rnd 7: [sc5, inc] ×6 (40)
+${rowsOf(k=>rowAb(k,false))}
 FO: sl st, weave in ends`;
   }
   if(type==='en'){
     if(!isPro2()) return '⚠️ 영문 약어 변환은 Pro+ 전용 기능입니다.';
-    return `[${frameDesc} Crochet Pattern — English Abbreviations]
+    return `[Crochet Pattern — English Abbreviations]
 Materials: US Size G-6 (4mm) hook / Worsted weight yarn
-Gauge: 10 sc = 5cm
 
 Magic Ring
-Rnd 1: 6 sc in ring. (6)
-Rnd 2: [inc] repeat 6 times. (12)
-Rnd 3: [sc, inc] repeat 6 times. (18)
-Rnd 4: [sc2, inc] repeat 6 times. (24)
-Rnd 5: [sc3, inc] repeat 6 times. (30)
-Rnd 6: [sc4, inc] repeat 6 times. (36)
-Rnd 7: [sc5, inc] repeat 6 times. (40)
+${rowsOf(k=>rowAb(k,true))}
 FO: Sl st, fasten off, weave in ends.`;
   }
 }
@@ -3719,6 +3732,16 @@ function openP(id){
   if(p.cw&&p.ch&&(p.cw!==CW||p.ch!==CH)){CW=p.cw;CH=p.ch;}
   G.anchor={x:CW/2,y:CH/2};G.anchorMode=false;
   G.canvasFrames=Array.isArray(p.frames)?p.frames:[];
+  // 원형·반원 프레임이 있으면 앵커·다중 링을 프레임에 맞춰 복원
+  {const f0=G.canvasFrames.find(f=>f.kind==='circle'||f.kind==='semi');
+   if(f0){
+     G.anchor=f0.kind==='semi'?{x:f0.x+f0.w/2,y:f0.y}:{x:f0.x+f0.w/2,y:f0.y+f0.h/2};
+     const R=f0.kind==='circle'?Math.min(f0.w,f0.h)/2:Math.min(f0.w/2,f0.h);
+     const n=Math.max(1,Math.round(R/(G.stampGap||38)));
+     G.mringN=n;G.mringDR=Math.round(R/n);G.mringR0=G.mringDR;
+     const _s=(sid,v)=>{const el=$(sid);if(el)el.value=v;};
+     _s('mring-n',n);_s('mring-r0',G.mringR0);_s('mring-dr',G.mringDR);
+   }}
   resetLayers();G.usedSymbols=[];
   drawBg();renderShelf();renderLayers();renderPalettes();renderColHistBar();
   G.hist=[];G.histIdx=-1;$('btn-undo').disabled=true;$('btn-redo').disabled=true;
@@ -3805,6 +3828,17 @@ function bindAll(){
     let nh=Math.round(Math.max(200,Math.min(4000,parseInt($('np-h').value)||1200)));
     if((nw>maxSz||nh>maxSz)&&!isPro()){openM('m-pro');showToast('1200px 초과 대형 캔버스는 Pro 전용입니다');return;}
     const p={id:'p_'+Date.now(),name:$('np-nm').value||'새 도안',type:$('np-tp').value,frame:'none',cw:nw,ch:nh,date:new Date().toLocaleDateString('ko-KR'),thumb:null};
+    // 시작 템플릿: 프레임을 미리 배치한 상태로 생성 (openP가 frames를 복원)
+    const tpl=$('np-tpl')?$('np-tpl').value:'';
+    if(tpl){
+      const R=Math.min(nw,nh)*0.35;
+      if(tpl==='motif')p.frames=[{id:Date.now(),name:'원형 1',x:nw/2-R,y:nh/2-R,w:R*2,h:R*2,kind:'circle'}];
+      else if(tpl==='graphgrid')p.frames=[{id:Date.now(),name:'격자 1',x:nw*0.15,y:nh*0.15,w:nw*0.7,h:nh*0.7,kind:'grid'}];
+      else if(tpl==='bag')p.frames=[
+        {id:Date.now(),name:'반원 1',x:nw/2-R,y:nh*0.10,w:R*2,h:R,kind:'semi'},
+        {id:Date.now()+1,name:'격자 2',x:nw*0.2,y:nh*0.55,w:nw*0.6,h:nh*0.35,kind:'grid'}
+      ];
+    }
     G.projects.unshift(p);closeM('m-new');renderDash();openP(p.id);
   });
   
