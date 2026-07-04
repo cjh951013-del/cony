@@ -677,7 +677,7 @@ body.ui-hidden #row-counter{display:none!important}
       <button id="topcol" title="색상 선택"></button>
     </div>
   </header>
-  <div id="recent-bar"></div>
+  <div id="recent-bar" style="display:none"></div><!-- 최근 기호 바 — 클릭 불가 혼란으로 숨김 -->
 
   <div id="morepop">
     <button class="mrow" id="btn-pro" style="color:var(--gold)"><span class="mi">👑</span><span>PRO 업그레이드</span></button>
@@ -1242,7 +1242,7 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="fg"><label>공예 종류</label>
       <select id="np-tp"><option value="crochet">코바늘 (Crochet)</option><option value="knitting">대바늘 (Knitting)</option></select>
     </div>
-    <div class="fg"><label>시작 템플릿</label>
+    <div class="fg" style="display:none"><label>시작 템플릿</label><!-- 프레임 배치로 대체 — 선택 불필요 -->
       <select id="np-tpl">
         <option value="">빈 캔버스</option>
         <option value="motif">○ 원형 모티브 (도일리·코스터)</option>
@@ -1544,7 +1544,7 @@ const TOSS_CLIENT_KEY='test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eo0';
 const PLAN_BENEFITS={
   free:{
     label:'Free',color:'#94a3b8',
-    items:['코바늘 · 대바늘 도안 제작','캔버스 최대 1200px','프레임 1개 · 나만의 기호 1개','JPG (워터마크 있음)','광고 포함']
+    items:['코바늘 · 대바늘 도안 제작','캔버스 최대 1200px','프레임 3개 · 나만의 기호 1개','JPG (워터마크 있음)','광고 포함']
   },
   pro:{
     label:'Pro',color:'#c084fc',
@@ -2191,8 +2191,35 @@ function drawNumbers(ctx){
   for(let r=0;r<ny;r++) ctx.fillText(String(r+1), 14, CH-(r*gs+gs/2)); // 단(행)
   ctx.restore();
 }
+// 원형·반원 프레임 안: 단(링) 반지름 + 그 단 코 수의 각도에 스냅 — 프레임 안에서 정확한 간격 자동 배치
+function frameSnap(p){
+  for(const f of (G.canvasFrames||[])){
+    const k=f.kind||'rect';
+    if(k!=='circle'&&k!=='semi')continue;
+    const cx=f.x+f.w/2, cy=k==='semi'?f.y:f.y+f.h/2;
+    const rx=f.w/2, ry=k==='semi'?f.h:f.h/2;
+    if(rx<4||ry<4)continue;
+    const dx=(p.x-cx)/rx, dy=(p.y-cy)/ry, d=Math.hypot(dx,dy);
+    if(d>1.15)continue;
+    if(k==='semi'&&dy<-0.05)continue;
+    const R=Math.min(rx,ry);
+    const n=Math.max(1,Math.round(R/(G.stampGap||38)));
+    const ring=Math.max(1,Math.min(n,Math.round(d*n)));
+    const n0=Math.max(2,G.mringStart|0)||6, inc=Math.max(0,G.mringInc|0);
+    const cnt=Math.max(2,n0+(ring-1)*inc);
+    const full=k==='semi'?Math.PI:2*Math.PI;
+    let th=Math.atan2(dy,dx);
+    const stepA=full/cnt;
+    th=Math.round(th/stepA)*stepA;
+    if(k==='semi')th=Math.max(0,Math.min(Math.PI,th));
+    const rr=ring/n;
+    return{x:cx+Math.cos(th)*rx*rr,y:cy+Math.sin(th)*ry*rr};
+  }
+  return null;
+}
 function snapToGrid(p){
   if(!G.gridOn)return p;
+  const fs=frameSnap(p);if(fs)return fs; // 프레임 안이면 프레임 스냅 우선
   // stampAt·화면 격자(drawGrid)와 동일한 셀 중심 스냅 — 미리보기·커밋·지우개 격자 통일
   if(G.stampSnap!==false){const gs=graphCellSz();return{x:Math.floor(p.x/gs)*gs+gs/2,y:Math.floor(p.y/gs)*gs+gs/2};}
   const gs=40,a=G.anchor||{x:0,y:0};return{x:a.x+Math.round((p.x-a.x)/gs)*gs,y:a.y+Math.round((p.y-a.y)/gs)*gs};
@@ -2432,7 +2459,7 @@ function fillCell(p){
   });
 }
 function stampAt(x,y){
-  if(G.stampSnap&&G.gridOn){const gs=graphCellSz();x=Math.floor(x/gs)*gs+gs/2;y=Math.floor(y/gs)*gs+gs/2;}
+  if(G.stampSnap&&G.gridOn){const s=snapToGrid({x,y});x=s.x;y=s.y;} // 프레임 스냅 포함 통일
   const sz=G.stampSz||48, col=G.toolColors[G.stitch]||G.color;
   symXf().forEach(T=>{const q=T({x,y});const rot=G.radial?radialRotFor(q.x,q.y)+(G.rot||0):G.rot;drawSVGStitch(mainCtx,q.x,q.y,G.stitch,col,sz,rot);});
   recordSymUse(G.stitch);
@@ -4384,8 +4411,8 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
       if(e.code==='KeyB'){setMode('draw');showToast('브러시  B');}
       else if(e.code==='KeyE'){setMode('eraser');showToast('지우개  E');}
       else if(e.code==='KeyS'){setMode('stamp');showToast('기호 도장  S');}
-      else if(e.code==='KeyQ'){setRot((((G.rot||0)-15+180)%360+360)%360-180);showToast('기호 회전 '+G.rot+'°  (Q/R)');}
-      else if(e.code==='KeyR'){setRot((((G.rot||0)+15+180)%360+360)%360-180);showToast('기호 회전 '+G.rot+'°  (Q/R)');}
+      else if(e.code==='KeyQ'){setRot((((G.rot||0)-15+180)%360+360)%360-180);if(G._hoverPos)drawGhostAt(G._hoverPos);showToast('기호 회전 '+G.rot+'°  (Q/R)');}
+      else if(e.code==='KeyR'){setRot((((G.rot||0)+15+180)%360+360)%360-180);if(G._hoverPos)drawGhostAt(G._hoverPos);showToast('기호 회전 '+G.rot+'°  (Q/R)');}
       else if(e.code==='KeyP'){setMode('pick');showToast('색상 추출  P');}
       else if(e.code==='KeyG'){setMode('graph');showToast('방안뜨기  G');}
       else if(e.code==='KeyF'){e.preventDefault();fitToScreen();showToast('화면 맞춤  F');}
@@ -4567,11 +4594,11 @@ function detectShape(path){
   // 면적비 판별: 경로 면적/외접박스 면적 — 사각≈1.0, 타원≈0.785, 삼각≈0.5
   let A2=0;for(let i=0;i<raw.length;i++){const p=raw[i],q=raw[(i+1)%raw.length];A2+=p.x*q.y-q.x*p.y;}
   const fillRatio=Math.abs(A2/2)/Math.max(1,ob.w*ob.h);
-  // 면적비 우선 판별 — 매끈한 원도 RDP 후 꼭짓점 3~5개로 잡히므로 꼭짓점 수는 보조로만 사용
-  if(fillRatio<0.68){
+  // 면적비 우선 판별 — 삼각은 면적비가 낮고(<0.60) 뚜렷한 꼭짓점 3개(각도>49°)일 때만 (사각·타원 과탐 방지)
+  if(fillRatio<0.60){
     if(cv.length===3)return{type:'triangle',p:[{x:cv[0].x,y:cv[0].y},{x:cv[1].x,y:cv[1].y},{x:cv[2].x,y:cv[2].y}]};
     const cw=cornersWithAngles(v).sort((p,q)=>q.a-p.a).slice(0,3);
-    if(cw.length===3){cw.sort((p,q)=>p.i-q.i);return{type:'triangle',p:cw.map(c=>({x:c.p.x,y:c.p.y}))};}
+    if(cw.length===3&&cw[2].a>0.85){cw.sort((p,q)=>p.i-q.i);return{type:'triangle',p:cw.map(c=>({x:c.p.x,y:c.p.y}))};}
   }
   if(fillRatio>0.86)return{type:'rect',cx:ob.cx,cy:ob.cy,w:ob.w,h:ob.h,rot:ob.rot};
   return{type:'ellipse',cx:ob.cx,cy:ob.cy,rx:Math.max(3,ob.w/2),ry:Math.max(3,ob.h/2),rot:ob.rot};
@@ -4808,7 +4835,7 @@ function openFramePicker(){
     p.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1300;background:rgba(28,28,44,.96);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 20px 60px rgba(0,0,0,.6);min-width:230px';
     p.innerHTML='<div style="font-size:13px;font-weight:700;color:#fff">프레임 배치</div>'
       +'<div style="font-size:10px;color:rgba(255,255,255,.45);margin-bottom:2px">가이드 구역을 만들고 그 위에 도안을 그리세요</div>'
-      +'<button class="fpb" data-k="circle">○ 원형 — 도일리·가방 바닥·모티브</button>'
+      +'<button class="fpb" data-k="circle">○ 원형·타원 — 도일리·가방 바닥 (핸들로 늘리면 타원)</button>'
       +'<button class="fpb" data-k="semi">◗ 반원 — 가방·부채·우산</button>'
       +'<button class="fpb" data-k="rect">▭ 사각 — 구역 나누기</button>'
       +'<button class="fpb" data-k="grid">⊞ 격자 — 방안뜨기·패턴</button>'
@@ -4827,7 +4854,7 @@ function openFramePicker(){
   p.style.display='flex';
 }
 function startFramePlace(kind){
-  if(!isPro()&&(G.canvasFrames||[]).length>=1){openM('m-pro');showToast('무료는 프레임 1개까지 — Pro는 무제한');return;}
+  if(!isPro()&&(G.canvasFrames||[]).length>=3){openM('m-pro');showToast('무료는 프레임 3개까지 — Pro는 무제한');return;}
   if(G.editing)exitEdit();
   const R=Math.min(CW,CH)*0.22;
   G.shape=(kind==='circle'||kind==='semi')?{type:'ellipse',cx:CW/2,cy:CH/2,rx:R,ry:R,rot:0}:{type:'rect',cx:CW/2,cy:CH/2,w:R*2,h:R*2,rot:0};
@@ -5421,6 +5448,15 @@ function showBrushCursor(screenX,screenY){
   _bcEl.style.cssText=`display:block;width:${d}px;height:${d}px;left:${screenX-cwr.left}px;top:${screenY-cwr.top}px;border-color:${col};${dash}${op}${glow}`;
 }
 function hideBrushCursor(){if(!_bcEl)_bcEl=$('brush-cursor');if(_bcEl)_bcEl.style.display='none';}
+// 호버 고스트: 스냅 반영 위치에 현재 기호·회전을 미리보기 (Q/R 회전 시 즉시 갱신)
+function drawGhostAt(pos){
+  if(!ghostCtx||!pos)return;
+  ghostCtx.clearRect(0,0,CW,CH);
+  const p=(G.gridOn&&G.stampSnap!==false)?snapToGrid(pos):pos;
+  const sz=G.stampSz||48,col=G.toolColors[G.stitch]||G.color;
+  const rot=G.radial?radialRotFor(p.x,p.y)+(G.rot||0):(G.rot||0);
+  symXf().forEach(T=>{const q=T(p);drawSVGStitch(ghostCtx,q.x,q.y,G.stitch,col,sz,rot);});
+}
 
 /* ===== 단 계산기 ===== */
 function initRowCtr(){
@@ -5773,7 +5809,10 @@ function initDock(){
       holdT=setTimeout(()=>{holdT=null;toggleDockFav(b.dataset.mode);},500);
     });
     b.addEventListener('pointerup',e=>{
-      if(holdT){clearTimeout(holdT);holdT=null;closePanels();setMode(b.dataset.mode);}
+      if(holdT){clearTimeout(holdT);holdT=null;
+        // 같은 도구 재클릭 = 기호 패널 토글 (도장·브러시)
+        if(G.mode===b.dataset.mode&&(b.dataset.mode==='stamp'||b.dataset.mode==='draw')){togglePanel('sl');return;}
+        closePanels();setMode(b.dataset.mode);}
     });
     b.addEventListener('pointerleave',()=>{if(holdT){clearTimeout(holdT);holdT=null;}});
   });
@@ -6005,12 +6044,9 @@ function onMove(e){
     if(inCw&&['draw','stamp','eraser','smudge','liquify','graph','clone'].includes(G.mode))showBrushCursor(raw.x,raw.y);
     else hideBrushCursor();
     if(inCw&&(G.mode==='stamp'||(G.mode==='draw'&&G.symBrush&&!G.brushSpray))&&ghostCtx){
-      const pos=getPos(e);
-      ghostCtx.clearRect(0,0,CW,CH);
-      const sz=G.stampSz||48,col=G.toolColors[G.stitch]||G.color;
-      const rot=G.radial?radialRotFor(pos.x,pos.y)+(G.rot||0):(G.rot||0);
-      symXf().forEach(T=>{const q=T(pos);drawSVGStitch(ghostCtx,q.x,q.y,G.stitch,col,sz,rot);});
-    }else if(ghostCtx){ghostCtx.clearRect(0,0,CW,CH);}
+      const pos=getPos(e);G._hoverPos=pos;
+      drawGhostAt(pos);
+    }else if(ghostCtx){G._hoverPos=null;ghostCtx.clearRect(0,0,CW,CH);}
     return;
   }
   if(!G.isDrawing)return;
