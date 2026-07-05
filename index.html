@@ -829,6 +829,8 @@ body.ui-hidden #row-counter{display:none!important}
         </div>
         <div class="pc-div"></div>
         <button class="ib" id="btn-frames2" title="프레임 배치 (원형·반원·사각·격자)">◫</button>
+        <button class="ib" id="btn-rotq" title="기호 왼쪽 회전 15° (Q)">↺</button>
+        <button class="ib" id="btn-rotr" title="기호 오른쪽 회전 15° (R)">↻</button>
         <button class="ib" id="btn-tl" title="손가락 잠금 — 그리는 중 터치 차단, 제스처 유지  T">🔓</button>
         <button class="ib" id="btn-undo" title="실행취소" disabled>↩</button>
         <button class="ib" id="btn-redo" title="다시실행" disabled>↪</button>
@@ -942,7 +944,8 @@ body.ui-hidden #row-counter{display:none!important}
         <div class="cg" id="brush-cg" style="display:none">
           <div class="cgl">브러시 프리셋</div>
           <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px" id="brush-presets">
-            <button class="ib bpreset act" data-p="ink" style="flex:1;min-width:60px;font-size:10px">✒ 잉크</button>
+            <button class="ib bpreset act" data-p="symbol" style="flex:1;min-width:60px;font-size:10px">🧶 기호</button>
+            <button class="ib bpreset" data-p="ink" style="flex:1;min-width:60px;font-size:10px">✒ 잉크</button>
             <button class="ib bpreset" data-p="pencil" style="flex:1;min-width:60px;font-size:10px">✏ 연필</button>
             <button class="ib bpreset" data-p="airbrush" style="display:none">💨 에어</button>
             <button class="ib bpreset" data-p="marker" style="flex:1;min-width:60px;font-size:10px">🖊 마커</button>
@@ -2521,15 +2524,20 @@ function symName(id){
 }
 // 방안뜨기(그래프) 색칠: 보이는 격자(40px)에 맞춰 한 칸을 현재 색으로 채움
 function fillCell(p){
-  // 격자 프레임 안이면 그 프레임의 칸 크기·원점 기준으로 칠함 (프레임 = 방안 작업 영역)
+  // 방안뜨기는 격자 프레임 안에서만 — 배경 격자에 섞여 들어가던 문제 차단
   const gf=(G.canvasFrames||[]).find(f=>(f.kind==='grid')&&p.x>=f.x&&p.x<=f.x+f.w&&p.y>=f.y&&p.y<=f.y+f.h);
-  const gs=gf?(gf.cell||40):graphCellSz(), ox=gf?gf.x:0, oy=gf?gf.y:0;
+  if(!gf){
+    const has=(G.canvasFrames||[]).some(f=>f.kind==='grid');
+    showToast(has?'격자 프레임 안쪽을 칠해주세요':'방안뜨기는 격자 프레임 안에서 해요 — ◫에서 격자를 배치');
+    return;
+  }
+  const gs=gf.cell||40, ox=gf.x, oy=gf.y;
   mainCtx.fillStyle=G.color;
   symXf().forEach(T=>{
     const q=T(p);const cx=ox+Math.floor((q.x-ox)/gs)*gs,cy=oy+Math.floor((q.y-oy)/gs)*gs;
     if(cx>=0&&cy>=0&&cx<CW&&cy<CH){
       mainCtx.fillRect(cx,cy,gs,gs);
-      const col=Math.floor((q.x-ox)/gs),row=Math.floor(((gf?gf.y+gf.h:CH)-1-cy)/gs);
+      const col=Math.floor((q.x-ox)/gs),row=Math.floor((gf.y+gf.h-1-cy)/gs);
       G.graphData[col+','+row]=G.color;
     }
   });
@@ -2738,11 +2746,13 @@ function snapshotCurrent(){
   if(!G.cur||!mainCtx)return;
   try{G.cur.data=$('main-c').toDataURL('image/png');}catch(e){}
   G.cur.frames=(G.canvasFrames&&G.canvasFrames.length)?G.canvasFrames:null;
+  G.cur.graphData=Object.keys(G.graphData||{}).length?G.graphData:null; // 방안 칠 기록 — 기호 변환용
+  G.cur.graphCols=G.graphCols||null;
   persistLayers();
   persistProjects();
 }
 function persistProjects(){
-  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date,frames:p.frames||null}));
+  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date,frames:p.frames||null,graphData:p.graphData||null,graphCols:p.graphCols||null}));
   const full=G.projects.map((p,i)=>Object.assign({},meta[i],{data:p.data||null,thumb:p.thumb||null}));
   try{localStorage.setItem('cony_projects_v1',JSON.stringify(full));}
   catch(e){try{localStorage.setItem('cony_projects_v1',JSON.stringify(meta));}catch(e2){}}
@@ -3929,6 +3939,8 @@ function openP(id){
   if(p.cw&&p.ch&&(p.cw!==CW||p.ch!==CH)){CW=p.cw;CH=p.ch;}
   G.anchor={x:CW/2,y:CH/2};G.anchorMode=false;
   G.canvasFrames=Array.isArray(p.frames)?p.frames:[];
+  G.graphData=(p.graphData&&typeof p.graphData==='object')?p.graphData:{}; // 방안 기록 복원 — 없으면 초기화(문서 간 누출 방지)
+  if(p.graphCols){G.graphCols=p.graphCols;const gc=$('graph-cols');if(gc)gc.value=p.graphCols;}
   // 원형·반원 프레임이 있으면 앵커·다중 링을 프레임에 맞춰 복원
   {const f0=G.canvasFrames.find(f=>f.kind==='circle'||f.kind==='semi');
    if(f0){
@@ -3961,6 +3973,13 @@ function showScreen(s){
 }
 
 /* ===================== SET MODE ===================== */
+// 기호 15° 회전 — 키보드 Q/R과 도크 ↺↻ 버튼(터치)이 공유
+function rotStep(d){
+  setRot((((G.rot||0)+d+180)%360+360)%360-180);
+  if(G.isDrawing)renderPreview();
+  else if(G._hoverPos)drawGhostAt(G._hoverPos);
+  showToast('기호 회전 '+G.rot+'°');
+}
 // 번호 마커 옵션 패널: 도장 모드에서 '번호 마커' 기호를 골랐을 때만 노출
 function updateAnnNumUI(){
   const box=$('annnum-cg');if(!box)return;
@@ -3984,6 +4003,11 @@ function setMode(m){
   G.mode=m;
   if(m!=='stamp'&&G.seq){G.seq=null;updateSeqHud();}
   updateAnnNumUI();
+  // 방안뜨기 진입 시 격자 프레임이 없으면 픽커를 열어 안내
+  if(m==='graph'&&!(G.canvasFrames||[]).some(f=>f.kind==='grid')){
+    showToast('방안뜨기는 격자 프레임 안에서 해요 — 격자를 배치해주세요');
+    openFramePicker();
+  }
   document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
   document.querySelectorAll('.td-btn[data-mode]').forEach(b=>b.classList.toggle('act',b.dataset.mode===m));
   // 상단 바 도구 버튼 하이라이트 동기화 (프로크리에이트식)
@@ -4067,6 +4091,8 @@ function bindAll(){
   if(!('ontouchstart' in window)&&!(navigator.maxTouchPoints>0)){const _tl=$('btn-tl');if(_tl)_tl.style.display='none';}
   $('btn-frames').addEventListener('click',openFramePicker);
   $('btn-frames2').addEventListener('click',openFramePicker);
+  {const rq=$('btn-rotq');if(rq)rq.addEventListener('click',()=>rotStep(-15));}
+  {const rr3=$('btn-rotr');if(rr3)rr3.addEventListener('click',()=>rotStep(15));}
   {const cl3=$('btn-clr-layer3');if(cl3)cl3.addEventListener('click',()=>{if(confirm('현재 레이어를 전부 지울까요?'))clearActiveLayer();});}
   $('btn-undo').addEventListener('click',undo);
   $('btn-redo').addEventListener('click',redo);
@@ -4234,6 +4260,11 @@ function bindAll(){
   $('bstl').addEventListener('input',()=>{G.streamLine=parseInt($('bstl').value)/100;$('bstlv').textContent=$('bstl').value+'%';});
   const BRUSH_PRESETS={ink:{sz:3,soft:0,mono:true,spray:false},pencil:{sz:4,soft:20,mono:false,spray:false},airbrush:{sz:12,soft:80,mono:false,spray:false},marker:{sz:8,soft:0,mono:true,spray:false},brush:{sz:5,soft:40,mono:false,spray:false}};
   document.querySelectorAll('.bpreset').forEach(btn=>{btn.addEventListener('click',()=>{
+    if(btn.dataset.p==='symbol'){ // 기호 브러시 복귀 — 펜 프리셋에서 한 번에 돌아오는 길
+      G.symBrush=true;const _sb=$('sw-symbrush');if(_sb)_sb.classList.add('on');
+      document.querySelectorAll('.bpreset').forEach(b=>b.classList.toggle('act',b===btn));
+      showToast('기호 브러시 — 드래그로 기호를 이어 그립니다');return;
+    }
     const p=BRUSH_PRESETS[btn.dataset.p];if(!p)return;
     G.brushSz=p.sz;G.brushSoftness=p.soft;G.brushMonoline=p.mono;G.brushSpray=p.spray;
     G.symBrush=false;const _sb=$('sw-symbrush');if(_sb)_sb.classList.remove('on');
@@ -4612,8 +4643,8 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
       if(e.code==='KeyB'){setMode('draw');showToast('브러시  B');}
       else if(e.code==='KeyE'){setMode('eraser');showToast('지우개  E');}
       else if(e.code==='KeyS'){setMode('stamp');showToast('기호 도장  S');}
-      else if(e.code==='KeyQ'){setRot((((G.rot||0)-15+180)%360+360)%360-180);if(G.isDrawing)renderPreview();else if(G._hoverPos)drawGhostAt(G._hoverPos);showToast('기호 회전 '+G.rot+'°  (Q/R)');}
-      else if(e.code==='KeyR'){setRot((((G.rot||0)+15+180)%360+360)%360-180);if(G.isDrawing)renderPreview();else if(G._hoverPos)drawGhostAt(G._hoverPos);showToast('기호 회전 '+G.rot+'°  (Q/R)');}
+      else if(e.code==='KeyQ'){rotStep(-15);}
+      else if(e.code==='KeyR'){rotStep(15);}
       else if(e.code==='KeyP'){setMode('pick');showToast('색상 추출  P');}
       else if(e.code==='KeyG'){setMode('graph');showToast('방안뜨기  G');}
       else if(e.code==='KeyF'){e.preventDefault();fitToScreen();showToast('화면 맞춤  F');}

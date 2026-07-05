@@ -1,0 +1,1 @@
+{"version":"0.0.1","configurations":[{"name":"cony","runtimeExecutable":"npx","runtimeArgs":["serve",".","-l","3940","--no-clipboard"],"port":3940},{"name":"cony-verify","runtimeExecutable":"npx","runtimeArgs":["serve",".","-l","3941","--no-clipboard"],"port":3941}]}
