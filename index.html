@@ -6245,13 +6245,13 @@ function onDown(e){
       const f0=(e.touches&&e.touches[0]&&e.touches[0].force>0)?e.touches[0].force:0;
       G.path=[{...pos,t:Date.now(),f:f0}];G.snap=null;renderPreview();armHold();
     }
-    if(e.touches)startLpPick(e);
+    // 롱프레스 스포이드 제거 — 도장(누르고 위치 조정)·펜슬 정밀 배치와 충돌해
+    // 0.6초 홀드마다 색이 바뀌고 스트로크가 끊기던 문제. 색 추출은 스포이드 도구(💧) 사용.
   }
   else if(G.mode==='graph'){fillCell(pos);composite();}
   else if(G.mode==='eraser'){
     eraseGridCell(mainCtx,pos.x,pos.y);
     composite();
-    if(e.touches)startLpPick(e);
   }
   else if(G.mode==='clone'){
     if(!G.cloneSrc){
