@@ -307,8 +307,15 @@ body.ui-hidden #recent-bar{display:none!important}
 .ssb.act{background:rgba(168,85,247,.18);border-color:var(--primary);color:var(--primary)}
 /* QuickShape 편집 — 프로크리에이트식 미니 알약(깔끔) */
 #shape-bar{position:absolute;top:68px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:3px;z-index:31;
+   max-width:calc(100vw - 16px);overflow-x:auto;
    background:rgba(20,20,34,.93);border:1px solid rgba(255,255,255,.12);border-radius:13px;padding:4px 5px;
    box-shadow:0 8px 24px rgba(0,0,0,.42);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+@media(max-width:420px){
+  #shape-bar{gap:1px}
+  #shape-bar .sb-axis{display:none}
+  #shape-bar .sb-name{padding:5px 6px}
+  #shape-bar .sb-cnt b{min-width:20px}
+}
 html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:rgba(0,0,0,.1)}
 #shape-bar .sb-name{display:flex;align-items:center;gap:6px;background:transparent;border:none;color:var(--text);
    font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:9px;cursor:pointer;line-height:1}
