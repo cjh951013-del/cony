@@ -2199,6 +2199,26 @@ function frameSlotPos(f,ring,slot){
   const rr=Math.min(ring,n)/n;
   return{x:cx+Math.cos(th)*rx*rr, y:cy+Math.sin(th)*ry*rr, count:k==='semi'?cnt+1:cnt, rings:n};
 }
+// 캔버스 위 기존 프레임을 직접 탭해서 재편집 진입 — 테두리 근처(허용오차 tol)를 짚었는지 판정
+function frameHitTest(p,tol){
+  tol=tol||Math.max(14,18/G.zoom);
+  const frames=G.canvasFrames||[];
+  for(let i=frames.length-1;i>=0;i--){ // 겹치면 나중에 놓인(위에 보이는) 프레임 우선
+    const f=frames[i],k=f.kind||'rect';
+    if(k==='rect'||k==='grid'){
+      const dx=Math.max(f.x-p.x,0,p.x-(f.x+f.w)),dy=Math.max(f.y-p.y,0,p.y-(f.y+f.h));
+      const outside=Math.hypot(dx,dy);
+      const dist=outside>0?outside:Math.min(p.x-f.x,f.x+f.w-p.x,p.y-f.y,f.y+f.h-p.y);
+      if(dist<=tol)return f;
+    }else{
+      const cx=f.x+f.w/2,cy=k==='semi'?f.y:f.y+f.h/2,rx=f.w/2,ry=k==='semi'?f.h:f.h/2;
+      if(rx<=0||ry<=0)continue;
+      const nd=Math.hypot((p.x-cx)/rx,(p.y-cy)/ry),tolNorm=tol/((rx+ry)/2);
+      if(Math.abs(nd-1)<=tolNorm&&(k!=='semi'||p.y>=cy-1))return f;
+    }
+  }
+  return null;
+}
 function frameSnapInfo(p){
   for(const f of (G.canvasFrames||[])){
     const k=f.kind||'rect';
@@ -5972,7 +5992,11 @@ function onDown(e){
         else{commitFloat();G.selStart=pos;G.selEnd=pos;G.selPath=(G.selMode==='lasso')?[pos]:null;$('sel-tb').style.display='none';}
       }
     }
-    else{G.selStart=pos;G.selEnd=pos;G.selPath=(G.selMode==='lasso')?[pos]:null;$('sel-tb').style.display='none';}
+    else{
+      const hf=frameHitTest(pos);
+      if(hf){editFrame(hf.id);return;}
+      G.selStart=pos;G.selEnd=pos;G.selPath=(G.selMode==='lasso')?[pos]:null;$('sel-tb').style.display='none';
+    }
   }
 }
 function onMove(e){
