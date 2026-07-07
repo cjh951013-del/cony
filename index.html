@@ -316,6 +316,8 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
 #shape-bar .sb-caret{font-size:10px;color:var(--text3)}
 #shape-bar .sb-cnt{display:inline-flex;align-items:center;gap:1px}
 #shape-bar .sb-cnt b{font-size:11px;font-weight:600;color:var(--text2);min-width:30px;text-align:center}
+#shape-bar .sb-axis{font-size:9px;font-weight:700;color:var(--text3)!important;min-width:0!important;margin-right:1px}
+#shape-bar .sb-axis:empty{display:none}
 #shape-bar .sb-sep{width:1px;height:18px;background:rgba(255,255,255,.13);margin:0 2px}
 .sb-ic{width:30px;height:30px;border-radius:8px;border:none;background:transparent;color:var(--text);
    font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1}
@@ -373,6 +375,12 @@ html[data-theme=light] #morepop{background:rgba(255,255,255,.9);border-color:rgb
 .mrow:hover{background:var(--panel2)}
 .mrow .mi{width:18px;text-align:center;flex-shrink:0;font-size:14px}
 .mrow.d{color:var(--danger)}
+.mtabs{display:flex;gap:2px;margin:6px 0 8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.mtab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--text3);padding:6px 2px;border-radius:9px;cursor:pointer;font-size:10px}
+.mtab .mti{font-size:17px}
+.mtab:hover{background:var(--panel2)}
+.mtab.act{color:var(--primary);background:rgba(139,92,246,.16)}
+.mtab-panel{display:flex;flex-direction:column;gap:1px}
 .sr2{display:flex;align-items:center;justify-content:space-between;gap:4px}
 .sr2 span{font-size:10px;color:var(--text2)}
 .sr2 select{background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px;flex:1;max-width:110px}
@@ -679,26 +687,40 @@ body.ui-hidden #row-counter{display:none!important}
 
   <div id="morepop">
     <button class="mrow" id="btn-pro" style="color:var(--gold)"><span class="mi">👑</span><span>PRO 업그레이드</span></button>
-    <button class="mrow" id="btn-theme"><span class="mi">🌙</span><span>라이트 / 다크 모드</span></button>
-    <button class="mrow" id="btn-quickshape"><span class="mi">📐</span><span>길게 눌러 도형 고정: 켜짐</span></button>
-    <button class="mrow" id="btn-legend"><span class="mi">📋</span><span>기호 범례 보기</span></button>
-    <button class="mrow" id="btn-img"><span class="mi">🖼</span><span>이미지 가져오기 (따라 그리기)</span></button>
-    <button class="mrow" id="btn-refov"><span class="mi">📌</span><span>레퍼런스 오버레이 (투명)</span></button>
-    <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
-    <button class="mrow" id="btn-save-cony"><span class="mi">💾</span><span>도안 파일(.cony) 저장</span></button>
-    <button class="mrow" id="btn-load-cony"><span class="mi">📂</span><span>도안 파일(.cony) 불러오기</span></button>
-    <input type="file" id="cony-input" accept=".cony,application/json" style="display:none">
-    <button class="mrow" id="btn-col-stat"><span class="mi">📊</span><span>색상 사용 통계</span></button>
-    <button class="mrow" id="btn-recolor"><span class="mi">🎨</span><span>색상 교체 (Recolor)</span></button>
-    <button class="mrow" id="btn-tile-prev"><span class="mi">⊞</span><span>패턴 반복 미리보기</span></button>
-    <button class="mrow" id="btn-frames"><span class="mi">□</span><span>프레임 배치 (원형·반원·사각·격자)</span></button>
-    <button class="mrow" id="btn-resize"><span class="mi">⤢</span><span>캔버스 크기 조정</span></button>
-    <button class="mrow" id="btn-fliph"><span class="mi">⇋</span><span>좌우 반전</span></button>
-    <button class="mrow" id="btn-flipv"><span class="mi">⤲</span><span>상하 반전</span></button>
-    <button class="mrow" id="btn-rotcw"><span class="mi">↻</span><span>캔버스 90° 시계방향 회전</span></button>
-    <button class="mrow" id="btn-rotccw"><span class="mi">↺</span><span>캔버스 90° 반시계방향 회전</span></button>
-    <button class="mrow" id="btn-clrlayer"><span class="mi">🧽</span><span>활성 레이어 지우기</span></button>
-    <button class="mrow d" id="btn-clr"><span class="mi">🗑</span><span>전체 초기화</span></button>
+    <div class="mtabs" id="mtabs">
+      <button class="mtab act" data-mtab="add"><span class="mti">➕</span><span>추가</span></button>
+      <button class="mtab" data-mtab="canvas"><span class="mti">🖼</span><span>캔버스</span></button>
+      <button class="mtab" data-mtab="share"><span class="mti">📤</span><span>공유</span></button>
+      <button class="mtab" data-mtab="settings"><span class="mti">⚙</span><span>설정</span></button>
+    </div>
+    <div class="mtab-panel" data-mpanel="add">
+      <button class="mrow" id="btn-img"><span class="mi">🖼</span><span>이미지 가져오기 (따라 그리기)</span></button>
+      <button class="mrow" id="btn-refov"><span class="mi">📌</span><span>레퍼런스 오버레이 (투명)</span></button>
+    </div>
+    <div class="mtab-panel" data-mpanel="canvas" style="display:none">
+      <button class="mrow" id="btn-frames"><span class="mi">□</span><span>프레임 배치 (원형·반원·사각·격자)</span></button>
+      <button class="mrow" id="btn-resize"><span class="mi">⤢</span><span>캔버스 크기 조정</span></button>
+      <button class="mrow" id="btn-fliph"><span class="mi">⇋</span><span>좌우 반전</span></button>
+      <button class="mrow" id="btn-flipv"><span class="mi">⤲</span><span>상하 반전</span></button>
+      <button class="mrow" id="btn-rotcw"><span class="mi">↻</span><span>캔버스 90° 시계방향 회전</span></button>
+      <button class="mrow" id="btn-rotccw"><span class="mi">↺</span><span>캔버스 90° 반시계방향 회전</span></button>
+      <button class="mrow" id="btn-tile-prev"><span class="mi">⊞</span><span>패턴 반복 미리보기</span></button>
+      <button class="mrow" id="btn-clrlayer"><span class="mi">🧽</span><span>활성 레이어 지우기</span></button>
+      <button class="mrow d" id="btn-clr"><span class="mi">🗑</span><span>전체 초기화</span></button>
+    </div>
+    <div class="mtab-panel" data-mpanel="share" style="display:none">
+      <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
+      <button class="mrow" id="btn-save-cony"><span class="mi">💾</span><span>도안 파일(.cony) 저장</span></button>
+      <button class="mrow" id="btn-load-cony"><span class="mi">📂</span><span>도안 파일(.cony) 불러오기</span></button>
+      <input type="file" id="cony-input" accept=".cony,application/json" style="display:none">
+    </div>
+    <div class="mtab-panel" data-mpanel="settings" style="display:none">
+      <button class="mrow" id="btn-theme"><span class="mi">🌙</span><span>라이트 / 다크 모드</span></button>
+      <button class="mrow" id="btn-quickshape"><span class="mi">📐</span><span>길게 눌러 도형 고정: 켜짐</span></button>
+      <button class="mrow" id="btn-legend"><span class="mi">📋</span><span>기호 범례 보기</span></button>
+      <button class="mrow" id="btn-col-stat"><span class="mi">📊</span><span>색상 사용 통계</span></button>
+      <button class="mrow" id="btn-recolor"><span class="mi">🎨</span><span>색상 교체 (Recolor)</span></button>
+    </div>
   </div>
 
   <div id="colpop">
@@ -878,9 +900,16 @@ body.ui-hidden #row-counter{display:none!important}
       <div id="shape-bar">
         <button class="sb-name" id="shape-cycle" title="다른 모양으로"><span id="shape-type">직선</span><span class="sb-caret">⇄</span></button>
         <span class="sb-cnt" id="shape-count-wrap" style="display:none">
+          <b class="sb-axis" id="sb-axis1"></b>
           <button class="sb-ic" id="shape-less">−</button>
           <b id="shape-count">0</b>
           <button class="sb-ic" id="shape-more">＋</button>
+        </span>
+        <span class="sb-cnt" id="shape-count-wrap2" style="display:none">
+          <b class="sb-axis">세로</b>
+          <button class="sb-ic" id="shape-less2">−</button>
+          <b id="shape-count2">0</b>
+          <button class="sb-ic" id="shape-more2">＋</button>
         </span>
         <button class="sb-ic" id="shape-center" title="캔버스 중앙 정렬">⊕</button>
         <span class="sb-sep"></span>
@@ -2162,6 +2191,13 @@ function drawCanvasFrames(ctx){
   if(!G.canvasFrames||!G.canvasFrames.length)return;
   G.canvasFrames.forEach(f=>{if(G.frameEditId===f.id)return;drawFrameGuide(ctx,f);});
 }
+// 격자 프레임의 가로×세로 칸 수 — 신형(cols/rows 저장) 우선, 구버전(cell px 저장) 문서는 환산
+function frameGridDims(f){
+  if(f.cols&&f.rows)return{cols:f.cols,rows:f.rows,cw:f.w/f.cols,ch:f.h/f.rows};
+  const cell=f.cell||40;
+  const cols=Math.max(2,Math.round(f.w/cell)),rows=Math.max(2,Math.round(f.h/cell));
+  return{cols,rows,cw:f.w/cols,ch:f.h/rows};
+}
 function drawFrameGuide(ctx,f){
   const gap=G.stampGap||38;
   {
@@ -2190,9 +2226,9 @@ function drawFrameGuide(ctx,f){
     }else if(k==='grid'){
       ctx.setLineDash([8,5]);ctx.strokeRect(f.x,f.y,f.w,f.h);ctx.setLineDash([]);
       ctx.strokeStyle='rgba(168,85,247,.22)';
-      const gs=f.cell||40;
-      for(let x=f.x+gs;x<f.x+f.w;x+=gs){ctx.beginPath();ctx.moveTo(x,f.y);ctx.lineTo(x,f.y+f.h);ctx.stroke();}
-      for(let y=f.y+gs;y<f.y+f.h;y+=gs){ctx.beginPath();ctx.moveTo(f.x,y);ctx.lineTo(f.x+f.w,y);ctx.stroke();}
+      const{cols,rows,cw,ch}=frameGridDims(f);
+      for(let i=1;i<cols;i++){const x=f.x+i*cw;ctx.beginPath();ctx.moveTo(x,f.y);ctx.lineTo(x,f.y+f.h);ctx.stroke();}
+      for(let i=1;i<rows;i++){const y=f.y+i*ch;ctx.beginPath();ctx.moveTo(f.x,y);ctx.lineTo(f.x+f.w,y);ctx.stroke();}
     }else{
       ctx.setLineDash([8,5]);ctx.strokeRect(f.x,f.y,f.w,f.h);ctx.setLineDash([]);
       ctx.fillStyle='rgba(168,85,247,.07)';ctx.fillRect(f.x,f.y,f.w,f.h);
@@ -2293,9 +2329,9 @@ function updateSeqHud(){
 function snapToGrid(p){
   if(!G.gridOn)return p;
   const fs=frameSnap(p);if(fs)return fs; // 프레임 안이면 프레임 스냅 우선
-  // 격자 프레임 안: 그 프레임의 칸 중심 (칸 크기는 프레임별 f.cell)
+  // 격자 프레임 안: 그 프레임의 칸 중심 (칸 크기는 프레임별 가로×세로 칸 수에서 역산)
   const gf=(G.canvasFrames||[]).find(f=>(f.kind==='grid')&&p.x>=f.x&&p.x<=f.x+f.w&&p.y>=f.y&&p.y<=f.y+f.h);
-  if(gf){const gs=gf.cell||40;return{x:gf.x+Math.floor((p.x-gf.x)/gs)*gs+gs/2,y:gf.y+Math.floor((p.y-gf.y)/gs)*gs+gs/2};}
+  if(gf){const{cw,ch}=frameGridDims(gf);return{x:gf.x+Math.floor((p.x-gf.x)/cw)*cw+cw/2,y:gf.y+Math.floor((p.y-gf.y)/ch)*ch+ch/2};}
   // stampAt·화면 격자(drawGrid)와 동일한 셀 중심 스냅 — 미리보기·커밋·지우개 격자 통일
   if(G.stampSnap!==false){const gs=graphCellSz();return{x:Math.floor(p.x/gs)*gs+gs/2,y:Math.floor(p.y/gs)*gs+gs/2};}
   const gs=40,a=G.anchor||{x:0,y:0};return{x:a.x+Math.round((p.x-a.x)/gs)*gs,y:a.y+Math.round((p.y-a.y)/gs)*gs};
@@ -2522,7 +2558,7 @@ function symName(id){
   for(const t of ['crochet','knitting']){const s=STITCHES[t].find(x=>x.id===id);if(s)return s.name;}
   const u=(G.userSymbols||[]).find(x=>x.id===id);return u?u.name+' (내 기호)':id;
 }
-// 방안뜨기(그래프) 색칠: 보이는 격자(40px)에 맞춰 한 칸을 현재 색으로 채움
+// 방안뜨기(그래프) 색칠: 격자 프레임에 지정한 가로×세로 칸 중 하나를 현재 색으로 채움
 function fillCell(p){
   // 방안뜨기는 격자 프레임 안에서만 — 배경 격자에 섞여 들어가던 문제 차단
   const gf=(G.canvasFrames||[]).find(f=>(f.kind==='grid')&&p.x>=f.x&&p.x<=f.x+f.w&&p.y>=f.y&&p.y<=f.y+f.h);
@@ -2531,13 +2567,13 @@ function fillCell(p){
     showToast(has?'격자 프레임 안쪽을 칠해주세요':'방안뜨기는 격자 프레임 안에서 해요 — ◫에서 격자를 배치');
     return;
   }
-  const gs=gf.cell||40, ox=gf.x, oy=gf.y;
+  const{cw,ch}=frameGridDims(gf), ox=gf.x, oy=gf.y;
   mainCtx.fillStyle=G.color;
   symXf().forEach(T=>{
-    const q=T(p);const cx=ox+Math.floor((q.x-ox)/gs)*gs,cy=oy+Math.floor((q.y-oy)/gs)*gs;
+    const q=T(p);const cx=ox+Math.floor((q.x-ox)/cw)*cw,cy=oy+Math.floor((q.y-oy)/ch)*ch;
     if(cx>=0&&cy>=0&&cx<CW&&cy<CH){
-      mainCtx.fillRect(cx,cy,gs,gs);
-      const col=Math.floor((q.x-ox)/gs),row=Math.floor((gf.y+gf.h-1-cy)/gs);
+      mainCtx.fillRect(cx,cy,cw,ch);
+      const col=Math.floor((q.x-ox)/cw),row=Math.floor((gf.y+gf.h-1-cy)/ch);
       G.graphData[col+','+row]=G.color;
     }
   });
@@ -3718,10 +3754,12 @@ function genNarrativeFlat(type,f){
   const stKo=symName(G.stitch)||'짧은뜨기';
   const stAb=(G.stitch||'sc').replace(/^cus_.*/,'st');
   const used=(G.usedSymbols||[]).map(symName).filter(Boolean);
+  const isGridF=f.kind==='grid';
   const gap=f.cell||G.stampGap||38;
   const hRatio={sc:1,hdc:1.4,dc:1.8,tr:2.2,dtr:2.6}[G.stitch]||1;
-  const stCount=Math.max(1,Math.round(f.w/gap));
-  const rows=Math.max(1,Math.round(f.h/(gap*hRatio)));
+  const gd=isGridF?frameGridDims(f):null;
+  const stCount=isGridF?gd.cols:Math.max(1,Math.round(f.w/gap));
+  const rows=isGridF?gd.rows:Math.max(1,Math.round(f.h/(gap*hRatio)));
   const tch=TURN_CH[G.stitch]!=null?TURN_CH[G.stitch]:1;
   if(type==='ko'){
     return `[사각(평편) 뜨개 도안 — 서술도안]
@@ -3734,7 +3772,7 @@ function genNarrativeFlat(type,f){
 2~${rows}단: 매 단마다 ${stKo} ${stCount}코, 사슬 ${tch}코 뜨고 뒤집기 반복
 
 마무리: 실 자르고 정리
-※ 코·단 수는 사각·격자 프레임 크기 기준 계산(칸 ${Math.round(gap)}px). 프레임을 늘리면 자동으로 맞춰집니다.`;
+※ ${isGridF?'코·단 수는 격자 프레임에 지정한 가로×세로 칸 수 그대로입니다 — ◫에서 편집해 바꿀 수 있어요.':'코·단 수는 사각 프레임 크기 기준 계산(칸 '+Math.round(gap)+'px). 프레임을 늘리면 자동으로 맞춰집니다.'}`;
   }
   if(type==='abbr'){
     if(!isPro())return '⚠️ 약어 보기는 Pro 이상에서 사용 가능합니다.';
@@ -4273,6 +4311,10 @@ function bindAll(){
     document.querySelectorAll('.bpreset').forEach(b=>b.classList.toggle('act',b===btn));
     showToast(btn.textContent.trim()+' 브러시 선택');
   });});
+  document.querySelectorAll('.mtab').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('.mtab').forEach(x=>x.classList.toggle('act',x===t));
+    document.querySelectorAll('.mtab-panel').forEach(p=>{p.style.display=(p.dataset.mpanel===t.dataset.mtab)?'flex':'none';});
+  }));
   // QuickMenu
   $('btn-qm').addEventListener('click',e=>{e.stopPropagation();closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');openQMenu();});
   $('qm-bg').addEventListener('click',closeQMenu);
@@ -4597,8 +4639,10 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
   $('shape-done').addEventListener('click',commitShape);
   $('shape-cancel').addEventListener('click',cancelShape);
   $('shape-center').addEventListener('click',centerShape);
-  $('shape-less').addEventListener('click',()=>shapeAddStitch(-1));
-  $('shape-more').addEventListener('click',()=>shapeAddStitch(1));
+  $('shape-less').addEventListener('click',()=>{G.frameKind==='grid'?shapeAddGridDim('cols',-1):shapeAddStitch(-1);});
+  $('shape-more').addEventListener('click',()=>{G.frameKind==='grid'?shapeAddGridDim('cols',1):shapeAddStitch(1);});
+  $('shape-less2').addEventListener('click',()=>shapeAddGridDim('rows',-1));
+  $('shape-more2').addEventListener('click',()=>shapeAddGridDim('rows',1));
   
   // KEYS
   document.addEventListener('keydown',e=>{
@@ -4894,10 +4938,21 @@ function stampShape(ctx,s,ghost){
   if(!ghost)recordSymUse(G.stitch);
 }
 function shapeAddStitch(d){if(!G.shape)return;
-  if(G.frameKind==='grid'){G._frameCell=Math.max(16,Math.min(120,(G._frameCell||40)+d*8));showShapeBar();renderEdit();return;}
   if(G.mode!=='stamp'&&!(G.mode==='draw'&&G.symBrush))return;G.shape.n=Math.max(2,shapeStitchCount(G.shape)+d);showShapeBar();renderEdit();}
+// 격자 프레임 배치 중 가로(cols)·세로(rows) 칸 수를 직접 조절 — px 대신 개수로 지정
+function shapeAddGridDim(axis,d){
+  if(axis==='cols')G._frameCols=Math.max(2,Math.min(100,(G._frameCols||13)+d));
+  else G._frameRows=Math.max(2,Math.min(100,(G._frameRows||13)+d));
+  showShapeBar();renderEdit();
+}
 function cycleShapeTypeBtn(){cycleShapeType();}
-function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';const t=$('shape-type');if(t)t.textContent=G.frameKind?'프레임':(TYPE_LABEL[G.shape.type]||'모양');const sym=G.mode==='stamp'||(G.mode==='draw'&&G.symBrush);const isGridF=G.frameKind==='grid';const cw=$('shape-count-wrap');if(cw)cw.style.display=(isGridF||(sym&&!G.frameKind))?'inline-flex':'none';const cc=$('shape-count');if(cc){if(isGridF)cc.textContent='칸 '+(G._frameCell||40)+'px';else if(sym&&!G.frameKind)cc.textContent=shapeStitchCount(G.shape)+'코';}}
+function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';const t=$('shape-type');if(t)t.textContent=G.frameKind?'프레임':(TYPE_LABEL[G.shape.type]||'모양');const sym=G.mode==='stamp'||(G.mode==='draw'&&G.symBrush);const isGridF=G.frameKind==='grid';
+  const cw=$('shape-count-wrap');if(cw)cw.style.display=(isGridF||(sym&&!G.frameKind))?'inline-flex':'none';
+  const ax1=$('sb-axis1');if(ax1)ax1.textContent=isGridF?'가로':'';
+  const cc=$('shape-count');if(cc){if(isGridF)cc.textContent=(G._frameCols||13)+'칸';else if(sym&&!G.frameKind)cc.textContent=shapeStitchCount(G.shape)+'코';}
+  const cw2=$('shape-count-wrap2');if(cw2)cw2.style.display=isGridF?'inline-flex':'none';
+  const cc2=$('shape-count2');if(cc2&&isGridF)cc2.textContent=(G._frameRows||13)+'칸';
+}
 function hideShapeBar(){const b=$('shape-bar');if(b)b.style.display='none';}
 function renderEdit(){
   if(!prevCtx||!G.shape)return;
@@ -4906,7 +4961,7 @@ function renderEdit(){
     // 프레임 배치 미리보기: 확정 후 모습(반원·링·단 번호) 그대로 표시
     const bb=bboxOf(shapeToPoly(G.shape)),kind=G.frameKind;
     const tf=kind==='semi'?{x:bb.x,y:bb.y+bb.h/2,w:bb.w,h:bb.h/2,kind,name:''}:{x:bb.x,y:bb.y,w:bb.w,h:bb.h,kind,name:''};
-    if(kind==='grid')tf.cell=G._frameCell||40;
+    if(kind==='grid'){tf.cols=G._frameCols||13;tf.rows=G._frameRows||13;}
     drawFrameGuide(prevCtx,tf);
   }
   else if(G.mode==='stamp'||(G.mode==='draw'&&G.symBrush))stampShape(prevCtx,G.shape,true);
@@ -5141,7 +5196,7 @@ function editFrame(id){
   else if(k==='semi')G.shape={type:'ellipse',cx:f.x+f.w/2,cy:f.y,rx:f.w/2,ry:f.h,rot:0};
   else G.shape={type:'rect',cx:f.x+f.w/2,cy:f.y+f.h/2,w:f.w,h:f.h,rot:0};
   G.frameKind=k;G.frameEditId=id;
-  if(k==='grid')G._frameCell=f.cell||40;
+  if(k==='grid'){const gd=frameGridDims(f);G._frameCols=gd.cols;G._frameRows=gd.rows;}
   G.editing=true;G.isDrawing=false;G.awaitLift=false;
   drawBg(); // 편집 중 원본 프레임은 숨김 (drawCanvasFrames에서 스킵)
   showShapeBar();renderEdit();
@@ -5152,7 +5207,7 @@ function startFramePlace(kind){
   if(G.editing)exitEdit();
   const R=Math.min(CW,CH)*0.22;
   G.shape=(kind==='circle'||kind==='semi')?{type:'ellipse',cx:CW/2,cy:CH/2,rx:R,ry:R,rot:0}:{type:'rect',cx:CW/2,cy:CH/2,w:R*2,h:R*2,rot:0};
-  if(kind==='grid')G._frameCell=40;
+  if(kind==='grid'){G._frameCols=13;G._frameRows=13;}
   G.frameKind=kind;G.editing=true;G.isDrawing=false;G.awaitLift=false;
   showShapeBar();renderEdit();
   showToast(kind==='semi'?'반원 프레임 — 원의 아래 반쪽이 프레임이 됩니다. 조절 후 ✓':'핸들로 위치·크기 조절 후 ✓');
@@ -5164,7 +5219,7 @@ function commitFrame(){
   const f=kind==='semi'
     ?{id:Date.now(),name:names[kind]+' '+(G.canvasFrames.length+1),x:bb.x,y:bb.y+bb.h/2,w:bb.w,h:bb.h/2,kind}
     :{id:Date.now(),name:names[kind]+' '+(G.canvasFrames.length+1),x:bb.x,y:bb.y,w:bb.w,h:bb.h,kind};
-  if(kind==='grid')f.cell=G._frameCell||40; // 편집 중 −/＋로 정한 칸 크기
+  if(kind==='grid'){f.cols=Math.max(2,G._frameCols||13);f.rows=Math.max(2,G._frameRows||13);} // 편집 중 −/＋로 정한 가로×세로 칸 수
   if(G.frameEditId){ // 기존 프레임 재편집: 교체 (id·이름 유지)
     const i=G.canvasFrames.findIndex(x=>x.id===G.frameEditId);
     if(i>=0){f.id=G.frameEditId;f.name=G.canvasFrames[i].name;G.canvasFrames[i]=f;}
