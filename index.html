@@ -296,7 +296,8 @@ body.ui-hidden #recent-bar{display:none!important}
 #gesture-hint.show{display:block;opacity:1}
 #prev-c{pointer-events:none}
 #snap-badge{position:absolute;top:68px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:5px 12px;border-radius:15px;font-size:11px;font-weight:600;display:none;pointer-events:none;z-index:10}
-#sel-tb{position:absolute;top:68px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 8px;gap:5px;display:none;z-index:10}
+#sel-tb{position:absolute;top:68px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 8px;gap:5px;display:none;z-index:10;max-width:calc(100vw - 16px);flex-wrap:wrap;justify-content:center}
+@media(max-width:420px){#sel-tb{gap:3px;padding:4px 5px}.selb{padding:4px 6px;font-size:10px}}
 .selb{white-space:nowrap}
 #sel-gd,#sel-inv,#sel-grow,#sel-shrink,#sel-tile,#sel-frame,#sel-pat{display:none}
 #btn-smudge{display:none}
@@ -2740,11 +2741,12 @@ function snapshotCurrent(){
   G.cur.frames=(G.canvasFrames&&G.canvasFrames.length)?G.canvasFrames:null;
   G.cur.graphData=Object.keys(G.graphData||{}).length?G.graphData:null; // 방안 칠 기록 — 기호 변환용
   G.cur.graphCols=G.graphCols||null;
+  G.cur.usedSyms=(G.usedSymbols&&G.usedSymbols.length)?G.usedSymbols:null; // 서술도안 '사용 기호'가 재접속 후 비지 않도록
   persistLayers();
   persistProjects();
 }
 function persistProjects(){
-  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date,frames:p.frames||null,graphData:p.graphData||null,graphCols:p.graphCols||null}));
+  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date,frames:p.frames||null,graphData:p.graphData||null,graphCols:p.graphCols||null,usedSyms:p.usedSyms||null}));
   const full=G.projects.map((p,i)=>Object.assign({},meta[i],{data:p.data||null,thumb:p.thumb||null}));
   try{localStorage.setItem('cony_projects_v1',JSON.stringify(full));}
   catch(e){try{localStorage.setItem('cony_projects_v1',JSON.stringify(meta));}catch(e2){}}
@@ -3673,7 +3675,8 @@ function renderYarnList(filter=''){
 const TURN_CH={sc:1,hdc:2,dc:3,tr:4,dtr:5};
 // 평편뜨기(왕복 단) 서술도안 — 사각·격자 프레임(방석·모티브 사각형·목도리 등)이 있을 때
 function genNarrativeFlat(type,f){
-  const stKo=symName(G.stitch)||'짧은뜨기';
+  const isKnit=(G.cur?.type)==='knitting';
+  const stKo=symName(G.stitch)||(isKnit?'겉뜨기(K)':'짧은뜨기');
   const stAb=(G.stitch||'sc').replace(/^cus_.*/,'st');
   const used=(G.usedSymbols||[]).map(symName).filter(Boolean);
   const isGridF=f.kind==='grid';
@@ -3684,6 +3687,16 @@ function genNarrativeFlat(type,f){
   const rows=isGridF?gd.rows:Math.max(1,Math.round(f.h/(gap*hRatio)));
   const tch=TURN_CH[G.stitch]!=null?TURN_CH[G.stitch]:1;
   if(type==='ko'){
+    if(isKnit)return `[사각(평편) 대바늘 도안 — 서술도안]
+작성: ${G.cur?.name||'도안'}
+사용 기호: ${used.length?used.join(', '):stKo}
+재료: 대바늘 4.0mm(6호) / 중세사 (울 또는 아크릴)
+
+코잡기: ${stCount}코 만들기
+1~${rows}단: 차트대로 매 단 ${stCount}코씩 ${rows}단 뜨기 (홀수단 겉면, 짝수단 안면 기준)
+
+마무리: 코막음 후 실 정리
+※ ${isGridF?'코·단 수는 격자 프레임에 지정한 가로×세로 칸 수 그대로입니다 — ◫에서 편집해 바꿀 수 있어요.':'코·단 수는 사각 프레임 크기 기준 계산(칸 '+Math.round(gap)+'px). 프레임을 늘리면 자동으로 맞춰집니다.'}`;
     return `[사각(평편) 뜨개 도안 — 서술도안]
 작성: ${G.cur?.name||'도안'}
 사용 기호: ${used.length?used.join(', '):stKo}
@@ -3698,6 +3711,7 @@ function genNarrativeFlat(type,f){
   }
   if(type==='abbr'){
     if(!isPro())return '⚠️ 약어 보기는 Pro 이상에서 사용 가능합니다.';
+    if(isKnit)return '⚠️ 대바늘 도안의 약어 변환은 준비 중입니다 — 한국어 서술도안을 사용해주세요.';
     return `[Pattern — Abbreviated KO, Flat rows]
 재료: 코바늘 4호 / 중세사
 
@@ -3708,6 +3722,7 @@ FO: fasten off, weave in ends`;
   }
   if(type==='en'){
     if(!isPro2())return '⚠️ 영문 약어 변환은 Pro+ 전용 기능입니다.';
+    if(isKnit)return '⚠️ 대바늘 도안의 영문 변환은 준비 중입니다 — 한국어 서술도안을 사용해주세요.';
     return `[Crochet Pattern — English Abbreviations, Flat rows]
 Materials: US Size G-6 (4mm) hook / Worsted weight yarn
 
@@ -3720,7 +3735,8 @@ FO: Fasten off, weave in ends.`;
 function genNarrative(type){
   // 원형·반원 프레임이 있으면 라운드(원형) 도안, 없고 사각·격자 프레임만 있으면 평편(왕복) 도안
   const roundFrame=(G.canvasFrames||[]).find(f=>f.kind==='circle'||f.kind==='semi');
-  const flatFrame=(G.canvasFrames||[]).find(f=>f.kind==='grid'||f.kind==='rect');
+  // 격자 프레임 우선 — 차트가 격자에 있는데 스키마용 사각이 먼저 잡히면 코·단 수가 어긋남
+  const flatFrame=(G.canvasFrames||[]).find(f=>f.kind==='grid')||(G.canvasFrames||[]).find(f=>f.kind==='rect');
   if(!roundFrame&&flatFrame)return genNarrativeFlat(type,flatFrame);
   const rings=Math.max(1,G.mringN|0),n0=Math.max(2,G.mringStart|0),inc=Math.max(0,G.mringInc|0);
   const stKo=symName(G.stitch)||'짧은뜨기';
@@ -3911,7 +3927,7 @@ function openP(id){
      const _s=(sid,v)=>{const el=$(sid);if(el)el.value=v;};
      _s('mring-n',n);_s('mring-r0',G.mringR0);_s('mring-dr',G.mringDR);
    }}
-  resetLayers();G.usedSymbols=[];
+  resetLayers();G.usedSymbols=Array.isArray(p.usedSyms)?p.usedSyms.slice():[];
   drawBg();renderShelf();renderLayers();renderPalettes();renderColHistBar();
   G.hist=[];G.histIdx=-1;$('btn-undo').disabled=true;$('btn-redo').disabled=true;
   $('sr').classList.remove('show');
