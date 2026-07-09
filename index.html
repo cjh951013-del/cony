@@ -2526,7 +2526,25 @@ function symName(id){
   for(const t of ['crochet','knitting']){const s=STITCHES[t].find(x=>x.id===id);if(s)return s.name;}
   const u=(G.userSymbols||[]).find(x=>x.id===id);return u?u.name+' (내 기호)':id;
 }
-// 방안뜨기(그래프) 색칠: 격자 프레임에 지정한 가로×세로 칸 중 하나를 현재 색으로 채움
+// 격자 프레임의 기초사슬 행: 실제 짧은뜨기 방안뜨기(tapestry crochet)는 사슬 (칸수+1)코를 먼저 만들고
+// 그 사슬 위에 짧은뜨기를 얹어 시작한다 — 격자만 있고 시작코가 없으면 실제로 뜰 수 없어 실콘텐츠로 항상 표기
+function stampFoundationChain(f){
+  if(!mainCtx||f.kind!=='grid')return;
+  const isKnit=(G.cur?.type)==='knitting';
+  const gd=frameGridDims(f),n=isKnit?gd.cols:gd.cols+1,sz=Math.min(gd.cw,gd.ch)*0.8;
+  const below=f.y+f.h+sz*0.9+14<=CH-4;
+  const y=below?f.y+f.h+sz*0.9+6:Math.max(sz*0.9+4,f.y-sz*0.9-6);
+  if(f._chainBox)mainCtx.clearRect(f._chainBox.x,f._chainBox.y,f._chainBox.w,f._chainBox.h);
+  const symId=isKnit?'co':'ch';
+  for(let i=0;i<n;i++)drawSVGStitch(mainCtx,f.x+(isKnit?(i+0.5)*gd.cw:i*gd.cw),y,symId,G.chainColor||'#2a2a2a',sz,0);
+  mainCtx.save();mainCtx.fillStyle=G.chainColor||'#2a2a2a';mainCtx.font='600 '+Math.max(10,sz*0.42)+'px sans-serif';
+  mainCtx.textAlign='left';mainCtx.textBaseline=below?'top':'bottom';
+  const labelY=below?y+sz*0.9+2:y-sz*0.9-2;
+  mainCtx.fillText((isKnit?'코잡기 ':'기초사슬 ')+n+'코',f.x,labelY);mainCtx.restore();
+  f._chainBox={x:f.x-sz,y:Math.min(y,labelY)-sz,w:f.w+sz*2,h:Math.abs(labelY-y)+sz*2.4};
+  f._chainCount=n;
+}
+// 방안뜨기(그래프) 색칠: 격자 프레임에 지정한 가로×세로 칸 중 하나를 현재 색으로 채움 (짧은뜨기 기호로 표시 — 그림이 아니라 실제 도안)
 function fillCell(p){
   // 방안뜨기는 격자 프레임 안에서만 — 배경 격자에 섞여 들어가던 문제 차단
   const gf=(G.canvasFrames||[]).find(f=>(f.kind==='grid')&&p.x>=f.x&&p.x<=f.x+f.w&&p.y>=f.y&&p.y<=f.y+f.h);
@@ -2536,11 +2554,11 @@ function fillCell(p){
     return;
   }
   const{cw,ch}=frameGridDims(gf), ox=gf.x, oy=gf.y;
-  mainCtx.fillStyle=G.color;
+  const sz=Math.min(cw,ch)*0.92; // 셀 크기 이하로 고정 — 옆칸과 절대 안 겹침
   symXf().forEach(T=>{
     const q=T(p);const cx=ox+Math.floor((q.x-ox)/cw)*cw,cy=oy+Math.floor((q.y-oy)/ch)*ch;
     if(cx>=0&&cy>=0&&cx<CW&&cy<CH){
-      mainCtx.fillRect(cx,cy,cw,ch);
+      drawSVGStitch(mainCtx,cx+cw/2,cy+ch/2,'sc',G.color,sz,0);
       const col=Math.floor((q.x-ox)/cw),row=Math.floor((gf.y+gf.h-1-cy)/ch);
       G.graphData[col+','+row]=G.color;
     }
@@ -2685,6 +2703,7 @@ function resizeCanvas(nw,nh,anchor){
   transformCanvasFrames('shift',ox,oy);
   // 2) DOM 캔버스 크기 변경 (clearRect는 필요 없음 — width 재할당이 자동 클리어)
   CW=nw;CH=nh;
+  if(G.cur){G.cur.cw=nw;G.cur.ch=nh;} // 저장에 크기도 함께 기록 — 안 하면 새로고침 후 1200×1200으로 되돌아감
   const bgEl=$('bg-c');if(bgEl){bgEl.width=nw;bgEl.height=nh;bgCtx=bgEl.getContext('2d');}
   const mcEl=$('main-c');if(mcEl){mcEl.width=nw;mcEl.height=nh;dispCtx=mcEl.getContext('2d');}
   const pcEl=$('prev-c');if(pcEl){pcEl.width=nw;pcEl.height=nh;prevCtx=pcEl.getContext('2d');}
@@ -2761,7 +2780,7 @@ function snapshotCurrent(){
   persistProjects();
 }
 function persistProjects(){
-  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date,frames:p.frames||null,graphData:p.graphData||null,graphCols:p.graphCols||null,usedSyms:p.usedSyms||null}));
+  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date,frames:p.frames||null,graphData:p.graphData||null,graphCols:p.graphCols||null,usedSyms:p.usedSyms||null,cw:p.cw||null,ch:p.ch||null}));
   const full=G.projects.map((p,i)=>Object.assign({},meta[i],{data:p.data||null,thumb:p.thumb||null}));
   try{localStorage.setItem('cony_projects_v1',JSON.stringify(full));}
   catch(e){try{localStorage.setItem('cony_projects_v1',JSON.stringify(meta));}catch(e2){}}
@@ -5111,12 +5130,14 @@ function commitFrame(){
     ?{id:Date.now(),name:names[kind]+' '+(G.canvasFrames.length+1),x:bb.x,y:bb.y+bb.h/2,w:bb.w,h:bb.h/2,kind}
     :{id:Date.now(),name:names[kind]+' '+(G.canvasFrames.length+1),x:bb.x,y:bb.y,w:bb.w,h:bb.h,kind};
   if(kind==='grid'){f.cols=Math.max(2,G._frameCols||13);f.rows=Math.max(2,G._frameRows||13);} // 편집 중 −/＋로 정한 가로×세로 칸 수
+  let oldChainBox=null;
   if(G.frameEditId){ // 기존 프레임 재편집: 교체 (id·이름 유지)
     const i=G.canvasFrames.findIndex(x=>x.id===G.frameEditId);
-    if(i>=0){f.id=G.frameEditId;f.name=G.canvasFrames[i].name;G.canvasFrames[i]=f;}
+    if(i>=0){f.id=G.frameEditId;f.name=G.canvasFrames[i].name;oldChainBox=G.canvasFrames[i]._chainBox||null;G.canvasFrames[i]=f;}
     else G.canvasFrames.push(f);
     G.frameEditId=null;
   }else G.canvasFrames.push(f);
+  if(kind==='grid'){f._chainBox=oldChainBox;stampFoundationChain(f);composite();saveH();}
   if(kind==='circle'||kind==='semi'){
     G.anchor=kind==='circle'?{x:f.x+f.w/2,y:f.y+f.h/2}:{x:f.x+f.w/2,y:f.y};
     // 다중 링 배치를 프레임 크기에 자동 정렬 — 가이드 동심원과 배치 반지름 일치
