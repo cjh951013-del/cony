@@ -2544,7 +2544,11 @@ function stampFoundationChain(f){
   f._chainBox={x:f.x-sz,y:Math.min(y,labelY)-sz,w:f.w+sz*2,h:Math.abs(labelY-y)+sz*2.4};
   f._chainCount=n;
 }
-// 방안뜨기(그래프) 색칠: 격자 프레임에 지정한 가로×세로 칸 중 하나를 현재 색으로 채움 (짧은뜨기 기호로 표시 — 그림이 아니라 실제 도안)
+// 방안뜨기(그래프) 색칠: 격자 프레임에 지정한 가로×세로 칸 중 하나를 현재 색으로 채움.
+// 방안뜨기(태피스트리 코바늘)는 전체가 짧은뜨기 한 가지뿐이고 색만 바뀌므로 기호를 넣을 이유가
+// 없다 — 실제 도안 관례대로 칸을 색으로 채우고 칸 경계선을 직접 그린다(배경 격자 합성에 기대지
+// 않음 — PNG 단독 내보내기는 배경 레이어를 뺴므로 경계선이 실콘텐츠로 없으면 사라져 버림)
+// (사슬코 등 '기법이 바뀌는' 부분만 기호가 필요하며 그건 stampFoundationChain이 별도로 담당)
 function fillCell(p){
   // 방안뜨기는 격자 프레임 안에서만 — 배경 격자에 섞여 들어가던 문제 차단
   const gf=(G.canvasFrames||[]).find(f=>(f.kind==='grid')&&p.x>=f.x&&p.x<=f.x+f.w&&p.y>=f.y&&p.y<=f.y+f.h);
@@ -2554,12 +2558,14 @@ function fillCell(p){
     return;
   }
   const{cw,ch}=frameGridDims(gf), ox=gf.x, oy=gf.y;
-  const sz=Math.min(cw,ch)*0.92; // 셀 크기 이하로 고정 — 옆칸과 절대 안 겹침
   symXf().forEach(T=>{
     const q=T(p);const cx=ox+Math.floor((q.x-ox)/cw)*cw,cy=oy+Math.floor((q.y-oy)/ch)*ch;
     if(cx>=0&&cy>=0&&cx<CW&&cy<CH){
-      mainCtx.clearRect(cx,cy,cw,ch); // 재도장 시 이전 기호 잔상 없이 항상 깨끗하게 — 칸 재색칠이 자유로움
-      drawSVGStitch(mainCtx,cx+cw/2,cy+ch/2,'sc',G.color,sz,0);
+      mainCtx.clearRect(cx,cy,cw,ch); // 재도장 시 이전 칠 잔상 없이 항상 깨끗하게 — 칸 재색칠이 자유로움
+      mainCtx.fillStyle=G.color;
+      mainCtx.fillRect(cx,cy,cw,ch);
+      mainCtx.strokeStyle='rgba(0,0,0,.35)';mainCtx.lineWidth=1;
+      mainCtx.strokeRect(cx+0.5,cy+0.5,cw-1,ch-1); // 칸 경계선을 실콘텐츠로 직접 그려 어떤 내보내기에도 남음
       const col=Math.floor((q.x-ox)/cw),row=Math.floor((gf.y+gf.h-1-cy)/ch);
       G.graphData[col+','+row]=G.color;
     }
