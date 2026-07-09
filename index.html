@@ -2781,7 +2781,7 @@ function snapshotCurrent(){
   persistProjects();
 }
 function persistProjects(){
-  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date,frames:p.frames||null,graphData:p.graphData||null,graphCols:p.graphCols||null,usedSyms:p.usedSyms||null,cw:p.cw||null,ch:p.ch||null}));
+  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date,frames:p.frames||null,graphData:p.graphData||null,graphCols:p.graphCols||null,usedSyms:p.usedSyms||null,cw:p.cw||null,ch:p.ch||null,customNarrative:p.customNarrative||null}));
   const full=G.projects.map((p,i)=>Object.assign({},meta[i],{data:p.data||null,thumb:p.thumb||null}));
   try{localStorage.setItem('cony_projects_v1',JSON.stringify(full));}
   catch(e){try{localStorage.setItem('cony_projects_v1',JSON.stringify(meta));}catch(e2){}}
@@ -3779,6 +3779,9 @@ FO: Fasten off, weave in ends.`;
   }
 }
 function genNarrative(type){
+  // 여러 조각(뒤판+앞판+소매 등)을 진동·목선 줄임까지 손으로 설계한 도안은 자동 생성기가
+  // 단일 사각형 기준으로 잘못 계산하므로, 손으로 쓴 완성 서술도안이 있으면 그대로 반환
+  if(type==='ko'&&G.cur?.customNarrative)return G.cur.customNarrative;
   // 원형·반원 프레임이 있으면 라운드(원형) 도안, 없고 사각·격자 프레임만 있으면 평편(왕복) 도안
   const roundFrame=(G.canvasFrames||[]).find(f=>f.kind==='circle'||f.kind==='semi');
   // 격자 프레임 우선 — 차트가 격자에 있는데 스키마용 사각이 먼저 잡히면 코·단 수가 어긋남
