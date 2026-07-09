@@ -1550,12 +1550,13 @@ let G={
   annNum:1,annNumAuto:true,
   prevMode:'stamp',
   usedSymbols:[],
-  color:'#ffffff',
+  color:'#1a1a1a',
   colorHist:[],
   toolColors:{},
   toolRots:{},    // 기호별 회전 각도 기억
   rotLocked:false,// true = 기호 바꿔도 회전 유지
-  bgColor:'#202024',
+  bgColor:'#ffffff', // 도안 캔버스는 테마와 무관하게 흰 종이가 기본 — 다크 UI에서도 기호가 보여야 함
+
   brushSz:3,
   brushSoftness:0,
   brushMonoline:true,
@@ -2166,6 +2167,16 @@ function drawFrameGuide(ctx,f){
       const{cols,rows,cw,ch}=frameGridDims(f);
       for(let i=1;i<cols;i++){const x=f.x+i*cw;ctx.beginPath();ctx.moveTo(x,f.y);ctx.lineTo(x,f.y+f.h);ctx.stroke();}
       for(let i=1;i<rows;i++){const y=f.y+i*ch;ctx.beginPath();ctx.moveTo(f.x,y);ctx.lineTo(f.x+f.w,y);ctx.stroke();}
+      // 코(열)·단(행) 번호 — 도안 차트 관례: 아래 왼→오 코 번호, 왼쪽 아래→위 단 번호. 칸이 좁으면 5칸 간격
+      const fs2=Math.max(9,Math.min(14,Math.min(cw,ch)*0.42));
+      ctx.fillStyle='rgba(168,85,247,.8)';ctx.font='600 '+fs2+'px sans-serif';
+      const cStep=cw>=fs2*1.8?1:5, rStep=ch>=fs2*1.4?1:5;
+      ctx.textAlign='center';ctx.textBaseline='top';
+      const yNum=f.y+f.h+4<CH-fs2?f.y+f.h+4:f.y-fs2-4;
+      for(let i=1;i<=cols;i++){if(i!==1&&i!==cols&&i%cStep)continue;ctx.fillText(String(i),f.x+(i-0.5)*cw,yNum);}
+      ctx.textAlign='right';ctx.textBaseline='middle';
+      const xNum=f.x-6>fs2?f.x-6:f.x+f.w+6+fs2;
+      for(let i=1;i<=rows;i++){if(i!==1&&i!==rows&&i%rStep)continue;ctx.fillText(String(i),xNum,f.y+f.h-(i-0.5)*ch);}
     }else{
       ctx.setLineDash([8,5]);ctx.strokeRect(f.x,f.y,f.w,f.h);ctx.setLineDash([]);
       ctx.fillStyle='rgba(168,85,247,.07)';ctx.fillRect(f.x,f.y,f.w,f.h);
@@ -2724,13 +2735,17 @@ function restoreLayers(data,done){
   ensureLayerCanvases();setActiveCtx();
   let pending=0;
   data.forEach((d,i)=>{
+    // 대상 레이어를 지금 캡처 — 로드 완료 전에 다른 문서로 전환하면 G.layers[i]가 새 문서 레이어라
+    // 이전 문서 그림이 흘러들어가고 자동저장이 오염을 굳히던 버그 방지. 전환됐으면 그리기·합성 모두 건너뜀
+    const tgt=G.layers[i];
+    const alive=()=>G.layers.includes(tgt);
     if(d.png){pending++;const img=new Image();
-      img.onload=()=>{if(G.layers[i])G.layers[i].ctx.drawImage(img,0,0);if(--pending===0){composite();renderLayers();done&&done();}};
-      img.onerror=()=>{if(--pending===0){composite();renderLayers();done&&done();}};
+      img.onload=()=>{if(alive())tgt.ctx.drawImage(img,0,0);if(--pending===0&&alive()){composite();renderLayers();done&&done();}};
+      img.onerror=()=>{if(--pending===0&&alive()){composite();renderLayers();done&&done();}};
       img.src=d.png;}
     if(d.maskPng){pending++;const mi=new Image();
-      mi.onload=()=>{if(G.layers[i]){G.layers[i].mask=makeLayerCv();G.layers[i].mask.getContext('2d').drawImage(mi,0,0);}if(--pending===0){composite();renderLayers();done&&done();}};
-      mi.onerror=()=>{if(--pending===0){composite();renderLayers();done&&done();}};
+      mi.onload=()=>{if(alive()){tgt.mask=makeLayerCv();tgt.mask.getContext('2d').drawImage(mi,0,0);}if(--pending===0&&alive()){composite();renderLayers();done&&done();}};
+      mi.onerror=()=>{if(--pending===0&&alive()){composite();renderLayers();done&&done();}};
       mi.src=d.maskPng;}
   });
   if(pending===0){composite();renderLayers();done&&done();}
@@ -4097,7 +4112,8 @@ function bindAll(){
   $('zoom-hud').addEventListener('click',e=>{e.stopPropagation();if(Math.abs(G.zoom-1)<0.05)fitToScreen();else{G.zoom=1;G.viewRot=0;const cwr=($('cw')||document.body).getBoundingClientRect();G.pan={x:cwr.width/2,y:cwr.height/2};applyTransform();showZoomHud();}});
   $('rot-hud').addEventListener('click',e=>{e.stopPropagation();G.viewRot=0;applyTransform();showRotHud(0);showToast('캔버스 회전 초기화');});
   $('btn-pro').addEventListener('click',()=>openM('m-pro'));
-  $('btn-theme').addEventListener('click',()=>{const lt=document.documentElement.getAttribute('data-theme')==='light';const ic=$('btn-theme').querySelector('.mi');if(lt){document.documentElement.removeAttribute('data-theme');G.bgColor='#202024';if(ic)ic.textContent='🌙';}else{document.documentElement.setAttribute('data-theme','light');G.bgColor='#ffffff';if(ic)ic.textContent='☀️';}if(bgCtx)drawBg();});
+  // 테마는 UI 색만 바꾼다 — 도안 캔버스 배경은 배경색 팔레트에서만 변경(다크에서 기호 실종 방지)
+  $('btn-theme').addEventListener('click',()=>{const lt=document.documentElement.getAttribute('data-theme')==='light';const ic=$('btn-theme').querySelector('.mi');if(lt){document.documentElement.removeAttribute('data-theme');if(ic)ic.textContent='🌙';}else{document.documentElement.setAttribute('data-theme','light');if(ic)ic.textContent='☀️';}});
   
   // TOOLS
   document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.addEventListener('click',()=>{if(G.shelfType==='annotation'){G.shelfType=null;document.querySelectorAll('.tbtn[data-shelf]').forEach(x=>x.classList.remove('act'));renderShelf();}setMode(b.dataset.mode);}));
