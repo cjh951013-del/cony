@@ -649,6 +649,7 @@ body.ui-hidden #row-counter{display:none!important}
     <div style="display:flex;gap:6px;align-items:center">
       <span id="plan-chip" class="plan-chip chip-free">FREE</span>
       <button class="hb" id="btn-np">＋ 새 도안</button>
+      <button class="hb" id="btn-samples" title="검증된 샘플 도안 4종(고양이·발바닥 필레, 꽃 코스터, 가디건)을 설치">📦 샘플 도안</button>
       <button class="hb p" id="btn-upgrade-dash">👑 업그레이드</button>
     </div>
   </header>
@@ -1045,6 +1046,24 @@ body.ui-hidden #row-counter{display:none!important}
             <span>칸 크기</span>
             <span id="graph-cellsz-v" style="font-size:11px;color:var(--accent);font-weight:600">24px</span>
           </div>
+          <div class="cgl" style="margin-top:6px">배치된 격자 프레임</div>
+          <div class="sr2" style="margin-bottom:5px">
+            <span>가로 칸</span>
+            <div style="display:flex;align-items:center;gap:3px">
+              <button class="ib" id="gf-col-m" style="width:24px;padding:2px 0;font-size:13px">−</button>
+              <b id="gf-col-v" style="min-width:30px;text-align:center;font-size:12px;color:var(--accent)">—</b>
+              <button class="ib" id="gf-col-p" style="width:24px;padding:2px 0;font-size:13px">+</button>
+            </div>
+          </div>
+          <div class="sr2" style="margin-bottom:5px">
+            <span>세로 칸</span>
+            <div style="display:flex;align-items:center;gap:3px">
+              <button class="ib" id="gf-row-m" style="width:24px;padding:2px 0;font-size:13px">−</button>
+              <b id="gf-row-v" style="min-width:30px;text-align:center;font-size:12px;color:var(--accent)">—</b>
+              <button class="ib" id="gf-row-p" style="width:24px;padding:2px 0;font-size:13px">+</button>
+            </div>
+          </div>
+          <button class="ib" id="gf-edit" style="width:100%;font-size:11px;padding:6px;margin-bottom:6px">◫ 프레임 크기·위치 편집</button>
           <button class="ib" id="btn-sym-convert" style="width:100%;padding:8px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;border-radius:10px;margin-bottom:4px">▦ → ⊙  기호 변환 (Symbol Convert)</button>
           <button class="ib" id="btn-graph-clear" style="width:100%;font-size:10px;padding:5px">↺ 방안 초기화</button>
         </div>
@@ -1278,7 +1297,8 @@ body.ui-hidden #row-counter{display:none!important}
   </div>
 </div>
 <!-- ===== MODAL: SYMBOL CHART (방안→기호 변환) ===== -->
-<div class="mo" id="m-sym-chart" style="display:none">
+<!-- 인라인 display:none 금지 — .mo 기본 CSS가 이미 숨김이고, 인라인은 .mo.open보다 우선해 모달이 영영 안 열림 -->
+<div class="mo" id="m-sym-chart">
   <div class="mc" style="max-width:96vw;width:auto;max-height:92vh;display:flex;flex-direction:column">
     <div class="mh">
       <h2 style="font-size:14px">⊙ 기호 도안 (Symbol Chart)</h2>
@@ -4103,7 +4123,7 @@ function setMode(m){
   {const sr=$('size-rail');if(sr){sr.max=m==='stamp'?60:30;const v=m==='stamp'?(G.stampSz||48):m==='eraser'?(G.eraserSz||6):(G.brushSz||3);sr.value=v;const sv=$('size-rail-v');if(sv)sv.textContent=v;}}
   {const b=$('brush-cg');if(b)b.style.display=(m==='draw'||m==='eraser'||m==='smudge'||m==='text')?'block':'none';}
   {const s=$('stamp-cg');if(s)s.style.display=m==='stamp'?'block':'none';}
-  {const g=$('graph-cg');if(g)g.style.display=m==='graph'?'block':'none';}
+  {const g=$('graph-cg');if(g)g.style.display=m==='graph'?'block':'none';if(m==='graph'&&window._gfSync)window._gfSync();}
   const cw=$('cw');
   if(cw)cw.style.cursor=m==='eraser'?'cell':m==='text'?'text':m==='pick'?'copy':m==='select'||m==='selection'?'default':m==='clone'?'cell':'crosshair';
   if(m!=='clone'){const ci=$('clone-src-ind');if(ci)ci.style.display='none';}
@@ -4139,6 +4159,7 @@ function showBszHud(v){
 function bindAll(){
   // DASH
   $('btn-np').addEventListener('click',()=>openM('m-new'));
+  {const bs=$('btn-samples');if(bs)bs.addEventListener('click',()=>buildSampleDocs());}
   $('btn-upgrade-dash').addEventListener('click',()=>openM('m-pro'));
   $('btn-create').addEventListener('click',()=>{
     const maxSz=isPro()?4000:1200; // 무료 1200px, Pro 4000px
@@ -4249,6 +4270,21 @@ function bindAll(){
   $('graph-col-m').addEventListener('click',()=>{G.graphCols=Math.max(10,G.graphCols-5);$('graph-cols').value=G.graphCols;_updateGraphCellSzLabel();});
   $('graph-col-p').addEventListener('click',()=>{G.graphCols=Math.min(200,G.graphCols+5);$('graph-cols').value=G.graphCols;_updateGraphCellSzLabel();});
   $('btn-sym-convert').addEventListener('click',showSymbolConvert);
+  // 배치된 격자 프레임 칸수를 패널에서 바로 조정 — 프레임 편집 진입 없이도 가능
+  function _gfFrame(){return (G.canvasFrames||[]).find(f=>f.kind==='grid');}
+  window._gfSync=function(){const cv=$('gf-col-v'),rv=$('gf-row-v');if(!cv)return;const f=_gfFrame();const gd=f?frameGridDims(f):null;cv.textContent=gd?gd.cols:'—';rv.textContent=gd?gd.rows:'—';};
+  function _gfAdj(axis,d){
+    const f=_gfFrame();if(!f){showToast('격자 프레임이 없어요 — ◫ 프레임에서 먼저 배치');return;}
+    const gd=frameGridDims(f);
+    f.cols=axis==='c'?Math.max(2,Math.min(100,gd.cols+d)):gd.cols;
+    f.rows=axis==='r'?Math.max(2,Math.min(100,gd.rows+d)):gd.rows;
+    drawBg();window._gfSync();schedulePersist();
+  }
+  $('gf-col-m').addEventListener('click',()=>_gfAdj('c',-1));
+  $('gf-col-p').addEventListener('click',()=>_gfAdj('c',1));
+  $('gf-row-m').addEventListener('click',()=>_gfAdj('r',-1));
+  $('gf-row-p').addEventListener('click',()=>_gfAdj('r',1));
+  $('gf-edit').addEventListener('click',()=>{const f=_gfFrame();if(!f){showToast('격자 프레임이 없어요 — ◫ 프레임에서 먼저 배치');return;}editFrame(f.id);});
   $('btn-graph-clear').addEventListener('click',()=>{if(confirm('방안 내용을 모두 지울까요?'))graphClearData();});
   // Symbol Chart 탭 & 다운로드
   document.querySelectorAll('.sc-tab').forEach(btn=>{
@@ -6333,6 +6369,197 @@ function onDblClick(e){
 }
 let shTm;
 function scheduleSH(){clearTimeout(shTm);shTm=setTimeout(saveH,800);}
+
+/* ===================== 샘플 도안 (설치형) =====================
+   레퍼런스: 일본 코스터 도안집(21마스=64목 작り目, 縁編み 스캘럽), 필레 고양이 실물 차트,
+   Tejer 원형 도일리 기호도안, The Caffeinated Snail 6-petal flower coaster.
+   localStorage가 아니라 코드에 존재 — 어느 기기에서든 버튼 한 번으로 동일 생성 */
+const SAMPLE_CAT_ROWS=[
+'...#....#...............','..##...##...............','..########..............',
+'.##########.............','.###.######.............','.##########.............',
+'.###########............','.############...........','..##########............',
+'..###########...........','..#############.........','..################......',
+'..##################....','..###################...','..###################...',
+'..###################...','..###################...','..###################...',
+'..###################...','..###################...','..###################...',
+'..###################...','..###################...','..##################....',
+'..##################....','...####..###########....','...####..###########....',
+'...####..###########....','.#.####..###########....','.####################...'];
+const SAMPLE_PAW_ROWS=[
+'##########################','##########################','##########################',
+'########....##....########','###....#....##....#....###','###....#....##....#....###',
+'###....#....##....#....###','###....############....###','##########################',
+'##########################','#########........#########','########..........########',
+'#######............#######','#######............#######','#######............#######',
+'#######............#######','#######............#######','########..........########',
+'#########........#########','##########################','##########################',
+'##########################','##########################','##########################',
+'##########################','##########################'];
+// 필레 기호 차트: 채운 칸=한길긴뜨기 3코(⊤⊤⊤), 빈 칸=한길긴뜨기1+사슬2, 매단 가장자리 공유 한길긴뜨기,
+// 하단 기초사슬 행(일본식: 칸수×3+1목 작り目, 돌림사슬 3코 별도)
+function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifOnDark){
+  const R=rows.length,C=rows[0].length,cw=fw/C,chh=fh/R,COL='#2a2a2a';
+  const dcSz=Math.min(24,chh*0.85);
+  const gd={};
+  ctx.save();ctx.strokeStyle='rgba(168,85,247,.25)';ctx.lineWidth=1;
+  for(let i=0;i<=C;i++){ctx.beginPath();ctx.moveTo(fx+i*cw,fy);ctx.lineTo(fx+i*cw,fy+fh);ctx.stroke();}
+  for(let i=0;i<=R;i++){ctx.beginPath();ctx.moveTo(fx,fy+i*chh);ctx.lineTo(fx+fw,fy+i*chh);ctx.stroke();}
+  ctx.restore();
+  for(let vi=0;vi<R;vi++){
+    const y=fy+(vi+0.5)*chh;
+    for(let c=0;c<C;c++){
+      const xL=fx+c*cw;
+      drawSVGStitch(ctx,xL,y,'dc',COL,dcSz,0);
+      if(rows[vi][c]==='#'){
+        drawSVGStitch(ctx,xL+cw/3,y,'dc',COL,dcSz,0);
+        drawSVGStitch(ctx,xL+cw*2/3,y,'dc',COL,dcSz,0);
+        gd[c+','+(R-1-vi)]=motifOnDark||'#1d1d1f';
+      }else{
+        drawSVGStitch(ctx,xL+cw*0.38,y,'ch',COL,8,0);
+        drawSVGStitch(ctx,xL+cw*0.66,y,'ch',COL,8,0);
+      }
+    }
+    drawSVGStitch(ctx,fx+fw,y,'dc',COL,dcSz,0);
+  }
+  const n=C*3+1,fy2=fy+fh+16;
+  for(let i=0;i<n;i++)drawSVGStitch(ctx,fx+(i+0.5)*(fw/n),fy2,'ch',COL,8,0);
+  ctx.save();ctx.fillStyle=COL;ctx.font='600 15px sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillText('작り目(기초사슬) '+C+'칸 = '+n+'코 + 돌림사슬 3코 — 필레뜨기: ■=한길긴뜨기 3코, □=한길긴뜨기1·사슬2·2코 건너뛰기',fx,fy2+16);
+  ctx.restore();
+  return gd;
+}
+function buildSampleDocs(){
+  const mk=(name,type,cw,ch,frames)=>{
+    G.projects=G.projects.filter(p=>p.name!==name);
+    const p={id:'p_s'+Date.now()+Math.random().toString(36).slice(2,5),name,type,frame:'none',cw,ch,date:new Date().toLocaleDateString('ko-KR'),thumb:null,frames:frames||null};
+    G.projects.unshift(p);return p;
+  };
+  const paint=(p,fn)=>{
+    const cv=document.createElement('canvas');cv.width=p.cw;cv.height=p.ch;const ctx=cv.getContext('2d');
+    fn(ctx,p);
+    p.data=cv.toDataURL('image/png');
+    try{localStorage.setItem('cony_layers_'+p.id,JSON.stringify([{name:'레이어 1',visible:true,opacity:1,png:p.data}]));}catch(e){}
+    const t=document.createElement('canvas');t.width=t.height=180;const tc=t.getContext('2d');
+    tc.fillStyle='#fff';tc.fillRect(0,0,180,180);tc.drawImage(cv,0,0,180,180);p.thumb=t.toDataURL();
+  };
+  // 1) 검은고양이 필레 코스터 (24×30)
+  {const f={id:Date.now(),name:'격자 1',x:180,y:180,w:840,h:840,kind:'grid',cols:24,rows:30};
+   const p=mk('검은고양이 필레 코스터','crochet',1200,1200,[f]);
+   paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_CAT_ROWS);});
+   p.usedSyms=['dc','ch'];}
+  // 2) 발바닥 필레 코스터 (26×26)
+  {const f={id:Date.now()+1,name:'격자 1',x:250,y:170,w:700,h:700,kind:'grid',cols:26,rows:26};
+   const p=mk('발바닥 필레 코스터','crochet',1200,1200,[f]);
+   paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_PAW_ROWS,'#c9b78c');});
+   p.usedSyms=['dc','ch'];}
+  // 3) 6장 꽃 코스터 — 라운드 기호도안 (기호 크기 통일·방사 회전·접선 사슬·스캘럽 마감단)
+  {const f={id:Date.now()+2,name:'원형 1',x:32,y:32,w:456,h:456,kind:'circle'};
+   const p=mk('6장 꽃 코스터','crochet',520,520,[f]);
+   paint(p,ctx=>{
+     const cx=260,cy=260,Rm=228,SZ=18;
+     const C1='#c98b2d',C2='#a8672e',PET='#b8556f';
+     const rot=(x,y)=>Math.atan2(y-cy,x-cx)*180/Math.PI+90;
+     const dcAt=(r,a,col)=>{const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);drawSVGStitch(ctx,x,y,'dc',col,SZ,rot(x,y));};
+     const chT=(r,a,col)=>{const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);drawSVGStitch(ctx,x,y,'ch',col,9,rot(x,y)+90);};
+     drawSVGStitch(ctx,cx,cy,'mr',C1,16,0);
+     for(let i=0;i<12;i++)dcAt(Rm*0.18,i/12*2*Math.PI-Math.PI/2,C1);
+     for(let i=0;i<24;i++)dcAt(Rm*0.36,i/24*2*Math.PI-Math.PI/2,C1);
+     for(let i=0;i<36;i++)dcAt(Rm*0.54,i/36*2*Math.PI-Math.PI/2,C2);
+     for(let i=0;i<36;i++)chT(Rm*0.45,(i+0.5)/36*2*Math.PI-Math.PI/2,C2); // 단 사이 접선 사슬
+     const aR=Rm*0.58,tR=Rm*0.86;
+     for(let pI=0;pI<6;pI++){
+       const th=pI/6*2*Math.PI-Math.PI/2;
+       const ax=cx+aR*Math.cos(th),ay=cy+aR*Math.sin(th);
+       for(let k=0;k<8;k++){
+         const pa=th+(k-3.5)*(8*Math.PI/180);
+         const px2=cx+tR*Math.cos(pa),py2=cy+tR*Math.sin(pa);
+         const rr=Math.atan2(py2-ay,px2-ax)*180/Math.PI+90;
+         drawSVGStitch(ctx,(ax+px2)/2,(ay+py2)/2,'tr',PET,SZ+4,rr);
+       }
+       const sa=th+Math.PI/6,sx2=cx+aR*Math.cos(sa),sy2=cy+aR*Math.sin(sa);
+       drawSVGStitch(ctx,sx2,sy2,'slst',C2,11,rot(sx2,sy2));
+     }
+     for(let i=0;i<12;i++){ // 마감단: 縁編み 스캘럽(조개) 12개 — 도일리 기호도안 마무리 관례
+       const th=i/12*2*Math.PI-Math.PI/2;
+       const x=cx+Rm*0.97*Math.cos(th),y=cy+Rm*0.97*Math.sin(th);
+       drawSVGStitch(ctx,x,y,'shell',C1,24,rot(x,y));
+     }
+   });
+   p.usedSyms=['mr','dc','tr','slst','shell'];
+   p.customNarrative=['[6장 꽃 코스터 — 완성 도안]','출처 구조: The Caffeinated Snail "6 Petal Flower Coaster" / 코바늘 4.5mm, 면 중세사 2색','',
+     '1단: 매직링에 한길긴뜨기 12코, 빼뜨기 이음. (12코)','2단: 매 코 늘리기 → 24코. 실을 자르고 배색.',
+     '3단: (한길긴뜨기1, 늘리기1) 반복 → 36코.',
+     '4단(꽃잎): [2코 건너뛰고 다음 코에 두길긴뜨기 8코 부채, 2코 건너뛰고 빼뜨기] ×6 — 꽃잎 6장.',
+     '5단(마감): 각 꽃잎 위 짧은뜨기 정리 + 가장자리 縁編み 조개뜨기 한 바퀴.','','완성 지름 약 12~13cm.'].join('\n');}
+  // 4) 브로큰립 가디건 — 도식+무늬차트(6코 반복+양끝 2코 대칭)
+  {const chart={id:Date.now()+3,name:'무늬차트',x:230,y:560,w:800,h:480,kind:'grid',cols:20,rows:12};
+   const p=mk('브로큰립 가디건','knitting',1260,1100,[chart]);
+   paint(p,ctx=>{
+     const dim=(x1,y1,x2,y2,t)=>{ctx.save();ctx.strokeStyle='#8b3a52';ctx.lineWidth=1.4;
+       ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+       const mx=(x1+x2)/2,my=(y1+y2)/2;ctx.font='600 12px sans-serif';const tw=ctx.measureText(t).width;
+       ctx.fillStyle='#fff';ctx.fillRect(mx-tw/2-3,my-8,tw+6,16);ctx.fillStyle='#8b3a52';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,mx,my);ctx.restore();};
+     const body=(pts)=>{ctx.save();ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2.2;ctx.fillStyle='rgba(139,58,82,.06)';
+       ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();};
+     const lbl=(x,y,t,s,al)=>{ctx.save();ctx.font=(s||14)+'px sans-serif';ctx.fillStyle='#1a1a1a';ctx.textAlign=al||'center';ctx.fillText(t,x,y);ctx.restore();};
+     const note=(x,y,lines,al)=>{ctx.save();ctx.font='600 11.5px sans-serif';const lh=14;let mw=0;lines.forEach(l=>mw=Math.max(mw,ctx.measureText(l).width));
+       const bw=mw+12,bh=lh*lines.length+6;let bx=al==='right'?x-bw:x;bx=Math.max(8,Math.min(1260-8-bw,bx));const by=Math.max(8,Math.min(1100-8-bh,y));
+       ctx.fillStyle='rgba(255,255,255,.93)';ctx.fillRect(bx,by,bw,bh);ctx.strokeStyle='#1a5276';ctx.lineWidth=1;ctx.strokeRect(bx,by,bw,bh);
+       ctx.fillStyle='#1a5276';ctx.textAlign='left';ctx.textBaseline='middle';lines.forEach((l,i)=>ctx.fillText(l,bx+6,by+lh*(i+0.5)+3));ctx.restore();};
+     const y0=110,PXCM=6.3,PXROW=2.2;
+     const cw2=21*PXCM,uw=34.5*PXCM,sh=108*PXROW,sx=56,scx=sx+uw/2;
+     body([[scx-cw2/2,y0+sh],[scx-uw/2,y0],[scx+uw/2,y0],[scx+cw2/2,y0+sh]]);
+     dim(scx-cw2/2,y0+sh+20,scx+cw2/2,y0+sh+20,'손목단 21cm(38코)');
+     dim(scx-uw/2,y0-13,scx+uw/2,y0-13,'소매통 34.5cm(62코)');
+     lbl(scx,y0+sh+46,'소매 (2장)',15);
+     note(scx-uw/2-6,y0+sh*0.35,['8단마다 양쪽 1코씩','늘림 ×12회 (38→62코)'],'right');
+     const fw2=31*PXCM,fh2=144*PXROW,frx=sx+uw+58,nsY=y0+104*PXROW,nc=19/1.8*PXCM;
+     body([[frx,y0+fh2],[frx,y0],[frx+fw2-nc,y0],[frx+fw2,nsY],[frx+fw2,y0+fh2]]);
+     dim(frx,y0+fh2+20,frx+fw2,y0+fh2+20,'폭 31cm(56코)');lbl(frx+fw2/2,y0+fh2+46,'앞판 우 (1장)',15);
+     note(frx+fw2+8,nsY-24,['105단부터 2단마다 1코씩','목쪽 줄임 ×19회 (56→37코)']);
+     const bw2=61*PXCM,bx2=frx+fw2+36,bcx=bx2+bw2/2,nw=30/1.8*PXCM,nd=8*PXROW;
+     body([[bx2,y0+fh2],[bx2,y0],[bcx-nw/2,y0],[bcx-nw/2,y0+nd],[bcx+nw/2,y0+nd],[bcx+nw/2,y0],[bx2+bw2,y0],[bx2+bw2,y0+fh2]]);
+     dim(bx2,y0+fh2+20,bx2+bw2,y0+fh2+20,'가슴단면 61cm(110코)');
+     dim(bx2-18,y0,bx2-18,y0+fh2,'총장 60cm(144단)');
+     dim(bx2,y0-13,bcx-nw/2,y0-13,'어깨 20.5cm(37코)');
+     lbl(bcx,y0+fh2+46,'뒤판 (1장)',15);
+     note(bcx-70,y0+nd+14,['137단: 중심 30코 코막음','이후 매단 목쪽 1코×3회 (40→37코)']);
+     const flx=bx2+bw2+36;
+     body([[flx+fw2,y0+fh2],[flx+fw2,y0],[flx+nc,y0],[flx,nsY],[flx,y0+fh2]]);
+     dim(flx,y0+fh2+20,flx+fw2,y0+fh2+20,'폭 31cm(56코)');lbl(flx+fw2/2,y0+fh2+46,'앞판 좌 (1장)',15);
+     note(flx-8,nsY-24,['105단부터 2단마다 1코씩','목쪽 줄임 ×19회 (56→37코)'],'right');
+     // 무늬 차트 20코(6코 반복+양끝 겉2 대칭)×12단
+     const f=chart,ccw=f.w/f.cols,cch=f.h/f.rows;
+     ctx.save();ctx.strokeStyle='rgba(168,85,247,.3)';ctx.lineWidth=1;
+     for(let i=0;i<=f.cols;i++){ctx.beginPath();ctx.moveTo(f.x+i*ccw,f.y);ctx.lineTo(f.x+i*ccw,f.y+f.h);ctx.stroke();}
+     for(let i=0;i<=f.rows;i++){ctx.beginPath();ctx.moveTo(f.x,f.y+i*cch);ctx.lineTo(f.x+f.w,f.y+i*cch);ctx.stroke();}
+     ctx.restore();
+     for(let r=0;r<12;r++)for(let c=0;c<20;c++){
+       const st=(c%6<2)?'k':(((c+r)%2===0)?'p':'k');
+       drawSVGStitch(ctx,f.x+(c+0.5)*ccw,f.y+(r+0.5)*cch,st,'#1d1d1f',26,0);
+     }
+     lbl(f.x,f.y-12,'무늬 차트 — 6코 반복 + 양끝 겉2 (모든 콧수는 6의 배수+2)',15,'left');
+     lbl(f.x,f.y+f.h+26,'X=겉뜨기(K)  O=안뜨기(P)  20코×12단 스와치',13,'left');
+   });
+   p.usedSyms=['k','p'];
+   p.customNarrative=['[브로큰립 가디건 — 완성 도안]','게이지 18코×24단=10cm / 대바늘 4.5mm / 중세사 울. 드롭숄더, 무늬는 6의 배수+2코.','',
+     '[뒤판] 코잡기 110코. 1~136단 무늬로 곧게. 137단: 40코, 중심 30코 코막음, 40코 홀더.',
+     '138~140단 목쪽 매단 1코 줄임(40→37코). 141~144단 곧게, 37코 어깨 코막음. 반대쪽 대칭.',
+     '',
+     '[앞판 좌·우 각 1장] 코잡기 56코. 1~104단 곧게. 105단부터 목쪽 2단마다 1코씩 ×19회(마지막 141단, 56→37코).',
+     '142~144단 곧게, 37코 어깨 코막음 — 뒤판 어깨와 정확히 맞물림. 좌우 대칭으로 2장.',
+     '',
+     '[소매 2장] 코잡기 38코, 1~12단 1코고무. 13단부터 무늬로 바꾸고 8단마다 양끝 1코씩 ×12회(마지막 101단, 38→62코).',
+     '102~108단 곧게, 62코 코막음.',
+     '',
+     '[연결] 어깨 37코끼리 잇기 → 소매 윗변을 옆선에 달기 → 옆선·소매선 꿰매기 → 앞단 코줍기 1코고무 6단(단추구멍 5개) → 목둘레 1코고무 4단.',
+     '완성: 가슴 61cm·총장 60cm·소매 45cm.'].join('\n');}
+  persistProjects();
+  if(typeof renderDash==='function')renderDash();
+  showToast('샘플 도안 4종 설치 완료');
+  return G.projects.slice(0,4).map(p=>p.name);
+}
+window.buildSampleDocs=buildSampleDocs;
 
 /* ===================== INIT ===================== */
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
