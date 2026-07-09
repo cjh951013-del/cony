@@ -5915,7 +5915,12 @@ function initDock(){
       if(holdT){clearTimeout(holdT);holdT=null;
         // 같은 도구 재클릭 = 기호 패널 토글 (도장·브러시) — 도크 옆(왼쪽)에서 열림
         if(G.mode===b.dataset.mode&&(b.dataset.mode==='stamp'||b.dataset.mode==='draw')){const _sl=$('sl');if(_sl)_sl.classList.remove('right');togglePanel('sl');return;}
-        closePanels();setMode(b.dataset.mode);}
+        closePanels();setMode(b.dataset.mode);
+        // 방안뜨기 설정(열 수·기호 변환 버튼)은 #graph-cg인데 실제로는 왼쪽 기호 패널(#sl)이
+        // 아니라 오른쪽 패널(#sr)의 "도구·가이드" 탭 안에 있다 — 그래서 도장 재클릭 규칙만으론
+        // 절대 못 찾았다. 방안 모드를 고르면 바로 그 탭을 열어준다
+        if(b.dataset.mode==='graph')togglePanel('sr','tools');
+      }
     });
     b.addEventListener('pointerleave',()=>{if(holdT){clearTimeout(holdT);holdT=null;}});
   });
