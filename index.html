@@ -2558,6 +2558,7 @@ function fillCell(p){
   symXf().forEach(T=>{
     const q=T(p);const cx=ox+Math.floor((q.x-ox)/cw)*cw,cy=oy+Math.floor((q.y-oy)/ch)*ch;
     if(cx>=0&&cy>=0&&cx<CW&&cy<CH){
+      mainCtx.clearRect(cx,cy,cw,ch); // 재도장 시 이전 기호 잔상 없이 항상 깨끗하게 — 칸 재색칠이 자유로움
       drawSVGStitch(mainCtx,cx+cw/2,cy+ch/2,'sc',G.color,sz,0);
       const col=Math.floor((q.x-ox)/cw),row=Math.floor((gf.y+gf.h-1-cy)/ch);
       G.graphData[col+','+row]=G.color;
@@ -3299,6 +3300,17 @@ function erasePath(ctx,px,py,nx,ny,r){
   }
 }
 function eraseGridCell(ctx,x,y){
+  // 격자 프레임 안이면 그 칸 하나만 정확히 지우고 방안뜨기 데이터도 함께 삭제한다 —
+  // 픽셀만 지우고 graphData가 남으면 서술도안·기호변환·인쇄 범례가 지워진 칸을 계속 셈
+  const gf=(G.canvasFrames||[]).find(f=>f.kind==='grid'&&x>=f.x&&x<=f.x+f.w&&y>=f.y&&y<=f.y+f.h);
+  if(gf){
+    const{cw,ch}=frameGridDims(gf),ox=gf.x,oy=gf.y;
+    const cx=ox+Math.floor((x-ox)/cw)*cw,cy=oy+Math.floor((y-oy)/ch)*ch;
+    ctx.clearRect(cx,cy,cw,ch);
+    const col=Math.floor((x-ox)/cw),row=Math.floor((gf.y+gf.h-1-cy)/ch);
+    delete G.graphData[col+','+row];
+    return;
+  }
   // 기호 단위 지우기 — 가장 가까운 기호 중심(프레임 슬롯·격자 칸)에 스냅해 그 기호를 겨냥
   const p=G.gridOn?snapToGrid({x,y}):{x,y};
   const r=Math.max(16,(G.stampSz||48)*0.48);
