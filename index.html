@@ -6397,6 +6397,10 @@ const SAMPLE_PAW_ROWS=[
 '##########################','##########################'];
 // 필레 기호 차트: 채운 칸=한길긴뜨기 3코(⊤⊤⊤), 빈 칸=한길긴뜨기1+사슬2, 매단 가장자리 공유 한길긴뜨기,
 // 하단 기초사슬 행(일본식: 칸수×3+1목 작り目, 돌림사슬 3코 별도)
+// 실제 필레뜨기 차트 관례: 스페이스(배경, 그림이 없는 칸)는 거의 빈칸이고
+// 블록(그림이 있는 칸)에만 진한 뜨기 기호가 몰린다 — 배경까지 사슬 기호로
+// 채우면 "전체가 다 빽빽해 보여 어디가 그림인지 안 보이는" 정반대 결과가 됨.
+// 그래서 스페이스는 완전히 비우고(격자선만), 블록에만 ⊤⊤⊤ 3코를 찍는다.
 function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifOnDark){
   const R=rows.length,C=rows[0].length,cw=fw/C,chh=fh/R,COL='#2a2a2a';
   const dcSz=Math.min(24,chh*0.85);
@@ -6408,23 +6412,19 @@ function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifOnDark){
   for(let vi=0;vi<R;vi++){
     const y=fy+(vi+0.5)*chh;
     for(let c=0;c<C;c++){
-      const xL=fx+c*cw;
-      drawSVGStitch(ctx,xL,y,'dc',COL,dcSz,0);
       if(rows[vi][c]==='#'){
-        drawSVGStitch(ctx,xL+cw/3,y,'dc',COL,dcSz,0);
-        drawSVGStitch(ctx,xL+cw*2/3,y,'dc',COL,dcSz,0);
+        const xL=fx+c*cw;
+        drawSVGStitch(ctx,xL+cw*0.18,y,'dc',COL,dcSz,0);
+        drawSVGStitch(ctx,xL+cw*0.5,y,'dc',COL,dcSz,0);
+        drawSVGStitch(ctx,xL+cw*0.82,y,'dc',COL,dcSz,0);
         gd[c+','+(R-1-vi)]=motifOnDark||'#1d1d1f';
-      }else{
-        drawSVGStitch(ctx,xL+cw*0.38,y,'ch',COL,8,0);
-        drawSVGStitch(ctx,xL+cw*0.66,y,'ch',COL,8,0);
       }
+      // 스페이스(그림이 없는 배경)는 아무것도 그리지 않음 — 격자선만 남아 완전히 비어 보임
     }
-    drawSVGStitch(ctx,fx+fw,y,'dc',COL,dcSz,0);
   }
   const n=C*3+1,fy2=fy+fh+16;
-  for(let i=0;i<n;i++)drawSVGStitch(ctx,fx+(i+0.5)*(fw/n),fy2,'ch',COL,8,0);
   ctx.save();ctx.fillStyle=COL;ctx.font='600 15px sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
-  ctx.fillText('작り目(기초사슬) '+C+'칸 = '+n+'코 + 돌림사슬 3코 — 필레뜨기: ■=한길긴뜨기 3코, □=한길긴뜨기1·사슬2·2코 건너뛰기',fx,fy2+16);
+  ctx.fillText('기초사슬 '+n+'코(칸수×3+1) — 그림이 있는 칸(■)만 한길긴뜨기 3코, 나머지 배경은 사슬+긴뜨기로 성기게 그물뜨기(스페이스)',fx,fy2+2);
   ctx.restore();
   return gd;
 }
