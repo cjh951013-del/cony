@@ -2187,6 +2187,21 @@ function drawFrameGuide(ctx,f){
       const{cols,rows,cw,ch}=frameGridDims(f);
       for(let i=1;i<cols;i++){const x=f.x+i*cw;ctx.beginPath();ctx.moveTo(x,f.y);ctx.lineTo(x,f.y+f.h);ctx.stroke();}
       for(let i=1;i<rows;i++){const y=f.y+i*ch;ctx.beginPath();ctx.moveTo(f.x,y);ctx.lineTo(f.x+f.w,y);ctx.stroke();}
+      // 코바늘 방안뜨기 가이드: 모든 칸에 기본 필레 망(경계 기둥 + 사슬2)을 깔아 도안 조직이
+      // 항상 보이게 한다 — fillCell이 채운 칸의 블록 기호를 이 위(메인 레이어)에 그린다.
+      // 좌표는 drawFiletChart·fillCell과 동일 공식(경계 0/⅓/⅔, 칸 상단 0.16)이라 정확히 겹친다
+      if((G.cur?.type)!=='knitting'&&cols*rows<=2000){
+        const gcol='rgba(150,110,200,.55)';
+        const dcSz=Math.min(ch*0.92,cw*1.1,30), chSz=Math.min(cw/3*1.05,ch*0.5,15);
+        for(let r=0;r<rows;r++){
+          const yMid=f.y+(r+0.5)*ch, yTop=f.y+r*ch+ch*0.16;
+          for(let b=0;b<=cols;b++)drawSVGStitch(ctx,f.x+b*cw,yMid,'dc',gcol,dcSz,0);
+          for(let c=0;c<cols;c++){
+            drawSVGStitch(ctx,f.x+(c+1/3)*cw,yTop,'ch',gcol,chSz,0);
+            drawSVGStitch(ctx,f.x+(c+2/3)*cw,yTop,'ch',gcol,chSz,0);
+          }
+        }
+      }
       // 코(열)·단(행) 번호 — 도안 차트 관례: 아래 왼→오 코 번호, 왼쪽 아래→위 단 번호. 칸이 좁으면 5칸 간격
       const fs2=Math.max(9,Math.min(14,Math.min(cw,ch)*0.42));
       ctx.fillStyle='rgba(168,85,247,.8)';ctx.font='600 '+fs2+'px sans-serif';
@@ -2553,7 +2568,7 @@ function stampFoundationChain(f){
   if(!mainCtx||f.kind!=='grid')return;
   const isKnit=(G.cur?.type)==='knitting';
   const gd=frameGridDims(f);
-  const n=isKnit?gd.cols:gd.cols+3; // 코바늘 방안뜨기: 칸수+기둥코 3(핀피노 등 실제 도안 생성기와 동일 방식)
+  const n=isKnit?gd.cols:gd.cols*3+4; // 코바늘 필레뜨기: 칸수×3+1 + 기둥코 사슬3 (3-dc filet 표준, 핀피노 동일)
   const sz=Math.min(gd.cw,gd.ch)*0.8;
   const below=f.y+f.h+sz*0.9+14<=CH-4;
   const y=below?f.y+f.h+sz*0.9+6:Math.max(sz*0.9+4,f.y-sz*0.9-6);
@@ -2566,12 +2581,13 @@ function stampFoundationChain(f){
     labelY=below?y+sz*0.9+2:y-sz*0.9-2;
     mainCtx.fillText('코잡기 '+n+'코',f.x,labelY);mainCtx.restore();
   }else{
-    // 방안뜨기는 기초사슬이 곧 1단이 되므로 기호 행 없이 문구만 — 전체를 한 가지 뜨기로
-    // 통일하고 그림은 색으로만 표현(핀피노 등 실제 도안 생성기 방식). 실제 뜨는 코수를 정확히 안내
+    // 필레뜨기 기초사슬 줄: 사슬 기호를 코 위치(칸당 3코)마다 실제로 그린다 — 도안 조직이 보이게
+    const chSz=Math.min(gd.cw/3*1.05,gd.ch*0.5,15);
+    for(let s=0;s<=gd.cols*3;s++)drawSVGStitch(mainCtx,f.x+s*gd.cw/3,y,'ch',G.chainColor||'#2a2a2a',chSz,0);
     mainCtx.save();mainCtx.fillStyle=G.chainColor||'#2a2a2a';mainCtx.font='600 '+Math.max(11,sz*0.5)+'px sans-serif';
     mainCtx.textAlign='left';mainCtx.textBaseline=below?'top':'bottom';
-    labelY=below?f.y+f.h+18:f.y-18;
-    mainCtx.fillText('기초사슬 '+n+'코 (칸수'+gd.cols+'+기둥코3) — 한길긴뜨기, 그림은 색으로 표현',f.x,labelY);mainCtx.restore();
+    labelY=below?y+sz*0.9+2:y-sz*0.9-2;
+    mainCtx.fillText('기초사슬 '+n+'코 (칸수'+gd.cols+'×3+1 +기둥코3) — ■=한길긴뜨기3, □=사슬2+한길긴뜨기1',f.x,labelY);mainCtx.restore();
   }
   f._chainBox={x:f.x-sz,y:Math.min(y,labelY)-sz,w:f.w+sz*2+240,h:Math.abs(labelY-y)+sz*2.4};
   f._chainCount=n;
@@ -2590,15 +2606,17 @@ function fillCell(p){
     return;
   }
   const{cw,ch}=frameGridDims(gf), ox=gf.x, oy=gf.y;
-  const sz=Math.min(24,ch*0.85,cw*0.85);
   symXf().forEach(T=>{
     const q=T(p);const cx=ox+Math.floor((q.x-ox)/cw)*cw,cy=oy+Math.floor((q.y-oy)/ch)*ch;
     if(cx>=0&&cy>=0&&cx<CW&&cy<CH){
       mainCtx.clearRect(cx,cy,cw,ch); // 재도장 시 이전 칠 잔상 없이 항상 깨끗하게 — 칸 재색칠이 자유로움
-      // 전체를 한 가지 뜨기(한길긴뜨기)로 통일하고 그림은 칸 배경색으로 표현 — 실제 도안 생성기 관례.
-      // 배경을 채워야 그림이 한눈에 보인다(기호 선 색만 바꾸면 옅은 색은 거의 안 보임)
-      mainCtx.fillStyle=G.color;mainCtx.fillRect(cx,cy,cw,ch);
-      drawSVGStitch(mainCtx,cx+cw/2,cy+ch/2,'dc',symContrast(G.color),sz,0);
+      // 필레뜨기 블록: 칸을 칠하면 반투명 음영 + 경계 기둥 포함 한길긴뜨기 4기둥(빽빽)으로 그린다.
+      // 빈 칸의 사슬 망은 격자 가이드(drawFrameGuide)가 항상 깔아주므로 여기선 블록만 그리면 된다
+      const hx=G.color.replace('#','');
+      mainCtx.fillStyle='rgba('+(parseInt(hx.substr(0,2),16)||0)+','+(parseInt(hx.substr(2,2),16)||0)+','+(parseInt(hx.substr(4,2),16)||0)+',0.3)';
+      mainCtx.fillRect(cx,cy,cw,ch);
+      const dcSz=Math.min(ch*0.92,cw*1.1,30);
+      for(let k=0;k<=3;k++)drawSVGStitch(mainCtx,cx+k*cw/3,cy+ch/2,'dc','#1a1a1a',dcSz,0);
       const col=Math.floor((q.x-ox)/cw),row=Math.floor((gf.y+gf.h-1-cy)/ch);
       G.graphData[col+','+row]=G.color;
     }
@@ -3817,44 +3835,39 @@ Rows 2-${rows}: ${stAb} in each st across (${stCount} sts). Ch ${tch}, turn.
 FO: Fasten off, weave in ends.`;
   }
 }
-// 필레뜨기(방안뜨기) 서술도안: graphData(칸별 칠 여부)를 실제 단별 블록/스페이스 순서로 읽어 생성.
-// 블록=한길긴뜨기 3코 연속, 스페이스=한길긴뜨기1+사슬2+2코건너뛰기 — 서로 마지막 코를 공유하며 이어진다.
-// 출처: 3-dc filet crochet 표준 공식(기초사슬=칸수×3+4), Terry Connor "How to Read and Work Filet Crochet Graphs".
-// 방안뜨기(태피스트리 코바늘) 서술도안 — 핀피노 등 실제 도안 생성기와 동일하게
-// 전체를 한 가지 뜨기(한길긴뜨기)로 통일하고 그림은 색으로만 표현하는 방식.
-// graphData(칸별 색)를 단마다 같은 색이 연속되는 구간으로 묶어 "색A×n, 색B×m..."으로 읽는다.
+// 필레뜨기(방안뜨기) 서술도안: graphData(칸별 칠 여부)를 단별 블록/스페이스 순서로 읽어 생성.
+// 블록=한길긴뜨기 3코(경계 기둥은 이웃 칸과 공유), 스페이스=사슬2+다음 기둥에 한길긴뜨기 1코.
+// 기초사슬=칸수×3+4 (칸수×3+1 + 기둥코 사슬3). 출처: 3-dc filet crochet 표준 공식,
+// Terry Connor "How to Read and Work Filet Crochet Graphs" + 핀피노 기호 도안 확대 대조.
 function genFiletNarrative(type,f){
   if(type!=='ko')return '⚠️ 방안뜨기 약어·영문 변환은 아직 지원하지 않습니다 — 한국어 서술도안을 사용해주세요.';
   const gd=frameGridDims(f);
-  const chainCount=gd.cols+3;
-  // 등장 색 전부 모아 라벨(①②③...) 붙이기 — 사용 빈도순
-  const colorCount={};
-  for(let r=0;r<gd.rows;r++)for(let c=0;c<gd.cols;c++){const v=G.graphData[c+','+r];if(v)colorCount[v]=(colorCount[v]||0)+1;}
-  const colors=Object.keys(colorCount).sort((a,b)=>colorCount[b]-colorCount[a]);
-  const label={};colors.forEach((col,i)=>label[col]=String.fromCharCode(9312+i)); // ①②③...
+  const chainCount=gd.cols*3+4;
+  let filled=0;
+  for(let r=0;r<gd.rows;r++)for(let c=0;c<gd.cols;c++)if(G.graphData[c+','+r])filled++;
   const lines=[
-    '[방안뜨기 — 완성 도안]',
+    '[필레뜨기(방안뜨기) — 완성 도안]',
     '작성: '+((G.cur&&G.cur.name)||'도안'),
-    '재료: 코바늘 4호 / 중세사 (면사 또는 아크릴)',
+    '재료: 코바늘 4호 / 중세사 (면사 또는 아크릴), 한 가지 실',
     '',
-    '기초사슬: '+chainCount+'코 (칸수 '+gd.cols+' + 기둥코 3)',
-    '전체를 한길긴뜨기 한 가지로 통일해서 뜬다 — 그림은 뜨는 방법이 아니라 색으로만 표현한다.',
-    '매단 시작은 사슬3(첫 코 대신), 아래→위로 뜨며 홀수단은 오른쪽→왼쪽, 짝수단은 왼쪽→오른쪽(왕복).',
-    '',
-    '색상: '+colors.map(col=>label[col]+' '+col+' ('+colorCount[col]+'코)').join(' / '),
+    '기초사슬: '+chainCount+'코 (칸수 '+gd.cols+'×3+1 + 기둥코 사슬3)',
+    '칸 규칙: ■(채운 칸)=한길긴뜨기 3코, □(빈 칸)=사슬2, 2코 건너뛰고 다음 기둥에 한길긴뜨기 1코.',
+    '경계의 한길긴뜨기 기둥은 이웃 칸과 공유된다. 매단 시작은 사슬3(기둥코, 첫 한길긴뜨기 대신).',
+    '아래→위로 뜨며 홀수단은 오른쪽→왼쪽, 짝수단은 왼쪽→오른쪽(왕복). 전체 '+gd.cols+'칸×'+gd.rows+'단, 채운 칸 '+filled+'개.',
     ''
   ];
   for(let r=0;r<gd.rows;r++){
     const seq=[];
-    for(let c=0;c<gd.cols;c++)seq.push(G.graphData[c+','+r]||'');
+    for(let c=0;c<gd.cols;c++)seq.push(G.graphData[c+','+r]?'■':'□');
+    // 왕복이므로 홀수단(r=0이 1단)은 오른쪽→왼쪽으로 읽는다 — 뜨는 순서 그대로
+    if(r%2===0)seq.reverse();
     const parts=[];let cur=seq[0],cnt=1;
     for(let i=1;i<seq.length;i++){
       if(seq[i]===cur)cnt++;
-      else{parts.push([cur,cnt]);cur=seq[i];cnt=1;}
+      else{parts.push(cur+'×'+cnt);cur=seq[i];cnt=1;}
     }
-    parts.push([cur,cnt]);
-    const desc=parts.map(p=>(label[p[0]]||'?')+'×'+p[1]).join(', ');
-    lines.push((r+1)+'단: '+desc);
+    parts.push(cur+'×'+cnt);
+    lines.push((r+1)+'단: 사슬3, '+parts.join(', '));
   }
   lines.push('','마무리: 실 자르고 정리. 가장자리는 짧은뜨기 1단이나 원하는 테두리 기법으로 정리한다.');
   return lines.join('\n');
@@ -6386,64 +6399,82 @@ function scheduleSH(){clearTimeout(shTm);shTm=setTimeout(saveH,800);}
    Tejer 원형 도일리 기호도안, The Caffeinated Snail 6-petal flower coaster.
    localStorage가 아니라 코드에 존재 — 어느 기기에서든 버튼 한 번으로 동일 생성 */
 const SAMPLE_CAT_ROWS=[
-'...#....#...............','..##...##...............','..########..............',
-'.##########.............','.###.######.............','.##########.............',
-'.###########............','.############...........','..##########............',
-'..###########...........','..#############.........','..################......',
-'..##################....','..###################...','..###################...',
-'..###################...','..###################...','..###################...',
-'..###################...','..###################...','..###################...',
-'..###################...','..###################...','..##################....',
-'..##################....','...####..###########....','...####..###########....',
-'...####..###########....','.#.####..###########....','.####################...'];
+'........................','.....##..........##.....','.....###........###.....',
+'.....####......####.....','.....##############.....','.....##############.....',
+'.....###..####..###.....','.....##############.....','.....##############.....',
+'......############......','.......##########.......','.......##########.......',
+'......############......','......############......','.....##############.....',
+'.....##############.....','.....##############.....','.....##############.....',
+'.....##############.....','.....##############.....','.....##############.....',
+'.....##############.....','.....##############.....','.....##############.....',
+'.....#####....#####.....','.....#####....#####.....','.....#####....#####.....',
+'.....#####....#####.##..','.....#####....#####.##..','.....##################.'];
 const SAMPLE_PAW_ROWS=[
-'##########################','##########################','##########################',
-'########....##....########','###....#....##....#....###','###....#....##....#....###',
-'###....#....##....#....###','###....############....###','##########################',
-'##########################','#########........#########','########..........########',
-'#######............#######','#######............#######','#######............#######',
-'#######............#######','#######............#######','########..........########',
-'#########........#########','##########################','##########################',
-'##########################','##########################','##########################',
-'##########################','##########################'];
-// 필레 기호 차트: 채운 칸=한길긴뜨기 3코(⊤⊤⊤), 빈 칸=한길긴뜨기1+사슬2, 매단 가장자리 공유 한길긴뜨기,
-// 하단 기초사슬 행(일본식: 칸수×3+1목 작り目, 돌림사슬 3코 별도)
-// 방안뜨기(그래프간/태피스트리 코바늘)의 실제 관례 — 시중 도안 생성기(핀피노 등)와
-// 대조해 확인: 필레뜨기 블록/스페이스 구분은 이 용도가 아니었다. 실제로는 전체가
-// 한 가지 뜨기(여기서는 한길긴뜨기)로 된 통짜 원단이고, 그림은 순전히 "색"으로만
-// 표현된다 — 그림 칸도 배경 칸도 밀도는 완전히 똑같이 빽빽하며, 칸마다 기호 1개씩만
-// 들어간다(핀피노 "가로 N코×세로 M단" 방식과 동일). 칸 배경을 색으로 꽉 채워야 핀피노처럼
-// 그림이 한눈에 보인다 — 기호 선 색만 바꾸면 옅은 배경색이 거의 안 보여 그림이 사라진다.
-function symContrast(hex){ // 배경 채움색 위에서 기호가 항상 잘 보이도록 명도 기반 대비색 선택
-  const h=(hex||'#fff').replace('#','');
-  const r=parseInt(h.substr(0,2),16)||255,g=parseInt(h.substr(2,2),16)||255,b=parseInt(h.substr(4,2),16)||255;
-  return (r*0.299+g*0.587+b*0.114)<150?'#ffffff':'#1a1a1a';
-}
-function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifColor,bgColor){
+'..........................','........###....###........','.......#####..#####.......',
+'.......#####..#####.......','..###..#####..#####..###..','.#####.#####..#####.#####.',
+'.#####.#####..#####.#####.','.#####..###....###..#####.','..####..............####..',
+'...##................##...','..........................','......##############......',
+'.....################.....','.....################.....','.....################.....',
+'.....################.....','.....################.....','.....################.....',
+'.....################.....','......##############......','.......############.......',
+'.........########.........','..........................','..........................',
+'..........................','..........................'];
+// 필레뜨기 기호 차트 — 핀피노 확대 화면과 동일 구성으로 확인한 조직:
+// 칸 경계마다 한길긴뜨기 기둥(이웃 칸과 공유, 그래서 가로 코수 = 칸수×3+1),
+// 채운 칸 = 기둥 사이에 한길긴뜨기 2코 추가(빽빽) + 회색 음영,
+// 빈 칸 = 기둥 사이에 사슬 2코(뚫린 망, 칸 위쪽에 표기).
+// 매단 시작 기둥코 사슬3을 홀수단은 오른쪽·짝수단은 왼쪽 끝에 세로로 쌓아 그리고(왕복 방향 표시),
+// 맨 아래 기초사슬 줄, 코 번호(위, 3코 간격, 오른쪽이 1), 단 번호(홀수단 오른쪽/짝수단 왼쪽)를 표기한다.
+function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifColor){
   const R=rows.length,C=rows[0].length,cw=fw/C,chh=fh/R;
-  const sz=Math.min(24,chh*0.85,cw*0.85);
   const gd={};
-  const MC=motifColor||'#1d1d1f', BC=bgColor||'#d9d2bd';
-  for(let vi=0;vi<R;vi++){
-    const y=fy+(vi+0.5)*chh;
-    for(let c=0;c<C;c++){
-      const isMotif=rows[vi][c]==='#';
-      const col=isMotif?MC:BC;
-      // 핀피노 등 실제 도안 생성기처럼 칸 배경 자체를 색으로 채워야 그림이 한눈에 보인다
-      // — 기호 선(스트로크)만 색을 바꾸면 옅은 배경색이 거의 안 보여 그림이 사라진다
-      ctx.fillStyle=col;ctx.fillRect(fx+c*cw,fy+vi*chh,cw,chh);
-      drawSVGStitch(ctx,fx+(c+0.5)*cw,y,'dc',symContrast(col),sz,0);
-      gd[c+','+(R-1-vi)]=col; // 배경도 실제 코이므로(색만 다름) 전부 기록 — 서술도안이 색 전환을 정확히 읽게
+  const SYM='#1a1a1a', SHADE='#cfcfcf';
+  const dcSz=Math.min(chh*0.92,cw*1.1,30);
+  const chSz=Math.min(cw/3*1.05,chh*0.5,15);
+  // 1) 채운 칸 음영을 먼저 깔고 그 위에 기호 — 기호가 항상 또렷하게
+  for(let vi=0;vi<R;vi++)for(let c=0;c<C;c++){
+    if(rows[vi][c]==='#'){
+      ctx.fillStyle=SHADE;ctx.fillRect(fx+c*cw,fy+vi*chh,cw,chh);
+      gd[c+','+(R-1-vi)]=motifColor||'#1d1d1f';
     }
   }
-  ctx.save();ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=1;
-  for(let i=0;i<=C;i++){ctx.beginPath();ctx.moveTo(fx+i*cw,fy);ctx.lineTo(fx+i*cw,fy+fh);ctx.stroke();}
-  for(let i=0;i<=R;i++){ctx.beginPath();ctx.moveTo(fx,fy+i*chh);ctx.lineTo(fx+fw,fy+i*chh);ctx.stroke();}
-  ctx.strokeRect(fx,fy,fw,fh);
+  for(let vi=0;vi<R;vi++){
+    const yMid=fy+(vi+0.5)*chh, yTop=fy+vi*chh+chh*0.16;
+    // 경계 기둥: 칸과 칸이 공유하는 한길긴뜨기 — 칸수+1개
+    for(let b=0;b<=C;b++)drawSVGStitch(ctx,fx+b*cw,yMid,'dc',SYM,dcSz,0);
+    for(let c=0;c<C;c++){
+      const x1=fx+(c+1/3)*cw, x2=fx+(c+2/3)*cw;
+      if(rows[vi][c]==='#'){ // 블록: 기둥 사이 한길긴뜨기 2코 추가
+        drawSVGStitch(ctx,x1,yMid,'dc',SYM,dcSz,0);
+        drawSVGStitch(ctx,x2,yMid,'dc',SYM,dcSz,0);
+      }else{ // 스페이스: 사슬 2코 — 칸 위쪽에 가로로
+        drawSVGStitch(ctx,x1,yTop,'ch',SYM,chSz,0);
+        drawSVGStitch(ctx,x2,yTop,'ch',SYM,chSz,0);
+      }
+    }
+    // 기둥코 사슬3: 단 시작쪽 끝에 세로로 — 홀수단(아래가 1단)은 오른쪽, 짝수단은 왼쪽
+    const rowNum=R-vi, odd=rowNum%2===1;
+    const ex=odd?fx+fw+chSz*0.6:fx-chSz*0.6;
+    for(let k=0;k<3;k++)drawSVGStitch(ctx,ex,fy+vi*chh+chh*(0.22+k*0.28),'ch',SYM,chSz,90);
+  }
+  // 2) 기초사슬 줄(맨 아래): 칸수×3+1코
+  const fcy=fy+fh+Math.min(chh*0.4,14);
+  for(let s=0;s<=C*3;s++)drawSVGStitch(ctx,fx+s*cw/3,fcy,'ch',SYM,chSz,0);
+  // 3) 코 번호(위, 3코 간격, 오른쪽이 1) · 단 번호(홀수단 오른쪽/짝수단 왼쪽)
+  ctx.save();ctx.fillStyle='#555';ctx.font='500 11px sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  for(let s=1;s<=C*3+1;s+=3)ctx.fillText(String(s),fx+fw-(s-1)*cw/3,fy-6);
+  ctx.textBaseline='middle';
+  for(let vi=0;vi<R;vi++){
+    const rowNum=R-vi, odd=rowNum%2===1;
+    ctx.textAlign=odd?'left':'right';
+    ctx.fillText(String(rowNum),odd?fx+fw+chSz*1.5+6:fx-chSz*1.5-6,fy+(vi+0.5)*chh);
+  }
   ctx.restore();
-  const n=C+3,fy2=fy+fh+16; // 기초사슬 = 칸수 + 기둥코 3코(핀피노 방식)
-  ctx.save();ctx.fillStyle='#2a2a2a';ctx.font='600 15px sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
-  ctx.fillText('기초사슬 '+n+'코(칸수+기둥코3) — 전부 한길긴뜨기, 아래→위·좌↔우 교대로 뜨며 그림은 색으로만 표현',fx,fy2+2);
+  // 4) 읽는 법 안내(기초사슬 줄 아래)
+  const n=C*3+4;
+  ctx.save();ctx.fillStyle='#2a2a2a';ctx.font='600 14px sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillText('기초사슬 '+n+'코(칸수'+C+'×3+1 +기둥코3) · 채운 칸=한길긴뜨기 3코, 빈 칸=사슬2+한길긴뜨기 1코',fx,fcy+Math.min(chh*0.4,14)+4);
   ctx.restore();
   return gd;
 }
@@ -6469,7 +6500,7 @@ function buildSampleDocs(){
   // 2) 발바닥 필레 코스터 (26×26)
   {const f={id:Date.now()+1,name:'격자 1',x:250,y:170,w:700,h:700,kind:'grid',cols:26,rows:26};
    const p=mk('발바닥 필레 코스터','crochet',1200,1200,[f]);
-   paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_PAW_ROWS,'#c9b78c','#2b2b2b');});
+   paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_PAW_ROWS,'#8a6a2e');});
    p.usedSyms=['dc','ch'];}
   // 3) 원형 도일리 코스터 — 라운드 기호도안. 한길긴뜨기 한 가지로만 도는 게 아니라
   // 실제 만다라 도일리처럼 단마다 기법이 바뀐다(한길긴뜨기→짧은뜨기→한길긴뜨기+빼뜨기→
