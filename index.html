@@ -2595,8 +2595,10 @@ function fillCell(p){
     const q=T(p);const cx=ox+Math.floor((q.x-ox)/cw)*cw,cy=oy+Math.floor((q.y-oy)/ch)*ch;
     if(cx>=0&&cy>=0&&cx<CW&&cy<CH){
       mainCtx.clearRect(cx,cy,cw,ch); // 재도장 시 이전 칠 잔상 없이 항상 깨끗하게 — 칸 재색칠이 자유로움
-      // 전체를 한 가지 뜨기(한길긴뜨기)로 통일하고 그림은 색으로만 표현 — 실제 도안 생성기 관례
-      drawSVGStitch(mainCtx,cx+cw/2,cy+ch/2,'dc',G.color,sz,0);
+      // 전체를 한 가지 뜨기(한길긴뜨기)로 통일하고 그림은 칸 배경색으로 표현 — 실제 도안 생성기 관례.
+      // 배경을 채워야 그림이 한눈에 보인다(기호 선 색만 바꾸면 옅은 색은 거의 안 보임)
+      mainCtx.fillStyle=G.color;mainCtx.fillRect(cx,cy,cw,ch);
+      drawSVGStitch(mainCtx,cx+cw/2,cy+ch/2,'dc',symContrast(G.color),sz,0);
       const col=Math.floor((q.x-ox)/cw),row=Math.floor((gf.y+gf.h-1-cy)/ch);
       G.graphData[col+','+row]=G.color;
     }
@@ -6410,25 +6412,35 @@ const SAMPLE_PAW_ROWS=[
 // 대조해 확인: 필레뜨기 블록/스페이스 구분은 이 용도가 아니었다. 실제로는 전체가
 // 한 가지 뜨기(여기서는 한길긴뜨기)로 된 통짜 원단이고, 그림은 순전히 "색"으로만
 // 표현된다 — 그림 칸도 배경 칸도 밀도는 완전히 똑같이 빽빽하며, 칸마다 기호 1개씩만
-// 들어간다(핀피노 "가로 N코×세로 M단" 방식과 동일). 배경은 옅은 색으로 칠해 그림과 구분한다.
+// 들어간다(핀피노 "가로 N코×세로 M단" 방식과 동일). 칸 배경을 색으로 꽉 채워야 핀피노처럼
+// 그림이 한눈에 보인다 — 기호 선 색만 바꾸면 옅은 배경색이 거의 안 보여 그림이 사라진다.
+function symContrast(hex){ // 배경 채움색 위에서 기호가 항상 잘 보이도록 명도 기반 대비색 선택
+  const h=(hex||'#fff').replace('#','');
+  const r=parseInt(h.substr(0,2),16)||255,g=parseInt(h.substr(2,2),16)||255,b=parseInt(h.substr(4,2),16)||255;
+  return (r*0.299+g*0.587+b*0.114)<150?'#ffffff':'#1a1a1a';
+}
 function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifColor,bgColor){
   const R=rows.length,C=rows[0].length,cw=fw/C,chh=fh/R;
   const sz=Math.min(24,chh*0.85,cw*0.85);
   const gd={};
   const MC=motifColor||'#1d1d1f', BC=bgColor||'#d9d2bd';
-  ctx.save();ctx.strokeStyle='rgba(168,85,247,.25)';ctx.lineWidth=1;
-  for(let i=0;i<=C;i++){ctx.beginPath();ctx.moveTo(fx+i*cw,fy);ctx.lineTo(fx+i*cw,fy+fh);ctx.stroke();}
-  for(let i=0;i<=R;i++){ctx.beginPath();ctx.moveTo(fx,fy+i*chh);ctx.lineTo(fx+fw,fy+i*chh);ctx.stroke();}
-  ctx.restore();
   for(let vi=0;vi<R;vi++){
     const y=fy+(vi+0.5)*chh;
     for(let c=0;c<C;c++){
       const isMotif=rows[vi][c]==='#';
       const col=isMotif?MC:BC;
-      drawSVGStitch(ctx,fx+(c+0.5)*cw,y,'dc',col,sz,0);
+      // 핀피노 등 실제 도안 생성기처럼 칸 배경 자체를 색으로 채워야 그림이 한눈에 보인다
+      // — 기호 선(스트로크)만 색을 바꾸면 옅은 배경색이 거의 안 보여 그림이 사라진다
+      ctx.fillStyle=col;ctx.fillRect(fx+c*cw,fy+vi*chh,cw,chh);
+      drawSVGStitch(ctx,fx+(c+0.5)*cw,y,'dc',symContrast(col),sz,0);
       gd[c+','+(R-1-vi)]=col; // 배경도 실제 코이므로(색만 다름) 전부 기록 — 서술도안이 색 전환을 정확히 읽게
     }
   }
+  ctx.save();ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=1;
+  for(let i=0;i<=C;i++){ctx.beginPath();ctx.moveTo(fx+i*cw,fy);ctx.lineTo(fx+i*cw,fy+fh);ctx.stroke();}
+  for(let i=0;i<=R;i++){ctx.beginPath();ctx.moveTo(fx,fy+i*chh);ctx.lineTo(fx+fw,fy+i*chh);ctx.stroke();}
+  ctx.strokeRect(fx,fy,fw,fh);
+  ctx.restore();
   const n=C+3,fy2=fy+fh+16; // 기초사슬 = 칸수 + 기둥코 3코(핀피노 방식)
   ctx.save();ctx.fillStyle='#2a2a2a';ctx.font='600 15px sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
   ctx.fillText('기초사슬 '+n+'코(칸수+기둥코3) — 전부 한길긴뜨기, 아래→위·좌↔우 교대로 뜨며 그림은 색으로만 표현',fx,fy2+2);
