@@ -6397,10 +6397,11 @@ const SAMPLE_PAW_ROWS=[
 '##########################','##########################'];
 // 필레 기호 차트: 채운 칸=한길긴뜨기 3코(⊤⊤⊤), 빈 칸=한길긴뜨기1+사슬2, 매단 가장자리 공유 한길긴뜨기,
 // 하단 기초사슬 행(일본식: 칸수×3+1목 작り目, 돌림사슬 3코 별도)
-// 실제 필레뜨기 차트 관례: 스페이스(배경, 그림이 없는 칸)는 거의 빈칸이고
-// 블록(그림이 있는 칸)에만 진한 뜨기 기호가 몰린다 — 배경까지 사슬 기호로
-// 채우면 "전체가 다 빽빽해 보여 어디가 그림인지 안 보이는" 정반대 결과가 됨.
-// 그래서 스페이스는 완전히 비우고(격자선만), 블록에만 ⊤⊤⊤ 3코를 찍는다.
+// 실제 필레뜨기 차트 관례: 스페이스(배경, 그림이 없는 칸)는 한길긴뜨기 1코(공유 기둥)+
+// 사슬 2코로 성기게 뜨고, 블록(그림이 있는 칸)만 한길긴뜨기 3코로 빽빽하게 채운다 —
+// 스페이스를 아예 안 그리면 "사슬·한길긴뜨기가 어디 있냐"는 문제가 생기고,
+// 반대로 스페이스까지 빽빽하게 채우면 그림이 안 보이는 문제가 생긴다. 둘 다 아니고
+// "성기게 있음"이 정답 — 기둥 1개(얇게)+사슬 1개(작게)만 넣어 밀도 차이를 분명히 낸다.
 function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifOnDark){
   const R=rows.length,C=rows[0].length,cw=fw/C,chh=fh/R,COL='#2a2a2a';
   const dcSz=Math.min(24,chh*0.85);
@@ -6412,14 +6413,16 @@ function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifOnDark){
   for(let vi=0;vi<R;vi++){
     const y=fy+(vi+0.5)*chh;
     for(let c=0;c<C;c++){
+      const xL=fx+c*cw;
       if(rows[vi][c]==='#'){
-        const xL=fx+c*cw;
         drawSVGStitch(ctx,xL+cw*0.18,y,'dc',COL,dcSz,0);
         drawSVGStitch(ctx,xL+cw*0.5,y,'dc',COL,dcSz,0);
         drawSVGStitch(ctx,xL+cw*0.82,y,'dc',COL,dcSz,0);
         gd[c+','+(R-1-vi)]=motifOnDark||'#1d1d1f';
+      }else{
+        drawSVGStitch(ctx,xL+cw*0.15,y,'dc',COL,dcSz*0.62,0); // 공유 기둥(얇게) — 성긴 스페이스
+        drawSVGStitch(ctx,xL+cw*0.62,y,'ch',COL,dcSz*0.4,0); // 사슬 2코(작게)
       }
-      // 스페이스(그림이 없는 배경)는 아무것도 그리지 않음 — 격자선만 남아 완전히 비어 보임
     }
   }
   const n=C*3+1,fy2=fy+fh+16;
@@ -6452,49 +6455,52 @@ function buildSampleDocs(){
    const p=mk('발바닥 필레 코스터','crochet',1200,1200,[f]);
    paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_PAW_ROWS,'#c9b78c');});
    p.usedSyms=['dc','ch'];}
-  // 3) 6장 꽃 코스터 — 라운드 기호도안 (기호 크기 통일·방사 회전·스캘럽 마감단)
+  // 3) 원형 도일리 코스터 — 라운드 기호도안. 한길긴뜨기 한 가지로만 도는 게 아니라
+  // 실제 만다라 도일리처럼 단마다 기법이 바뀐다(한길긴뜨기→짧은뜨기→한길긴뜨기+빼뜨기→
+  // 긴뜨기+사슬틈→조개뜨기 마감) — 출처: haakmaarraak.nl 원형 모티브 차트 읽는 법 예시.
   {const f={id:Date.now()+2,name:'원형 1',x:32,y:32,w:456,h:456,kind:'circle'};
-   const p=mk('6장 꽃 코스터','crochet',520,520,[f]);
+   const p=mk('원형 도일리 코스터','crochet',520,520,[f]);
    paint(p,ctx=>{
-     const cx=260,cy=260,Rm=228,SZ=18;
-     const C1='#c98b2d',C2='#a8672e',PET='#b8556f';
+     const cx=260,cy=260,Rm=228,SZ=17;
+     const C1='#c98b2d',C2='#8a6a2e',C3='#5b7fa6',C4='#b8556f';
      const rot=(x,y)=>Math.atan2(y-cy,x-cx)*180/Math.PI+90;
-     const dcAt=(r,a,col)=>{const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);drawSVGStitch(ctx,x,y,'dc',col,SZ,rot(x,y));};
+     const at=(r,a,id,col,sz)=>{const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);drawSVGStitch(ctx,x,y,id,col,sz||SZ,rot(x,y));return{x,y};};
      drawSVGStitch(ctx,cx,cy,'mr',C1,16,0);
-     for(let i=0;i<12;i++)dcAt(Rm*0.18,i/12*2*Math.PI-Math.PI/2,C1);
-     for(let i=0;i<24;i++)dcAt(Rm*0.36,i/24*2*Math.PI-Math.PI/2,C1);
-     for(let i=0;i<36;i++)dcAt(Rm*0.54,i/36*2*Math.PI-Math.PI/2,C2);
-     // (실제 패턴에 없는 '단 사이 접선 사슬' 장식은 삭제 — 근거 없이 채워 넣은 것이라 기호가
-     // 아무 데도 안 몰리고 흩어져 보이던 원인이었다)
-     const aR=Rm*0.58,tR=Rm*0.86;
-     for(let pI=0;pI<6;pI++){
-       const th=pI/6*2*Math.PI-Math.PI/2;
-       const ax=cx+aR*Math.cos(th),ay=cy+aR*Math.sin(th);
-       for(let k=0;k<8;k++){
-         const pa=th+(k-3.5)*(8*Math.PI/180);
-         const px2=cx+tR*Math.cos(pa),py2=cy+tR*Math.sin(pa);
-         const rr=Math.atan2(py2-ay,px2-ax)*180/Math.PI+90;
-         drawSVGStitch(ctx,(ax+px2)/2,(ay+py2)/2,'tr',PET,SZ+4,rr);
-       }
-       const sa=th+Math.PI/6,sx2=cx+aR*Math.cos(sa),sy2=cy+aR*Math.sin(sa);
-       drawSVGStitch(ctx,sx2,sy2,'slst',C2,11,rot(sx2,sy2));
+     // 1단: 한길긴뜨기 12코
+     for(let i=0;i<12;i++)at(Rm*0.16,i/12*2*Math.PI-Math.PI/2,'dc',C1);
+     // 2단: 짧은뜨기 24코(매코 늘리기) — 기법이 dc→sc로 바뀜
+     for(let i=0;i<24;i++)at(Rm*0.32,i/24*2*Math.PI-Math.PI/2,'sc',C2);
+     // 3단: 12모둠 × [한길긴뜨기 2코 + 빼뜨기 1코](모둠 사이 건너뜀 지점에 빼뜨기)
+     const r3=Rm*0.52;
+     for(let g=0;g<12;g++){
+       const gth=g/12*2*Math.PI-Math.PI/2, step=2*Math.PI/12;
+       at(r3,gth-step*0.13,'dc',C1);at(r3,gth+step*0.13,'dc',C1);
+       at(r3,gth+step*0.5,'slst',C2,10);
      }
-     for(let i=0;i<12;i++){ // 마감단: 縁編み 스캘럽(조개) 12개 — 도일리 기호도안 마무리 관례
-       // 반지름 0.97Rm이면 배경 격자가 자동으로 세로축에 그리는 "N단 코수" 안내 글자(약 0.92Rm까지)와
-       // 겹쳐 위쪽 조개만 이상해 보였다 — 안내 글자보다 확실히 바깥(1.07Rm)으로 밀어냄
+     // 4단: 12모둠 × [긴뜨기 2코] + 모둠 사이 사슬 틈(2코 건너뜀 자리) — 사슬이 실제로 "틈"에 있음
+     const r4=Rm*0.74;
+     for(let g=0;g<12;g++){
+       const gth=g/12*2*Math.PI-Math.PI/2, step=2*Math.PI/12;
+       at(r4,gth-step*0.15,'hdc',C4);at(r4,gth+step*0.15,'hdc',C4);
+       at(r4,gth+step*0.5,'ch',C2,10);
+     }
+     // 5단(마감): 縁編み 스캘럽(조개) 12개 — 배경 격자의 "N단 코수" 안내 글자(~0.92Rm)와
+     // 안 겹치도록 1.07Rm으로 확실히 바깥에 배치
+     for(let i=0;i<12;i++){
        const th=i/12*2*Math.PI-Math.PI/2;
-       const x=cx+Rm*1.07*Math.cos(th),y=cy+Rm*1.07*Math.sin(th);
-       drawSVGStitch(ctx,x,y,'shell',C1,22,rot(x,y));
+       const {x,y}=at(Rm*1.07,th,'shell',C3,22);
      }
    });
-   p.usedSyms=['mr','dc','tr','slst','shell'];
-   p.customNarrative=['[6장 꽃 코스터 — 완성 도안]','출처 구조: The Caffeinated Snail "6 Petal Flower Coaster" / 코바늘 4.5mm, 면 중세사 2색','',
-     '1단: 매직링에 한길긴뜨기 12코, 빼뜨기 이음. (12코)','2단: 매 코 늘리기 → 24코. 실을 자르고 배색.',
-     '3단: (한길긴뜨기1, 늘리기1) 반복 → 36코.',
-     '4단(꽃잎): [2코 건너뛰고 다음 코에 두길긴뜨기 8코 부채, 2코 건너뛰고 빼뜨기] ×6 — 꽃잎 6장.',
-     '5단(마감): 각 꽃잎 위 짧은뜨기 정리 + 가장자리 縁編み 조개뜨기 한 바퀴.','','완성 지름 약 12~13cm.'].join('\n');}
+   p.usedSyms=['mr','dc','sc','slst','hdc','ch','shell'];
+   p.customNarrative=['[원형 도일리 코스터 — 완성 도안]','코바늘 4.5mm, 면 중세사. 단마다 기법이 바뀌는 원형 모티브(만다라 도일리 구조 참고).','',
+     '1단: 매직링에 한길긴뜨기 12코, 빼뜨기 이음. (12코)',
+     '2단: 사슬1, 매 코에 짧은뜨기 2코씩(늘리기) → 24코, 빼뜨기 이음.',
+     '3단: 사슬3, [한길긴뜨기 2코, 다음 코에 빼뜨기] ×12 반복, 빼뜨기 이음. (24한길긴뜨기+12빼뜨기)',
+     '4단: 사슬2(뒷고리만 사용), [긴뜨기 2코, 사슬2, 2코 건너뛰기] ×12 반복, 빼뜨기 이음.',
+     '5단(마감): 3단·4단 사이 틈마다 조개뜨기(두길긴뜨기 5코 부채)를 걸어 가장자리를 정리한다.',
+     '','완성 지름 약 13~14cm.'].join('\n');}
   // 4) 브로큰립 가디건 — 도식+무늬차트(6코 반복+양끝 2코 대칭)
-  {const chart={id:Date.now()+3,name:'무늬차트',x:230,y:560,w:800,h:480,kind:'grid',cols:20,rows:12};
+  {const chart={id:Date.now()+3,name:'무늬차트',x:230,y:560,w:800,h:480,kind:'grid',cols:21,rows:12};
    const p=mk('브로큰립 가디건','knitting',1260,1100,[chart]);
    paint(p,ctx=>{
      const dim=(x1,y1,x2,y2,t)=>{ctx.save();ctx.strokeStyle='#8b3a52';ctx.lineWidth=1.4;
@@ -6511,50 +6517,53 @@ function buildSampleDocs(){
      const y0=110,PXCM=6.3,PXROW=2.2;
      const cw2=21*PXCM,uw=34.5*PXCM,sh=108*PXROW,sx=56,scx=sx+uw/2;
      body([[scx-cw2/2,y0+sh],[scx-uw/2,y0],[scx+uw/2,y0],[scx+cw2/2,y0+sh]]);
-     dim(scx-cw2/2,y0+sh+20,scx+cw2/2,y0+sh+20,'손목단 21cm(38코)');
-     dim(scx-uw/2,y0-13,scx+uw/2,y0-13,'소매통 34.5cm(62코)');
+     dim(scx-cw2/2,y0+sh+20,scx+cw2/2,y0+sh+20,'손목단 21cm(39코)');
+     dim(scx-uw/2,y0-13,scx+uw/2,y0-13,'소매통 34.5cm(63코)');
      lbl(scx,y0+sh+46,'소매 (2장)',15);
-     note(scx-uw/2-6,y0+sh*0.35,['8단마다 양쪽 1코씩','늘림 ×12회 (38→62코)'],'right');
+     note(scx-uw/2-6,y0+sh*0.35,['8단마다 양쪽 1코씩','늘림 ×12회 (39→63코)'],'right');
      const fw2=31*PXCM,fh2=144*PXROW,frx=sx+uw+58,nsY=y0+104*PXROW,nc=19/1.8*PXCM;
      body([[frx,y0+fh2],[frx,y0],[frx+fw2-nc,y0],[frx+fw2,nsY],[frx+fw2,y0+fh2]]);
-     dim(frx,y0+fh2+20,frx+fw2,y0+fh2+20,'폭 31cm(56코)');lbl(frx+fw2/2,y0+fh2+46,'앞판 우 (1장)',15);
-     note(frx+fw2+8,nsY-24,['105단부터 2단마다 1코씩','목쪽 줄임 ×19회 (56→37코)']);
+     dim(frx,y0+fh2+20,frx+fw2,y0+fh2+20,'폭 31cm(57코)');lbl(frx+fw2/2,y0+fh2+46,'앞판 우 (1장)',15);
+     note(frx+fw2+8,nsY-24,['105단부터 2단마다 1코씩','목쪽 줄임 ×19회 (57→38코)']);
      const bw2=61*PXCM,bx2=frx+fw2+36,bcx=bx2+bw2/2,nw=30/1.8*PXCM,nd=8*PXROW;
      body([[bx2,y0+fh2],[bx2,y0],[bcx-nw/2,y0],[bcx-nw/2,y0+nd],[bcx+nw/2,y0+nd],[bcx+nw/2,y0],[bx2+bw2,y0],[bx2+bw2,y0+fh2]]);
-     dim(bx2,y0+fh2+20,bx2+bw2,y0+fh2+20,'가슴단면 61cm(110코)');
+     dim(bx2,y0+fh2+20,bx2+bw2,y0+fh2+20,'가슴단면 61cm(111코)');
      dim(bx2-18,y0,bx2-18,y0+fh2,'총장 60cm(144단)');
-     dim(bx2,y0-13,bcx-nw/2,y0-13,'어깨 20.5cm(37코)');
+     dim(bx2,y0-13,bcx-nw/2,y0-13,'어깨 20.8cm(38코)');
      lbl(bcx,y0+fh2+46,'뒤판 (1장)',15);
-     note(bcx-70,y0+nd+14,['137단: 중심 30코 코막음','이후 매단 목쪽 1코×3회 (40→37코)']);
+     note(bcx-70,y0+nd+14,['137단: 중심 31코 코막음','이후 매단 목쪽 1코×2회 (40→38코)']);
      const flx=bx2+bw2+36;
      body([[flx+fw2,y0+fh2],[flx+fw2,y0],[flx+nc,y0],[flx,nsY],[flx,y0+fh2]]);
-     dim(flx,y0+fh2+20,flx+fw2,y0+fh2+20,'폭 31cm(56코)');lbl(flx+fw2/2,y0+fh2+46,'앞판 좌 (1장)',15);
-     note(flx-8,nsY-24,['105단부터 2단마다 1코씩','목쪽 줄임 ×19회 (56→37코)'],'right');
+     dim(flx,y0+fh2+20,flx+fw2,y0+fh2+20,'폭 31cm(57코)');lbl(flx+fw2/2,y0+fh2+46,'앞판 좌 (1장)',15);
+     note(flx-8,nsY-24,['105단부터 2단마다 1코씩','목쪽 줄임 ×19회 (57→38코)'],'right');
      // 무늬 차트 20코(6코 반복+양끝 겉2 대칭)×12단
      const f=chart,ccw=f.w/f.cols,cch=f.h/f.rows;
      ctx.save();ctx.strokeStyle='rgba(168,85,247,.3)';ctx.lineWidth=1;
      for(let i=0;i<=f.cols;i++){ctx.beginPath();ctx.moveTo(f.x+i*ccw,f.y);ctx.lineTo(f.x+i*ccw,f.y+f.h);ctx.stroke();}
      for(let i=0;i<=f.rows;i++){ctx.beginPath();ctx.moveTo(f.x,f.y+i*cch);ctx.lineTo(f.x+f.w,f.y+i*cch);ctx.stroke();}
      ctx.restore();
-     for(let r=0;r<12;r++)for(let c=0;c<20;c++){
-       const st=(c%6<2)?'k':(((c+r)%2===0)?'p':'k');
+     // 실제 브로큰립(broken rib) 2단 반복: 1단(겉면)=전부 겉뜨기, 2단(안면)=안1·겉1 번갈아.
+     // 2단이 홀수코일 때만 양끝이 같은 코로 끝나 좌우 대칭이 된다(짝수코+행·열 체크무늬는
+     // 거울 대칭이 안 나온다는 지적이 실제 버그였음) — 그래서 콧수를 홀수(21)로 고정.
+     for(let r=0;r<12;r++)for(let c=0;c<21;c++){
+       const st=(r%2===0)?'k':((c%2===0)?'p':'k');
        drawSVGStitch(ctx,f.x+(c+0.5)*ccw,f.y+(r+0.5)*cch,st,'#1d1d1f',26,0);
      }
-     lbl(f.x,f.y-12,'무늬 차트 — 6코 반복 + 양끝 겉2 (모든 콧수는 6의 배수+2)',15,'left');
-     lbl(f.x,f.y+f.h+26,'X=겉뜨기(K)  O=안뜨기(P)  20코×12단 스와치',13,'left');
+     lbl(f.x,f.y-12,'무늬 차트 — 브로큰립(1단 전부 겉뜨기 / 2단 안1·겉1 번갈아, 홀수코 필수)',15,'left');
+     lbl(f.x,f.y+f.h+26,'X=겉뜨기(K)  O=안뜨기(P)  21코×12단 스와치',13,'left');
    });
    p.usedSyms=['k','p'];
-   p.customNarrative=['[브로큰립 가디건 — 완성 도안]','게이지 18코×24단=10cm / 대바늘 4.5mm / 중세사 울. 드롭숄더, 무늬는 6의 배수+2코.','',
-     '[뒤판] 코잡기 110코. 1~136단 무늬로 곧게. 137단: 40코, 중심 30코 코막음, 40코 홀더.',
-     '138~140단 목쪽 매단 1코 줄임(40→37코). 141~144단 곧게, 37코 어깨 코막음. 반대쪽 대칭.',
+   p.customNarrative=['[브로큰립 가디건 — 완성 도안]','게이지 18코×24단=10cm / 대바늘 4.5mm / 중세사 울.','무늬(브로큰립, 2단 반복): 1단(겉면) 전부 겉뜨기 / 2단(안면) 안1·겉1 번갈아. 좌우 대칭을 위해 모든 조각은 홀수 코로 잡는다.','',
+     '[뒤판] 코잡기 111코. 1~136단 무늬로 곧게. 137단: 40코, 중심 31코 코막음, 40코 홀더.',
+     '138~139단 목쪽 매단 1코 줄임(40→38코). 140~144단 곧게, 38코 어깨 코막음. 반대쪽 대칭.',
      '',
-     '[앞판 좌·우 각 1장] 코잡기 56코. 1~104단 곧게. 105단부터 목쪽 2단마다 1코씩 ×19회(마지막 141단, 56→37코).',
-     '142~144단 곧게, 37코 어깨 코막음 — 뒤판 어깨와 정확히 맞물림. 좌우 대칭으로 2장.',
+     '[앞판 좌·우 각 1장] 코잡기 57코. 1~104단 곧게. 105단부터 목쪽 2단마다 1코씩 ×19회(마지막 141단, 57→38코).',
+     '142~144단 곧게, 38코 어깨 코막음 — 뒤판 어깨와 정확히 맞물림. 좌우 대칭으로 2장.',
      '',
-     '[소매 2장] 코잡기 38코, 1~12단 1코고무. 13단부터 무늬로 바꾸고 8단마다 양끝 1코씩 ×12회(마지막 101단, 38→62코).',
-     '102~108단 곧게, 62코 코막음.',
+     '[소매 2장] 코잡기 39코, 1~12단 1코고무. 13단부터 무늬로 바꾸고 8단마다 양끝 1코씩 ×12회(마지막 101단, 39→63코).',
+     '102~108단 곧게, 63코 코막음.',
      '',
-     '[연결] 어깨 37코끼리 잇기 → 소매 윗변을 옆선에 달기 → 옆선·소매선 꿰매기 → 앞단 코줍기 1코고무 6단(단추구멍 5개) → 목둘레 1코고무 4단.',
+     '[연결] 어깨 38코끼리 잇기 → 소매 윗변을 옆선에 달기 → 옆선·소매선 꿰매기 → 앞단 코줍기 1코고무 6단(단추구멍 5개) → 목둘레 1코고무 4단.',
      '완성: 가슴 61cm·총장 60cm·소매 45cm.'].join('\n');}
   persistProjects();
   if(typeof renderDash==='function')renderDash();
