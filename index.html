@@ -6452,7 +6452,7 @@ function buildSampleDocs(){
    const p=mk('발바닥 필레 코스터','crochet',1200,1200,[f]);
    paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_PAW_ROWS,'#c9b78c');});
    p.usedSyms=['dc','ch'];}
-  // 3) 6장 꽃 코스터 — 라운드 기호도안 (기호 크기 통일·방사 회전·접선 사슬·스캘럽 마감단)
+  // 3) 6장 꽃 코스터 — 라운드 기호도안 (기호 크기 통일·방사 회전·스캘럽 마감단)
   {const f={id:Date.now()+2,name:'원형 1',x:32,y:32,w:456,h:456,kind:'circle'};
    const p=mk('6장 꽃 코스터','crochet',520,520,[f]);
    paint(p,ctx=>{
@@ -6460,12 +6460,12 @@ function buildSampleDocs(){
      const C1='#c98b2d',C2='#a8672e',PET='#b8556f';
      const rot=(x,y)=>Math.atan2(y-cy,x-cx)*180/Math.PI+90;
      const dcAt=(r,a,col)=>{const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);drawSVGStitch(ctx,x,y,'dc',col,SZ,rot(x,y));};
-     const chT=(r,a,col)=>{const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);drawSVGStitch(ctx,x,y,'ch',col,9,rot(x,y)+90);};
      drawSVGStitch(ctx,cx,cy,'mr',C1,16,0);
      for(let i=0;i<12;i++)dcAt(Rm*0.18,i/12*2*Math.PI-Math.PI/2,C1);
      for(let i=0;i<24;i++)dcAt(Rm*0.36,i/24*2*Math.PI-Math.PI/2,C1);
      for(let i=0;i<36;i++)dcAt(Rm*0.54,i/36*2*Math.PI-Math.PI/2,C2);
-     for(let i=0;i<36;i++)chT(Rm*0.45,(i+0.5)/36*2*Math.PI-Math.PI/2,C2); // 단 사이 접선 사슬
+     // (실제 패턴에 없는 '단 사이 접선 사슬' 장식은 삭제 — 근거 없이 채워 넣은 것이라 기호가
+     // 아무 데도 안 몰리고 흩어져 보이던 원인이었다)
      const aR=Rm*0.58,tR=Rm*0.86;
      for(let pI=0;pI<6;pI++){
        const th=pI/6*2*Math.PI-Math.PI/2;
@@ -6480,9 +6480,11 @@ function buildSampleDocs(){
        drawSVGStitch(ctx,sx2,sy2,'slst',C2,11,rot(sx2,sy2));
      }
      for(let i=0;i<12;i++){ // 마감단: 縁編み 스캘럽(조개) 12개 — 도일리 기호도안 마무리 관례
+       // 반지름 0.97Rm이면 배경 격자가 자동으로 세로축에 그리는 "N단 코수" 안내 글자(약 0.92Rm까지)와
+       // 겹쳐 위쪽 조개만 이상해 보였다 — 안내 글자보다 확실히 바깥(1.07Rm)으로 밀어냄
        const th=i/12*2*Math.PI-Math.PI/2;
-       const x=cx+Rm*0.97*Math.cos(th),y=cy+Rm*0.97*Math.sin(th);
-       drawSVGStitch(ctx,x,y,'shell',C1,24,rot(x,y));
+       const x=cx+Rm*1.07*Math.cos(th),y=cy+Rm*1.07*Math.sin(th);
+       drawSVGStitch(ctx,x,y,'shell',C1,22,rot(x,y));
      }
    });
    p.usedSyms=['mr','dc','tr','slst','shell'];
