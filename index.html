@@ -1113,6 +1113,7 @@ body.ui-hidden #row-counter{display:none!important}
           <div class="sr2" style="margin-bottom:4px"><span>링 간격</span><input type="number" id="mring-dr" value="55" min="10" max="200" step="5" style="width:46px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
           <div class="sw-wrap" style="margin-bottom:4px"><div class="sw on" id="sw-ring-preview"></div><span>배치 미리보기</span></div>
           <button class="ib" id="btn-mring" style="width:100%;margin-bottom:6px;font-size:10px;background:var(--accent);color:#fff">⊙⊙ 다중 링 배치</button>
+          <button class="ib" id="btn-circgen" style="width:100%;margin-bottom:6px;font-size:10px;background:var(--gold);color:#1a1208;font-weight:700">⊚ 원형 도안 생성 (단별 설정)</button>
           <div class="sr2" style="margin-bottom:4px"><span>대칭 그리기</span>
             <select id="sym-sel">
               <option value="">없음</option>
@@ -1321,6 +1322,26 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="mf" style="gap:6px">
       <button class="mb" id="btn-sym-dl" style="background:var(--accent);color:#fff">↓ 이미지 다운로드</button>
       <button class="mb" onclick="closeM('m-sym-chart')">닫기</button>
+    </div>
+  </div>
+</div>
+<!-- ===== MODAL: 원형 도안 생성 (단별 기호·개수·반지름·회전) ===== -->
+<div class="mo" id="m-circgen">
+  <div class="mc" style="max-width:min(96vw,860px);width:auto;max-height:94vh;display:flex;flex-direction:column">
+    <div class="mh">
+      <h2 style="font-size:14px">⊚ 원형 도안 생성</h2>
+      <button class="mhx" onclick="closeM('m-circgen')">✕</button>
+    </div>
+    <div style="display:flex;gap:12px;padding:8px 12px;overflow:auto;flex:1;flex-wrap:wrap">
+      <canvas id="cg-prev" width="320" height="320" style="border:1px solid var(--border);border-radius:8px;background:#fff;flex-shrink:0;max-width:100%"></canvas>
+      <div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:6px">
+        <div id="cg-rows" style="display:flex;flex-direction:column;gap:6px;overflow:auto;max-height:52vh"></div>
+        <button class="ib" id="cg-add" style="width:100%;font-size:11px;padding:6px">+ 단 추가</button>
+      </div>
+    </div>
+    <div class="mf" style="gap:6px">
+      <button class="mb" id="cg-place" style="background:var(--accent);color:#fff">도안 생성</button>
+      <button class="mb" onclick="closeM('m-circgen')">취소</button>
     </div>
   </div>
 </div>
@@ -4331,6 +4352,66 @@ function bindAll(){
   function _syncMring(){G.mringN=Math.max(1,parseInt($('mring-n').value)||5);G.mringStart=Math.max(2,parseInt($('mring-start').value)||6);G.mringInc=Math.max(0,parseInt($('mring-inc').value)||6);G.mringR0=Math.max(20,parseInt($('mring-r0').value)||80);G.mringDR=Math.max(0,parseInt($('mring-dr').value)||55);renderRingPreview();}
   ['mring-n','mring-start','mring-inc','mring-r0','mring-dr'].forEach(id=>$(id).addEventListener('input',_syncMring));
   $('btn-mring').addEventListener('click',placeMultiRing);
+  // ── 원형 도안 생성: 단마다 기호·개수·반지름·회전을 따로 설정 + 실시간 미리보기 (핀피노 동일 UX) ──
+  let CG=[{st:'mr',n:1,r:0,rot:0},{st:'dc',n:12,r:70,rot:0}];
+  function cgPreview(){
+    const cv=$('cg-prev'),ctx=cv.getContext('2d');
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+    const cx=cv.width/2,cy=cv.height/2;
+    const maxR=Math.max(60,...CG.map(r=>+r.r||0));
+    const sc=(cv.width/2-26)/maxR;
+    CG.forEach(row=>{
+      const n=Math.max(1,+row.n||1), r=(+row.r||0)*sc, rot=(+row.rot||0)*Math.PI/180;
+      // 링 가이드(옅게)
+      if(r>2){ctx.strokeStyle='rgba(168,85,247,.2)';ctx.setLineDash([4,3]);ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
+      const sz=r<=2?16:Math.max(9,Math.min(16,2*Math.PI*r/n*0.62));
+      for(let i=0;i<n;i++){
+        const ang=-Math.PI/2+i*2*Math.PI/n+rot;
+        const x=cx+r*Math.cos(ang),y=cy+r*Math.sin(ang);
+        drawSVGStitch(ctx,x,y,row.st,'#333',sz,r<=2?0:ang*180/Math.PI+90);
+        if(r<=2)break; // 중심(반지름 0)은 1개만
+      }
+    });
+  }
+  function cgRender(){
+    const box=$('cg-rows');box.innerHTML='';
+    const opts=STITCHES.crochet.map(s=>'<option value="'+s.id+'">'+s.name+'</option>').join('');
+    const inSty='width:52px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:11px;border-radius:5px;padding:3px 4px;text-align:center';
+    CG.forEach((row,i)=>{
+      const d=document.createElement('div');
+      d.style.cssText='display:flex;align-items:center;gap:5px;flex-wrap:wrap;border:1px solid var(--border);border-radius:8px;padding:5px 7px';
+      d.innerHTML='<b style="font-size:11px;min-width:32px;color:var(--accent)">'+(i===0?'시작':i+'단')+'</b>'
+        +'<select data-k="st" style="flex:1;min-width:110px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:11px;border-radius:5px;padding:3px 4px">'+opts+'</select>'
+        +'<label style="font-size:10px;opacity:.7">개수</label><input data-k="n" type="number" min="1" max="96" value="'+row.n+'" style="'+inSty+'">'
+        +'<label style="font-size:10px;opacity:.7">반지름</label><input data-k="r" type="number" min="0" max="580" step="5" value="'+row.r+'" style="'+inSty+'">'
+        +'<label style="font-size:10px;opacity:.7">회전°</label><input data-k="rot" type="number" min="-180" max="180" value="'+row.rot+'" style="'+inSty+'">'
+        +'<button data-k="del" class="ib" style="width:24px;padding:2px 0;font-size:11px"'+(CG.length<=1?' disabled':'')+'>✕</button>';
+      d.querySelector('select').value=row.st;
+      d.querySelector('select').addEventListener('change',e=>{row.st=e.target.value;cgPreview();});
+      d.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',e=>{row[e.target.dataset.k]=+e.target.value||0;cgPreview();}));
+      d.querySelector('[data-k="del"]').addEventListener('click',()=>{if(CG.length>1){CG.splice(i,1);cgRender();}});
+      box.appendChild(d);
+    });
+    cgPreview();
+  }
+  function cgPlace(){
+    const a=G.anchor||{x:CW/2,y:CH/2};
+    const sz=G.stampSz||48;
+    CG.forEach(row=>{
+      const n=Math.max(1,+row.n||1), r=+row.r||0, rot=(+row.rot||0)*Math.PI/180;
+      if(r<=0){drawSVGStitch(mainCtx,a.x,a.y,row.st,G.toolColors[row.st]||G.color,sz,0);recordSymUse(row.st);return;}
+      for(let i=0;i<n;i++){
+        const ang=-Math.PI/2+i*2*Math.PI/n+rot;
+        drawSVGStitch(mainCtx,a.x+r*Math.cos(ang),a.y+r*Math.sin(ang),row.st,G.toolColors[row.st]||G.color,sz,ang*180/Math.PI+90);
+      }
+      recordSymUse(row.st);
+    });
+    composite();saveH();closeM('m-circgen');showToast('원형 도안을 배치했어요 — 앵커(＋) 중심');
+  }
+  $('btn-circgen').addEventListener('click',()=>{openM('m-circgen');cgRender();});
+  $('cg-add').addEventListener('click',()=>{const last=CG[CG.length-1];CG.push({st:last.st,n:Math.min(96,(+last.n||6)+6),r:Math.min(580,(+last.r||0)+55),rot:0});cgRender();});
+  $('cg-place').addEventListener('click',cgPlace);
   // ── 방안뜨기 그래프 패널 ──
   function _updateGraphCellSzLabel(){const v=$('graph-cellsz-v');if(v)v.textContent=graphCellSz()+'px';drawBg();}
   $('graph-cols').addEventListener('input',()=>{G.graphCols=Math.max(10,Math.min(200,parseInt($('graph-cols').value)||50));_updateGraphCellSzLabel();});
