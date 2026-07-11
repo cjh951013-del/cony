@@ -2187,22 +2187,23 @@ function drawFrameGuide(ctx,f){
       const{cols,rows,cw,ch}=frameGridDims(f);
       for(let i=1;i<cols;i++){const x=f.x+i*cw;ctx.beginPath();ctx.moveTo(x,f.y);ctx.lineTo(x,f.y+f.h);ctx.stroke();}
       for(let i=1;i<rows;i++){const y=f.y+i*ch;ctx.beginPath();ctx.moveTo(f.x,y);ctx.lineTo(f.x+f.w,y);ctx.stroke();}
-      // 코바늘 방안뜨기 가이드: 모든 칸에 기본 필레 망(경계 기둥 + 사슬2)을 깔아 도안 조직이
-      // 항상 보이게 한다 — fillCell이 채운 칸의 블록 기호를 이 위(메인 레이어)에 그린다.
-      // 좌표는 drawFiletChart·fillCell과 동일 공식(경계 0/⅓/⅔, 칸 상단 0.16)이라 정확히 겹친다
-      if((G.cur?.type)!=='knitting'&&cols*rows<=2000){
-        const gcol='rgba(150,110,200,.55)';
-        const dcSz=ch/0.55, chSz=cw*0.6, tchSz=ch*0.3; // drawFiletChart·fillCell과 동일 기하 — 정확히 겹치게
+      // 코바늘 방안뜨기 가이드: 그래프 모드에서만 모든 칸에 기본 필레 망(경계 기둥+사슬2)을 깔아
+      // 조직이 보이게 한다 — fillCell이 채운 칸의 블록을 메인 레이어에 그린다. 다른 모드에서는
+      // 생략(구워진 샘플 차트 위에 보라 망이 겹쳐 지저분해지는 문제). 기하·비율은 drawFiletChart와 동일
+      if((G.cur?.type)!=='knitting'&&G.mode==='graph'&&cols*rows<=2000){
+        const gcol='rgba(150,110,200,.5)';
+        const symW=cw*0.25, symH=ch*0.68, lw=Math.max(0.8,cw*0.03), padY=(ch-symH)/2;
         for(let r=0;r<rows;r++){
-          const yMid=f.y+(r+0.5)*ch, yTop=f.y+r*ch;
+          const yTop=f.y+r*ch+padY;
           const rowNum=rows-r, pillarB=(rowNum%2===1)?cols:0; // 단 시작쪽 경계는 기둥코 사슬3 스택
           for(let b=0;b<=cols;b++){
-            if(b===pillarB){for(let k=0;k<3;k++)drawSVGStitch(ctx,f.x+b*cw,f.y+r*ch+ch*(k+0.5)/3,'ch',gcol,tchSz,90);}
-            else drawSVGStitch(ctx,f.x+b*cw,yMid,'dc',gcol,dcSz,0);
+            if(b===pillarB){const ph=symH/3,pw=ph*0.5;for(let k=0;k<3;k++)chartChain(ctx,f.x+b*cw,yTop+ph*(k+0.5),pw,ph*0.92,gcol,lw*1.1,true);}
+            else chartDC(ctx,f.x+b*cw,yTop,symW,symH,gcol,lw);
           }
           for(let c=0;c<cols;c++){
-            drawSVGStitch(ctx,f.x+(c+1/3)*cw,yTop,'ch',gcol,chSz,0);
-            drawSVGStitch(ctx,f.x+(c+2/3)*cw,yTop,'ch',gcol,chSz,0);
+            const stDx=symW*0.45+1, ow=(cw-2*stDx)/2, oh=ow*0.31;
+            chartChain(ctx,f.x+c*cw+stDx+ow/2,yTop,ow,oh,gcol,lw,false);
+            chartChain(ctx,f.x+(c+1)*cw-stDx-ow/2,yTop,ow,oh,gcol,lw,false);
           }
         }
       }
@@ -2616,18 +2617,18 @@ function fillCell(p){
       mainCtx.clearRect(cx,cy,cw,ch); // 재도장 시 이전 칠 잔상 없이 항상 깨끗하게 — 칸 재색칠이 자유로움
       // 필레뜨기 블록: 칸을 칠하면 반투명 음영 + 경계 기둥 포함 한길긴뜨기 4기둥(빽빽)으로 그린다.
       // 빈 칸의 사슬 망은 격자 가이드(drawFrameGuide)가 항상 깔아주므로 여기선 블록만 그리면 된다
-      const hx=G.color.replace('#','');
-      mainCtx.fillStyle='rgba('+(parseInt(hx.substr(0,2),16)||0)+','+(parseInt(hx.substr(2,2),16)||0)+','+(parseInt(hx.substr(4,2),16)||0)+',0.3)';
-      mainCtx.fillRect(cx,cy,cw,ch);
-      // 기둥 높이=칸 높이(윗막대가 칸 위 모서리) — drawFiletChart·가이드 망과 동일 기하.
+      // 차트 글리프(가늘고 작은 핀피노 비율) — drawFiletChart·가이드 망과 동일 기하.
       // 단 시작쪽 경계(홀수단 오른쪽/짝수단 왼쪽)는 가이드의 기둥코 사슬3 자리라 dc를 덮지 않는다
-      const dcSz=ch/0.55;
+      const symW=cw*0.25, symH=ch*0.68, lw2=Math.max(0.8,cw*0.03), yTop=cy+(ch-symH)/2;
+      const hx=G.color.replace('#','');
+      mainCtx.fillStyle='rgba('+(parseInt(hx.substr(0,2),16)||0)+','+(parseInt(hx.substr(2,2),16)||0)+','+(parseInt(hx.substr(4,2),16)||0)+',0.28)';
+      mainCtx.fillRect(cx,yTop-1,cw,symH+2); // 틴트도 기호 높이 띠로(핀피노 동일)
       const rowIdx=Math.floor((cy-oy)/ch), rowNum=gRows-rowIdx, colIdx=Math.floor((cx-ox)/cw);
       const pillarB=(rowNum%2===1)?Math.round(gf.w/cw):0;
       for(let k=0;k<=3;k++){
         const bIdx=k===0?colIdx:(k===3?colIdx+1:-1); // 경계 기둥의 열 인덱스(내부 기둥은 -1)
         if(bIdx===pillarB)continue;
-        drawSVGStitch(mainCtx,cx+k*cw/3,cy+ch/2,'dc','#1a1a1a',dcSz,0);
+        chartDC(mainCtx,cx+k*cw/3,yTop,symW,symH,'#000',lw2);
       }
       const col=Math.floor((q.x-ox)/cw),row=Math.floor((gf.y+gf.h-1-cy)/ch);
       G.graphData[col+','+row]=G.color;
@@ -6431,75 +6432,90 @@ const SAMPLE_PAW_ROWS=[
 '.....################.....','......##############......','.......############.......',
 '.........########.........','..........................','..........................',
 '..........................','..........................'];
-// 필레뜨기 기호 차트 — 핀피노 렌더러(renderSymbolChart) 소스를 직접 확인해 확정한 조직:
-// 칸 경계마다 한길긴뜨기 기둥(이웃 칸과 공유, 그래서 가로 코수 = 칸수×3+1),
-// 채운 칸 = 기둥 사이에 한길긴뜨기 2코 추가(빽빽) + 그 색상 28% 틴트 음영(회색 아님),
-// 빈 칸 = 기둥 사이에 사슬 2코(뚫린 망, 기둥 윗막대와 같은 줄).
-// 기둥코 사슬3은 차트 밖이 아니라 "단 시작쪽 경계 기둥 자리를 대체"한다 —
-// 홀수단(아래가 1단, 우→좌로 뜸)은 오른쪽 끝 경계, 짝수단은 왼쪽 끝 경계.
-// 맨 아래 기초사슬 줄, 코 번호(위, 3코 간격, 오른쪽이 1), 단 번호(홀수단 오른쪽/짝수단 왼쪽).
+// 차트 전용 글리프 — 핀피노 렌더 SVG 실측 비율 그대로:
+// 칸 20×20(슬롯 22) 기준 한길긴뜨기 = 폭 5(칸의 1/4)×높이 14.9(칸의 0.68), 선굵기 0.6(칸의 0.03).
+// 스탬프용 drawSVGStitch는 굵고 넓어서(폭=크기의 0.5) 차트에 쓰면 검은 덩어리가 된다 — 분리 필수
+function chartDC(ctx,cx,yTop,w,h,col,lw){
+  ctx.save();ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(cx-w/2,yTop);ctx.lineTo(cx+w/2,yTop);      // 머리 가로선
+  ctx.moveTo(cx,yTop+lw*0.6);ctx.lineTo(cx,yTop+h);     // 다리
+  const ty=yTop+h*0.4;                                   // 사선 틱(실측: 높이 40% 지점)
+  ctx.moveTo(cx-w*0.3,ty+h*0.05);ctx.lineTo(cx+w*0.3,ty-h*0.05);
+  ctx.stroke();ctx.restore();
+}
+function chartChain(ctx,cx,cy,w,h,col,lw,vert){
+  ctx.save();ctx.strokeStyle=col;ctx.lineWidth=lw;
+  ctx.beginPath();
+  if(vert)ctx.ellipse(cx,cy,h*0.5,w*0.5,Math.PI/2,0,Math.PI*2);
+  else ctx.ellipse(cx,cy,w*0.5,h*0.5,0,0,Math.PI*2);
+  ctx.stroke();ctx.restore();
+}
+// 필레뜨기 기호 차트 — 핀피노 렌더러(renderSymbolChart) 소스+렌더 SVG 실측으로 확정한 조직:
+// 칸 경계마다 한길긴뜨기 기둥(이웃 칸과 공유, 가로 코수 = 칸수×3+1),
+// 채운 칸 = 기둥 사이 한길긴뜨기 2코 추가 + 그 색상 28% 틴트(기호 높이만큼의 띠),
+// 빈 칸 = 머리선 높이에 작은 사슬 타원 2개. 기호는 가늘고 작게, 단 사이 여백 유지(성긴 인상).
+// 기둥코 사슬3은 단 시작쪽 경계 기둥 자리를 대체(홀수단 오른쪽·짝수단 왼쪽).
 function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifColor){
   const R=rows.length,C=rows[0].length,cw=fw/C,chh=fh/R;
   const gd={};
-  const SYM='#1a1a1a';
+  const SYM='#000';
   const MC=motifColor||'#1d1d1f';
   const mh=MC.replace('#','');
   const SHADE='rgba('+(parseInt(mh.substr(0,2),16)||0)+','+(parseInt(mh.substr(2,2),16)||0)+','+(parseInt(mh.substr(4,2),16)||0)+',0.28)';
-  // 기호 크기 = 칸 기하에 딱 맞춤: 한길긴뜨기 전체 높이(0.55×sz)가 칸 높이와 같아야
-  // 윗막대가 칸 위 모서리에 얹히고 발이 아래 모서리에 닿아 단끼리 맞물린다.
-  const dcSz=chh/0.55;
-  const chSz=cw*0.6;         // 빈 칸 가로 사슬: 타원폭 0.48cw ×2 ≈ 칸 폭
-  const tchSz=chh*0.3;       // 기둥코 세로 사슬: 3개 스택이 단 높이 안에 들어감
-  const fchSz=cw/3/0.8;      // 기초사슬: 타원폭 = 코 간격
-  // 1) 채운 칸 음영을 먼저 깔고 그 위에 기호 — 기호가 항상 또렷하게
+  const symW=cw*0.25, symH=chh*0.68, lw=Math.max(0.8,cw*0.03);
+  const padY=(chh-symH)/2;
+  // 1) 채운 칸 틴트: 기호 높이만큼의 띠(핀피노: bgY=기호 y, bgH=기호 높이 ±1)
   for(let vi=0;vi<R;vi++)for(let c=0;c<C;c++){
     if(rows[vi][c]==='#'){
-      ctx.fillStyle=SHADE;ctx.fillRect(fx+c*cw,fy+vi*chh,cw,chh);
+      ctx.fillStyle=SHADE;ctx.fillRect(fx+c*cw,fy+vi*chh+padY-1,cw,symH+2);
       gd[c+','+(R-1-vi)]=MC;
     }
   }
   for(let vi=0;vi<R;vi++){
-    const yMid=fy+(vi+0.5)*chh, yTop=fy+vi*chh;
+    const yTop=fy+vi*chh+padY;
     const rowNum=R-vi, odd=rowNum%2===1;
-    const pillarB=odd?C:0; // 단 시작쪽 경계 기둥이 기둥코로 대체되는 위치
-    // 경계 기둥: 칸과 칸이 공유하는 한길긴뜨기 — 칸수+1개, 단 시작쪽 1개는 기둥코 사슬3 스택
+    const pillarB=odd?C:0; // 단 시작쪽 경계 기둥이 기둥코 사슬3으로 대체되는 위치
     for(let b=0;b<=C;b++){
       const bx=fx+b*cw;
       if(b===pillarB){
-        for(let k=0;k<3;k++)drawSVGStitch(ctx,bx,fy+vi*chh+chh*(k+0.5)/3,'ch',SYM,tchSz,90);
+        const ph=symH/3, pw=ph*0.5;
+        for(let k=0;k<3;k++)chartChain(ctx,bx,yTop+ph*(k+0.5),pw,ph*0.92,SYM,lw*1.1,true);
       }else{
-        drawSVGStitch(ctx,bx,yMid,'dc',SYM,dcSz,0);
+        chartDC(ctx,bx,yTop,symW,symH,SYM,lw);
       }
     }
     for(let c=0;c<C;c++){
-      const x1=fx+(c+1/3)*cw, x2=fx+(c+2/3)*cw;
       if(rows[vi][c]==='#'){ // 블록: 기둥 사이 한길긴뜨기 2코 추가
-        drawSVGStitch(ctx,x1,yMid,'dc',SYM,dcSz,0);
-        drawSVGStitch(ctx,x2,yMid,'dc',SYM,dcSz,0);
-      }else{ // 스페이스: 사슬 2코 — 칸 위 모서리 선 위에 나란히, 기둥 윗막대와 같은 줄
-        drawSVGStitch(ctx,x1,yTop,'ch',SYM,chSz,0);
-        drawSVGStitch(ctx,x2,yTop,'ch',SYM,chSz,0);
+        chartDC(ctx,fx+(c+1/3)*cw,yTop,symW,symH,SYM,lw);
+        chartDC(ctx,fx+(c+2/3)*cw,yTop,symW,symH,SYM,lw);
+      }else{ // 스페이스: 머리선 높이에 작은 사슬 2개(실측: 폭 (칸-2×여백)/2, 높이 폭×0.31)
+        const stDx=symW*0.45+1, ow=(cw-2*stDx)/2, oh=ow*0.31;
+        chartChain(ctx,fx+c*cw+stDx+ow/2,yTop,ow,oh,SYM,lw,false);
+        chartChain(ctx,fx+(c+1)*cw-stDx-ow/2,yTop,ow,oh,SYM,lw,false);
       }
     }
   }
-  // 2) 기초사슬 줄(맨 아래): 칸수×3+1코 — 타원끼리 맞닿아 이어지게
-  const fcy=fy+fh+Math.min(chh*0.4,14);
-  for(let s=0;s<=C*3;s++)drawSVGStitch(ctx,fx+s*cw/3,fcy,'ch',SYM,fchSz,0);
-  // 3) 코 번호(위, 3코 간격, 오른쪽이 1) · 단 번호(홀수단 오른쪽/짝수단 왼쪽)
-  ctx.save();ctx.fillStyle='#555';ctx.font='500 11px sans-serif';
+  // 2) 기초사슬 줄(맨 아래): 칸수×3+1코
+  const fow=cw/3*0.95, foh=fow*0.31;
+  const fcy=fy+fh+Math.max(8,chh*0.3);
+  for(let s=0;s<=C*3;s++)chartChain(ctx,fx+s*cw/3,fcy,fow,foh,SYM,lw,false);
+  // 3) 코 번호(위, 3코 간격, 오른쪽이 1) · 단 번호(홀수단 오른쪽/짝수단 왼쪽) — 실측: #666, 칸폭×0.35
+  const fs=Math.max(9,Math.round(cw*0.35));
+  ctx.save();ctx.fillStyle='#666';ctx.font='500 '+fs+'px sans-serif';
   ctx.textAlign='center';ctx.textBaseline='bottom';
-  for(let s=1;s<=C*3+1;s+=3)ctx.fillText(String(s),fx+fw-(s-1)*cw/3,fy-8);
+  for(let s=1;s<=C*3+1;s+=3)ctx.fillText(String(s),fx+fw-(s-1)*cw/3,fy-6);
   ctx.textBaseline='middle';
   for(let vi=0;vi<R;vi++){
     const rowNum=R-vi, odd=rowNum%2===1;
     ctx.textAlign=odd?'left':'right';
-    ctx.fillText(String(rowNum),odd?fx+fw+9:fx-9,fy+(vi+0.5)*chh); // 기둥코가 차트 안이므로 번호는 프레임 바로 밖
+    ctx.fillText(String(rowNum),odd?fx+fw+9:fx-9,fy+(vi+0.5)*chh);
   }
   ctx.restore();
   // 4) 읽는 법 안내(기초사슬 줄 아래)
   const n=C*3+4;
   ctx.save();ctx.fillStyle='#2a2a2a';ctx.font='600 14px sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
-  ctx.fillText('기초사슬 '+n+'코(칸수'+C+'×3+1 +기둥코3) · 채운 칸=한길긴뜨기 3코, 빈 칸=사슬2+한길긴뜨기 1코',fx,fcy+Math.min(chh*0.4,14)+4);
+  ctx.fillText('기초사슬 '+n+'코(칸수'+C+'×3+1 +기둥코3) · 채운 칸=한길긴뜨기 3코, 빈 칸=사슬2+한길긴뜨기 1코',fx,fcy+foh+8);
   ctx.restore();
   return gd;
 }
