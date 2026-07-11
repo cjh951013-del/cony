@@ -1065,6 +1065,7 @@ body.ui-hidden #row-counter{display:none!important}
           </div>
           <button class="ib" id="gf-edit" style="width:100%;font-size:11px;padding:6px;margin-bottom:6px">◫ 프레임 크기·위치 편집</button>
           <button class="ib" id="btn-sym-convert" style="width:100%;padding:8px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;border-radius:10px;margin-bottom:4px">▦ → ⊙  기호 변환 (Symbol Convert)</button>
+          <button class="ib" id="btn-progress" style="width:100%;padding:8px;background:var(--gold);color:#1a1208;font-size:12px;font-weight:700;border-radius:10px;margin-bottom:4px">🧶 뜨면서 체크 (진행 트래커)</button>
           <button class="ib" id="btn-graph-clear" style="width:100%;font-size:10px;padding:5px">↺ 방안 초기화</button>
         </div>
 
@@ -1320,6 +1321,35 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="mf" style="gap:6px">
       <button class="mb" id="btn-sym-dl" style="background:var(--accent);color:#fff">↓ 이미지 다운로드</button>
       <button class="mb" onclick="closeM('m-sym-chart')">닫기</button>
+    </div>
+  </div>
+</div>
+<!-- ===== MODAL: 뜨개 진행 체크 (도안을 뜨면서 단·코 체크) ===== -->
+<div class="mo" id="m-progress">
+  <div class="mc" style="max-width:96vw;width:auto;max-height:94vh;display:flex;flex-direction:column">
+    <div class="mh">
+      <h2 style="font-size:14px">🧶 뜨면서 체크</h2>
+      <button class="mhx" onclick="closeM('m-progress')">✕</button>
+    </div>
+    <div style="overflow:auto;flex:1;padding:0 12px">
+      <canvas id="pg-canvas" style="display:block"></canvas>
+    </div>
+    <div id="pg-narr" style="padding:6px 14px;font-size:12px;flex-shrink:0;border-top:1px solid var(--border);color:var(--text)"></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;flex-shrink:0;border-top:1px solid var(--border);flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:4px">
+        <span style="font-size:11px;opacity:.7">단</span>
+        <button class="ib" id="pg-row-m" style="width:34px;padding:6px 0;font-size:16px">−</button>
+        <b id="pg-row-v" style="min-width:52px;text-align:center;font-size:14px;color:var(--accent)">1</b>
+        <button class="ib" id="pg-row-p" style="width:34px;padding:6px 0;font-size:16px">+</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span style="font-size:11px;opacity:.7">코</span>
+        <button class="ib" id="pg-st-m" style="width:34px;padding:6px 0;font-size:16px">−</button>
+        <b id="pg-st-v" style="min-width:64px;text-align:center;font-size:14px;color:var(--accent)">0</b>
+        <button class="ib" id="pg-st-p" style="width:34px;padding:6px 0;font-size:16px">+</button>
+      </div>
+      <b id="pg-pct" style="font-size:13px;color:var(--gold);margin-left:auto">0%</b>
+      <button class="ib" id="pg-reset" style="font-size:10px;padding:5px 8px">↺ 처음부터</button>
     </div>
   </div>
 </div>
@@ -4323,6 +4353,125 @@ function bindAll(){
   $('gf-row-p').addEventListener('click',()=>_gfAdj('r',1));
   $('gf-edit').addEventListener('click',()=>{const f=_gfFrame();if(!f){showToast('격자 프레임이 없어요 — ◫ 프레임에서 먼저 배치');return;}editFrame(f.id);});
   $('btn-graph-clear').addEventListener('click',()=>{if(confirm('방안 내용을 모두 지울까요?'))graphClearData();});
+  // ── 뜨면서 체크 (진행 트래커) — 방안뜨기 도안을 뜨는 동안 단·코 진행을 체크. 문서별 저장 ──
+  // 핀피노는 차트 안 클릭 마킹(단 하이라이트·코 선택)뿐이지만 우리는 카운터+단별 뜨는 순서+진행률까지
+  let PG={row:1,st:0}, _pgL=null; // _pgL: 렌더 때 저장하는 레이아웃(클릭 판정용)
+  const pgKey=()=>'cony_progress_'+((G.cur&&G.cur.id)||'unsaved');
+  const pgRowStitches=(gd)=>gd.cols*3+1; // 한길긴뜨기 필레: 단마다 칸수×3+1코(기둥코 사슬3 별도)
+  function pgRowRuns(gd,r){ // r단(1-기준)의 ■/□ 런렝스 — 뜨는 방향(홀수단 우→좌)으로
+    const seq=[];for(let c=0;c<gd.cols;c++)seq.push(G.graphData[c+','+(r-1)]?'■':'□');
+    if(r%2===1)seq.reverse();
+    const parts=[];let cur=seq[0],cnt=1;
+    for(let i=1;i<seq.length;i++){if(seq[i]===cur)cnt++;else{parts.push(cur+'×'+cnt);cur=seq[i];cnt=1;}}
+    parts.push(cur+'×'+cnt);
+    return parts.join(', ');
+  }
+  function pgRender(){
+    const f=_gfFrame();if(!f)return;
+    const gd=frameGridDims(f);
+    const cv=$('pg-canvas'),ctx=cv.getContext('2d');
+    // 화면 크기에 맞춘 칸 크기 (핀피노 실측 비율 유지, 셀 14~34px)
+    const availW=Math.min(window.innerWidth*0.9,1100)-40;
+    const cell=Math.max(14,Math.min(34,Math.floor(availW/(gd.cols+3))));
+    const NUM=Math.max(20,cell), PADT=16;
+    const W=NUM+gd.cols*cell+NUM, H=PADT+gd.rows*cell+Math.max(10,cell*0.4)+22;
+    cv.width=W;cv.height=H;
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    const fx=NUM, fy=PADT;
+    _pgL={fy,cell,rows:gd.rows};
+    // 완료 단(현재 단 아래) 배경: 옅은 초록 / 현재 단: 노랑(핀피노 하이라이트 색)
+    for(let r=1;r<=gd.rows;r++){
+      const y=fy+(gd.rows-r)*cell;
+      if(r<PG.row){ctx.fillStyle='rgba(76,175,80,.14)';ctx.fillRect(fx,y,gd.cols*cell,cell);}
+      else if(r===PG.row){ctx.fillStyle='rgba(255,213,79,.4)';ctx.fillRect(fx,y,gd.cols*cell,cell);}
+    }
+    // 차트 본체: graphData → rows 배열로 변환해 drawFiletChart와 동일 조직으로
+    const symW=cell*0.25,symH=cell*0.68,lw=Math.max(0.8,cell*0.03),padY=(cell-symH)/2;
+    for(let vi=0;vi<gd.rows;vi++){
+      const rr=gd.rows-vi; // 단 번호
+      const yTop=fy+vi*cell+padY;
+      const pillarB=(rr%2===1)?gd.cols:0;
+      for(let c=0;c<gd.cols;c++){ // 틴트
+        const col=G.graphData[c+','+(rr-1)];
+        if(col){const hh=col.replace('#','');
+          ctx.fillStyle='rgba('+(parseInt(hh.substr(0,2),16)||0)+','+(parseInt(hh.substr(2,2),16)||0)+','+(parseInt(hh.substr(4,2),16)||0)+',0.28)';
+          ctx.fillRect(fx+c*cell,yTop-1,cell,symH+2);}
+      }
+      for(let b=0;b<=gd.cols;b++){
+        if(b===pillarB){const ph=symH/3,pw=ph*0.5;for(let k=0;k<3;k++)chartChain(ctx,fx+b*cell,yTop+ph*(k+0.5),pw,ph*0.92,'#000',lw*1.1,true);}
+        else chartDC(ctx,fx+b*cell,yTop,symW,symH,'#000',lw);
+      }
+      for(let c=0;c<gd.cols;c++){
+        if(G.graphData[c+','+(rr-1)]){
+          chartDC(ctx,fx+(c+1/3)*cell,yTop,symW,symH,'#000',lw);
+          chartDC(ctx,fx+(c+2/3)*cell,yTop,symW,symH,'#000',lw);
+        }else{
+          const dx=symW*0.45+1,ow=(cell-2*dx)/2,oh=ow*0.31;
+          chartChain(ctx,fx+c*cell+dx+ow/2,yTop,ow,oh,'#000',lw,false);
+          chartChain(ctx,fx+(c+1)*cell-dx-ow/2,yTop,ow,oh,'#000',lw,false);
+        }
+      }
+      // 단 번호(홀수단 오른쪽/짝수단 왼쪽) — 현재 단은 주황 강조(핀피노 동일)
+      ctx.fillStyle=rr===PG.row?'#E65100':'#666';
+      ctx.font=(rr===PG.row?'700 ':'500 ')+Math.max(9,Math.round(cell*0.4))+'px sans-serif';
+      ctx.textBaseline='middle';ctx.textAlign=rr%2===1?'left':'right';
+      ctx.fillText(String(rr),rr%2===1?fx+gd.cols*cell+5:fx-5,fy+vi*cell+cell/2);
+    }
+    // 기초사슬 줄
+    const fow=cell/3*0.95,foh=fow*0.31,fcy=fy+gd.rows*cell+Math.max(8,cell*0.3);
+    for(let s=0;s<=gd.cols*3;s++)chartChain(ctx,fx+s*cell/3,fcy,fow,foh,'#000',lw,false);
+    // 현재 코 위치 마커: 단 안에서 뜨는 방향대로 진행된 위치에 파란 점
+    if(PG.st>0){
+      const total=pgRowStitches(gd), frac=Math.min(1,PG.st/total);
+      const rr=PG.row, y=fy+(gd.rows-rr)*cell+cell/2;
+      const xFrac=rr%2===1?(1-frac):frac; // 홀수단 우→좌
+      ctx.fillStyle='#1976D2';
+      ctx.beginPath();ctx.arc(fx+xFrac*gd.cols*cell,y,Math.max(3,cell*0.14),0,Math.PI*2);ctx.fill();
+    }
+    // 상태 표시
+    const total=pgRowStitches(gd);
+    $('pg-row-v').textContent=PG.row+' / '+gd.rows;
+    $('pg-st-v').textContent=PG.st+' / '+total;
+    const pct=Math.min(100,Math.round(((PG.row-1)+PG.st/total)/gd.rows*100));
+    $('pg-pct').textContent=pct+'%';
+    $('pg-narr').textContent=PG.row+'단 (사슬3 기둥코 후 '+(PG.row%2===1?'오른쪽→왼쪽':'왼쪽→오른쪽')+'): '+pgRowRuns(gd,PG.row)+'  · ■=한길긴뜨기3, □=사슬2+한길긴뜨기1';
+  }
+  function pgSave(){try{localStorage.setItem(pgKey(),JSON.stringify(PG));}catch(e){}}
+  function pgAdj(kind,d){
+    const f=_gfFrame();if(!f)return;
+    const gd=frameGridDims(f),total=pgRowStitches(gd);
+    if(kind==='row'){PG.row=Math.max(1,Math.min(gd.rows,PG.row+d));PG.st=0;}
+    else{
+      PG.st+=d;
+      if(PG.st>=total&&PG.row<gd.rows){PG.row++;PG.st=0;showToast(PG.row-1+'단 완료! '+PG.row+'단으로');}
+      else if(PG.st>=total){PG.st=total;showToast('마지막 단이에요 — 완성! 🎉');}
+      else if(PG.st<0&&PG.row>1){PG.row--;PG.st=total-1;}
+      else if(PG.st<0)PG.st=0;
+    }
+    pgSave();pgRender();
+  }
+  $('btn-progress').addEventListener('click',()=>{
+    const f=_gfFrame();
+    if(!f){showToast('격자 프레임이 없어요 — ◫ 프레임에서 먼저 배치');return;}
+    if(!Object.keys(G.graphData||{}).length){showToast('먼저 방안을 칠해서 도안을 만들어주세요');return;}
+    try{PG=JSON.parse(localStorage.getItem(pgKey()))||{row:1,st:0};}catch(e){PG={row:1,st:0};}
+    if(!PG.row)PG={row:1,st:0};
+    openM('m-progress');pgRender();
+  });
+  $('pg-row-m').addEventListener('click',()=>pgAdj('row',-1));
+  $('pg-row-p').addEventListener('click',()=>pgAdj('row',1));
+  $('pg-st-m').addEventListener('click',()=>pgAdj('st',-1));
+  $('pg-st-p').addEventListener('click',()=>pgAdj('st',1));
+  $('pg-reset').addEventListener('click',()=>{if(confirm('진행 기록을 처음으로 되돌릴까요?')){PG={row:1,st:0};pgSave();pgRender();}});
+  // 차트에서 단 번호·단 영역 클릭으로 바로 이동 (핀피노 단 하이라이트 클릭과 동일 UX)
+  $('pg-canvas').addEventListener('click',e=>{
+    if(!_pgL)return;
+    const cv=$('pg-canvas'),r=cv.getBoundingClientRect();
+    const y=(e.clientY-r.top)*(cv.height/r.height);
+    const vi=Math.floor((y-_pgL.fy)/_pgL.cell);
+    const rr=_pgL.rows-vi;
+    if(rr>=1&&rr<=_pgL.rows){PG.row=rr;PG.st=0;pgSave();pgRender();}
+  });
   // Symbol Chart 탭 & 다운로드
   document.querySelectorAll('.sc-tab').forEach(btn=>{
     btn.addEventListener('click',()=>{
