@@ -2192,9 +2192,9 @@ function drawFrameGuide(ctx,f){
       // 좌표는 drawFiletChart·fillCell과 동일 공식(경계 0/⅓/⅔, 칸 상단 0.16)이라 정확히 겹친다
       if((G.cur?.type)!=='knitting'&&cols*rows<=2000){
         const gcol='rgba(150,110,200,.55)';
-        const dcSz=Math.min(ch*0.92,cw*1.1,30), chSz=Math.min(cw/3*1.05,ch*0.5,15);
+        const dcSz=ch/0.55, chSz=cw*0.6; // drawFiletChart·fillCell과 동일 기하 — 정확히 겹치게
         for(let r=0;r<rows;r++){
-          const yMid=f.y+(r+0.5)*ch, yTop=f.y+r*ch+ch*0.16;
+          const yMid=f.y+(r+0.5)*ch, yTop=f.y+r*ch;
           for(let b=0;b<=cols;b++)drawSVGStitch(ctx,f.x+b*cw,yMid,'dc',gcol,dcSz,0);
           for(let c=0;c<cols;c++){
             drawSVGStitch(ctx,f.x+(c+1/3)*cw,yTop,'ch',gcol,chSz,0);
@@ -2581,8 +2581,8 @@ function stampFoundationChain(f){
     labelY=below?y+sz*0.9+2:y-sz*0.9-2;
     mainCtx.fillText('코잡기 '+n+'코',f.x,labelY);mainCtx.restore();
   }else{
-    // 필레뜨기 기초사슬 줄: 사슬 기호를 코 위치(칸당 3코)마다 실제로 그린다 — 도안 조직이 보이게
-    const chSz=Math.min(gd.cw/3*1.05,gd.ch*0.5,15);
+    // 필레뜨기 기초사슬 줄: 사슬 기호를 코 위치(칸당 3코)마다 실제로 그린다 — 타원폭=코 간격으로 맞닿게
+    const chSz=gd.cw/3/0.8;
     for(let s=0;s<=gd.cols*3;s++)drawSVGStitch(mainCtx,f.x+s*gd.cw/3,y,'ch',G.chainColor||'#2a2a2a',chSz,0);
     mainCtx.save();mainCtx.fillStyle=G.chainColor||'#2a2a2a';mainCtx.font='600 '+Math.max(11,sz*0.5)+'px sans-serif';
     mainCtx.textAlign='left';mainCtx.textBaseline=below?'top':'bottom';
@@ -2615,7 +2615,8 @@ function fillCell(p){
       const hx=G.color.replace('#','');
       mainCtx.fillStyle='rgba('+(parseInt(hx.substr(0,2),16)||0)+','+(parseInt(hx.substr(2,2),16)||0)+','+(parseInt(hx.substr(4,2),16)||0)+',0.3)';
       mainCtx.fillRect(cx,cy,cw,ch);
-      const dcSz=Math.min(ch*0.92,cw*1.1,30);
+      // 기둥 높이=칸 높이(윗막대가 칸 위 모서리) — drawFiletChart·가이드 망과 동일 기하
+      const dcSz=ch/0.55;
       for(let k=0;k<=3;k++)drawSVGStitch(mainCtx,cx+k*cw/3,cy+ch/2,'dc','#1a1a1a',dcSz,0);
       const col=Math.floor((q.x-ox)/cw),row=Math.floor((gf.y+gf.h-1-cy)/ch);
       G.graphData[col+','+row]=G.color;
@@ -6429,8 +6430,13 @@ function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifColor){
   const R=rows.length,C=rows[0].length,cw=fw/C,chh=fh/R;
   const gd={};
   const SYM='#1a1a1a', SHADE='#cfcfcf';
-  const dcSz=Math.min(chh*0.92,cw*1.1,30);
-  const chSz=Math.min(cw/3*1.05,chh*0.5,15);
+  // 기호 크기 = 칸 기하에 딱 맞춤(핀피노 확대본 기준): 한길긴뜨기 전체 높이(1.1×h=0.55×sz)가
+  // 칸 높이와 같아야 윗막대가 칸 위 모서리에 얹히고 발이 아래 모서리에 닿아 단끼리 맞물린다.
+  // 사슬 타원(폭 0.8×sz)은 2개가 칸 폭을 가득 메우게 — 작게 띄우면 기호 위치가 어긋나 보인다
+  const dcSz=chh/0.55;
+  const chSz=cw*0.6;         // 빈 칸 가로 사슬: 타원폭 0.48cw ×2 ≈ 칸 폭
+  const tchSz=chh*0.42;      // 기둥코 세로 사슬: 3개가 단 높이를 채움
+  const fchSz=cw/3/0.8;      // 기초사슬: 타원폭 = 코 간격
   // 1) 채운 칸 음영을 먼저 깔고 그 위에 기호 — 기호가 항상 또렷하게
   for(let vi=0;vi<R;vi++)for(let c=0;c<C;c++){
     if(rows[vi][c]==='#'){
@@ -6439,7 +6445,7 @@ function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifColor){
     }
   }
   for(let vi=0;vi<R;vi++){
-    const yMid=fy+(vi+0.5)*chh, yTop=fy+vi*chh+chh*0.16;
+    const yMid=fy+(vi+0.5)*chh, yTop=fy+vi*chh;
     // 경계 기둥: 칸과 칸이 공유하는 한길긴뜨기 — 칸수+1개
     for(let b=0;b<=C;b++)drawSVGStitch(ctx,fx+b*cw,yMid,'dc',SYM,dcSz,0);
     for(let c=0;c<C;c++){
@@ -6447,28 +6453,28 @@ function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifColor){
       if(rows[vi][c]==='#'){ // 블록: 기둥 사이 한길긴뜨기 2코 추가
         drawSVGStitch(ctx,x1,yMid,'dc',SYM,dcSz,0);
         drawSVGStitch(ctx,x2,yMid,'dc',SYM,dcSz,0);
-      }else{ // 스페이스: 사슬 2코 — 칸 위쪽에 가로로
+      }else{ // 스페이스: 사슬 2코 — 칸 위 모서리 선 위에 나란히, 기둥 윗막대와 같은 줄
         drawSVGStitch(ctx,x1,yTop,'ch',SYM,chSz,0);
         drawSVGStitch(ctx,x2,yTop,'ch',SYM,chSz,0);
       }
     }
-    // 기둥코 사슬3: 단 시작쪽 끝에 세로로 — 홀수단(아래가 1단)은 오른쪽, 짝수단은 왼쪽
+    // 기둥코 사슬3: 단 시작쪽 끝에 세로로 단 높이를 채워 — 홀수단(아래가 1단)은 오른쪽, 짝수단은 왼쪽
     const rowNum=R-vi, odd=rowNum%2===1;
-    const ex=odd?fx+fw+chSz*0.6:fx-chSz*0.6;
-    for(let k=0;k<3;k++)drawSVGStitch(ctx,ex,fy+vi*chh+chh*(0.22+k*0.28),'ch',SYM,chSz,90);
+    const ex=odd?fx+fw+tchSz*0.45:fx-tchSz*0.45;
+    for(let k=0;k<3;k++)drawSVGStitch(ctx,ex,fy+vi*chh+chh*(k+0.5)/3,'ch',SYM,tchSz,90);
   }
-  // 2) 기초사슬 줄(맨 아래): 칸수×3+1코
+  // 2) 기초사슬 줄(맨 아래): 칸수×3+1코 — 타원끼리 맞닿아 이어지게
   const fcy=fy+fh+Math.min(chh*0.4,14);
-  for(let s=0;s<=C*3;s++)drawSVGStitch(ctx,fx+s*cw/3,fcy,'ch',SYM,chSz,0);
+  for(let s=0;s<=C*3;s++)drawSVGStitch(ctx,fx+s*cw/3,fcy,'ch',SYM,fchSz,0);
   // 3) 코 번호(위, 3코 간격, 오른쪽이 1) · 단 번호(홀수단 오른쪽/짝수단 왼쪽)
   ctx.save();ctx.fillStyle='#555';ctx.font='500 11px sans-serif';
   ctx.textAlign='center';ctx.textBaseline='bottom';
-  for(let s=1;s<=C*3+1;s+=3)ctx.fillText(String(s),fx+fw-(s-1)*cw/3,fy-6);
+  for(let s=1;s<=C*3+1;s+=3)ctx.fillText(String(s),fx+fw-(s-1)*cw/3,fy-8);
   ctx.textBaseline='middle';
   for(let vi=0;vi<R;vi++){
     const rowNum=R-vi, odd=rowNum%2===1;
     ctx.textAlign=odd?'left':'right';
-    ctx.fillText(String(rowNum),odd?fx+fw+chSz*1.5+6:fx-chSz*1.5-6,fy+(vi+0.5)*chh);
+    ctx.fillText(String(rowNum),odd?fx+fw+tchSz*0.9+8:fx-tchSz*0.9-8,fy+(vi+0.5)*chh);
   }
   ctx.restore();
   // 4) 읽는 법 안내(기초사슬 줄 아래)
