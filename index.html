@@ -650,6 +650,9 @@ body.ui-hidden #row-counter{display:none!important}
       <span id="plan-chip" class="plan-chip chip-free">FREE</span>
       <button class="hb" id="btn-np">＋ 새 도안</button>
       <button class="hb" id="btn-samples" title="검증된 샘플 도안 4종(고양이·발바닥 필레, 꽃 코스터, 가디건)을 설치">📦 샘플 도안</button>
+      <button class="hb" id="btn-backup" title="모든 도안·설정·진행 기록을 파일로 저장 — 실험 전에 백업해두고 언제든 복원">💾 백업</button>
+      <button class="hb" id="btn-restore" title="백업 파일(.json)에서 전체 복원">↩️ 복원</button>
+      <input type="file" id="backup-file" accept=".json,application/json" style="display:none">
       <button class="hb p" id="btn-upgrade-dash">👑 업그레이드</button>
     </div>
   </header>
@@ -4313,6 +4316,34 @@ function bindAll(){
   // DASH
   $('btn-np').addEventListener('click',()=>openM('m-new'));
   {const bs=$('btn-samples');if(bs)bs.addEventListener('click',()=>buildSampleDocs());}
+  // ── 전체 백업/복원: 도안·레이어·설정·진행 기록 전부 JSON 파일로 — 실험 전 안전망 ──
+  {const bb=$('btn-backup');if(bb)bb.addEventListener('click',()=>{
+    const data={_cony_backup:1,date:new Date().toISOString(),items:{}};
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);data.items[k]=localStorage.getItem(k);}
+    const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='cony-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('백업 파일을 내려받았어요 — '+Object.keys(data.items).length+'개 항목');
+  });}
+  {const br=$('btn-restore'),bf=$('backup-file');
+   if(br&&bf){
+    br.addEventListener('click',()=>bf.click());
+    bf.addEventListener('change',()=>{
+      const file=bf.files&&bf.files[0];if(!file)return;
+      const rd=new FileReader();
+      rd.onload=()=>{
+        try{
+          const data=JSON.parse(rd.result);
+          if(!data||data._cony_backup!==1||!data.items)throw new Error('형식');
+          if(!confirm('백업('+String(data.date).slice(0,10)+')으로 전체 복원할까요?\n현재 데이터는 이 백업 내용으로 교체됩니다.'))return;
+          Object.keys(data.items).forEach(k=>{try{localStorage.setItem(k,data.items[k]);}catch(e){}});
+          location.reload();
+        }catch(e){showToast('백업 파일이 아니거나 손상됐어요');}
+      };
+      rd.readAsText(file);bf.value='';
+    });
+   }}
   $('btn-upgrade-dash').addEventListener('click',()=>openM('m-pro'));
   $('btn-create').addEventListener('click',()=>{
     const maxSz=isPro()?4000:1200; // 무료 1200px, Pro 4000px
@@ -4966,6 +4997,7 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
   mc.addEventListener('mouseleave',hideBrushCursor);
   mc.addEventListener('touchstart',onDown,{passive:false});mc.addEventListener('touchmove',onMove,{passive:false});mc.addEventListener('touchend',onUp);
   mc.addEventListener('wheel',onWheel,{passive:false});
+  // 멀티터치 제스처(두 손가락 탭=실행취소 등)는 onDown/onUp 쪽에 이미 구현되어 있음 — 중복 구현 금지
   // 펜(스타일러스) 압력 캡처 — PointerEvent.pressure (0~1, 마우스=0.5 제외)
   let _edgeSwipeX=null,_edgeSwipeY=null;
   mc.addEventListener('pointermove',e=>{if(e.pointerType==='pen')_penPressure=e.pressure;},{passive:true});
