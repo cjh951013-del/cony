@@ -2248,6 +2248,18 @@ function drawFrameGuide(ctx,f){
       // 단 번호 + 목표 코 수: 각 링 위쪽에 표기 (뜨기 전에 몇 코인지 미리 앎)
       ctx.fillStyle='rgba(168,85,247,.85)';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
       for(let i=1;i<=n;i++)ctx.fillText(i+'단 '+frameRingCount(f,i)+'코',cx,cy-ry*i/n+ry/n/2);
+    }else if(k==='oval'){
+      // 장방 타원(스타디움): 가운데 기초사슬 줄에서 양쪽으로 돌려 뜨는 가방 바닥/바스켓 구조.
+      // 반원 캡 2개 + 직선 변 — 링 가이드도 같은 모양으로 축소되며 중앙에 사슬 시작선 표시
+      const cy=f.y+f.h/2, r=f.h/2, cx1=f.x+Math.min(r,f.w/2), cx2=f.x+f.w-Math.min(r,f.w/2);
+      const path=(rr)=>{ctx.beginPath();ctx.moveTo(cx1,cy-rr);ctx.lineTo(cx2,cy-rr);ctx.arc(cx2,cy,rr,-Math.PI/2,Math.PI/2);ctx.lineTo(cx1,cy+rr);ctx.arc(cx1,cy,rr,Math.PI/2,Math.PI*1.5);ctx.closePath();};
+      ctx.setLineDash([8,5]);path(r);ctx.stroke();ctx.setLineDash([]);
+      ctx.strokeStyle='rgba(168,85,247,.22)';
+      const n=Math.max(1,Math.round(r/gap));
+      for(let i=1;i<n;i++){path(r*i/n);ctx.stroke();}
+      ctx.beginPath();ctx.moveTo(cx1,cy);ctx.lineTo(cx2,cy);ctx.stroke(); // 기초사슬 시작선
+      ctx.fillStyle='rgba(168,85,247,.85)';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      for(let i=1;i<=n;i++)ctx.fillText(i+'단',(cx1+cx2)/2,cy-r*i/n+r/n/2);
     }else if(k==='semi'){
       const cy=f.y,rx=f.w/2,ry=f.h;
       ctx.setLineDash([8,5]);ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI);ctx.closePath();ctx.stroke();ctx.setLineDash([]);
@@ -5546,6 +5558,7 @@ function openFramePicker(){
     p.innerHTML='<div style="font-size:13px;font-weight:700;color:#fff">프레임 배치</div>'
       +'<div style="font-size:10px;color:rgba(255,255,255,.45);margin-bottom:2px">가이드 구역을 만들고 그 위에 도안을 그리세요</div>'
       +'<button class="fpb" data-k="circle">○ 원형·타원 — 도일리·가방 바닥 (핸들로 늘리면 타원)</button>'
+      +'<button class="fpb" data-k="oval">⬭ 타원(장방) — 가방 바닥·바스켓 (가운데 사슬에서 양쪽으로)</button>'
       +'<button class="fpb" data-k="semi">◗ 반원 — 가방·부채·우산</button>'
       +'<button class="fpb" data-k="rect">▭ 사각 — 구역 나누기</button>'
       +'<button class="fpb" data-k="grid">⊞ 격자 — 방안뜨기·패턴</button>'
@@ -6899,6 +6912,36 @@ function buildSampleDocs(){
    const p=mk('발바닥 필레 코스터','crochet',1200,1200,[f]);
    paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_PAW_ROWS,'#8a6a2e');});
    p.usedSyms=['dc','ch'];}
+  // 2.5) 타원 가방 바닥 — 기초사슬 8코에서 양쪽으로 돌려 뜨는 스타디움 구조(업로드 사진 재현):
+  // 가운데 사슬 줄, 직선부는 위/아래로 나란히, 양 끝 반원 캡은 부채꼴 늘림(단마다 캡 코수 증가)
+  {const f={id:Date.now()+7,name:'타원 1',x:105,y:165,w:690,h:370,kind:'oval'};
+   const p=mk('타원 가방 바닥','crochet',900,700,[f]);
+   paint(p,ctx=>{
+     const C='#5b4426', cy=350, chainN=8, sp=32, sz=25;
+     const L=(chainN-1)*sp/2, mx=450;
+     for(let i=0;i<chainN;i++)drawSVGStitch(ctx,mx-L+i*sp,cy,'ch',C,sz*0.95,0);
+     // 단별: 1단 긴뜨기(사진의 낮은 기둥), 2·3단 한길긴뜨기 — 캡 코수는 단마다 늘어남
+     const rings=[{r:50,capN:5,st:'hdc'},{r:100,capN:9,st:'dc'},{r:150,capN:13,st:'dc'}];
+     rings.forEach(rg=>{
+       for(let i=0;i<chainN;i++){ // 직선부: 위(0°)/아래(180°) 나란히
+         const x=mx-L+i*(2*L)/(chainN-1);
+         drawSVGStitch(ctx,x,cy-rg.r,rg.st,C,sz,0);
+         drawSVGStitch(ctx,x,cy+rg.r,rg.st,C,sz,180);
+       }
+       for(let i=1;i<rg.capN;i++){ // 오른쪽 캡 (-90°→90°) 부채꼴
+         const a=-Math.PI/2+i*Math.PI/rg.capN;
+         drawSVGStitch(ctx,mx+L+rg.r*Math.cos(a),cy+rg.r*Math.sin(a),rg.st,C,sz,a*180/Math.PI+90);
+       }
+       for(let i=1;i<rg.capN;i++){ // 왼쪽 캡 (90°→270°)
+         const a=Math.PI/2+i*Math.PI/rg.capN;
+         drawSVGStitch(ctx,mx-L+rg.r*Math.cos(a),cy+rg.r*Math.sin(a),rg.st,C,sz,a*180/Math.PI+90);
+       }
+     });
+     ctx.save();ctx.fillStyle='#2a2a2a';ctx.font='600 14px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+     ctx.fillText('기초사슬 8코 — 양쪽으로 돌려 뜨는 타원 가방 바닥 · 매단 양 끝에서 늘림(캡 5→9→13코)',mx,cy+185);
+     ctx.restore();
+   });
+   p.usedSyms=['ch','hdc','dc'];}
   // 3) 원형 도일리 코스터 — 라운드 기호도안. 한길긴뜨기 한 가지로만 도는 게 아니라
   // 실제 만다라 도일리처럼 단마다 기법이 바뀐다(한길긴뜨기→짧은뜨기→한길긴뜨기+빼뜨기→
   // 긴뜨기+사슬틈→조개뜨기 마감) — 출처: haakmaarraak.nl 원형 모티브 차트 읽는 법 예시.
