@@ -925,6 +925,10 @@ body.ui-hidden #row-counter{display:none!important}
           <button class="sb-ic" id="shape-more2">＋</button>
         </span>
         <button class="sb-ic" id="shape-center" title="캔버스 중앙 정렬">⊕</button>
+        <button class="sb-ic" id="shape-anchor" title="앵커(＋)에 중심 정렬">◎</button>
+        <button class="sb-ic" id="shape-rot-l" title="왼쪽 회전 15° (Q)">↺</button>
+        <button class="sb-ic" id="shape-rot-r" title="오른쪽 회전 15° (R)">↻</button>
+        <button class="sb-ic" id="shape-aim" title="앵커 방향으로 기울기 정렬">↝</button>
         <span class="sb-sep"></span>
         <button class="sb-ic ok" id="shape-done" title="완료">✓</button>
         <button class="sb-ic no" id="shape-cancel" title="취소">✕</button>
@@ -2389,7 +2393,9 @@ function drawFrameGuide(ctx,f){
       ctx.fillStyle='rgba(168,85,247,.8)';ctx.font='600 '+fs2+'px sans-serif';
       const cStep=cw>=fs2*1.8?1:5, rStep=ch>=fs2*1.4?1:5;
       ctx.textAlign='center';ctx.textBaseline='top';
-      const yNum=f.y+f.h+4<CH-fs2?f.y+f.h+4:f.y-fs2-4;
+      // 코바늘 방안뜨기는 프레임 아래에 기초사슬 줄이 깔리므로 열 번호는 위쪽으로 (겹침 방지)
+      const isCro=(G.cur?.type)!=='knitting';
+      const yNum=isCro?(f.y-fs2-4>0?f.y-fs2-4:f.y+f.h+4):(f.y+f.h+4<CH-fs2?f.y+f.h+4:f.y-fs2-4);
       for(let i=1;i<=cols;i++){if(i!==1&&i!==cols&&i%cStep)continue;ctx.fillText(String(i),f.x+(i-0.5)*cw,yNum);}
       ctx.textAlign='right';ctx.textBaseline='middle';
       const xNum=f.x-6>fs2?f.x-6:f.x+f.w+6+fs2;
@@ -2853,6 +2859,21 @@ function paintGraphCell(gf,c,r,erase){
     }
   }
   G.graphData[c+','+r]=G.color;
+}
+// 격자 프레임 크기·칸수 변경 후 graphData 기준으로 전체 재칠 — 칠해둔 내용이 옛 좌표에
+// 남아 격자와 어긋나는 문제의 근본 해결(그림 데이터가 진실, 픽셀은 파생)
+function regraphRepaint(gf,oldRect){
+  if(!gf||gf.kind!=='grid'||!Object.keys(G.graphData||{}).length)return;
+  const r=oldRect||gf;
+  mainCtx.clearRect(r.x-2,r.y-2,r.w+4,r.h+4); // 옛 위치 지우고
+  const{cols,rows}=frameGridDims(gf);
+  Object.keys(G.graphData).forEach(k=>{
+    const[c,row]=k.split(',').map(Number);
+    if(c>=cols||row>=rows){delete G.graphData[k];return;} // 줄어든 범위 밖 데이터 정리
+    const col=G.graphData[k], keep=G.color;
+    G.color=col;paintGraphCell(gf,c,row,false);G.color=keep;
+  });
+  composite();
 }
 function fillCell(p){
   // 방안뜨기는 격자 프레임 안에서만 — 배경 격자에 섞여 들어가던 문제 차단
@@ -4665,7 +4686,8 @@ function bindAll(){
     const gd=frameGridDims(f);
     f.cols=axis==='c'?Math.max(2,Math.min(100,gd.cols+d)):gd.cols;
     f.rows=axis==='r'?Math.max(2,Math.min(100,gd.rows+d)):gd.rows;
-    drawBg();window._gfSync();schedulePersist();
+    regraphRepaint(f); // 칠해둔 칸을 새 칸 크기에 맞춰 재정렬 — 격자 어긋남 방지
+    drawBg();window._gfSync();schedulePersist();saveH();
   }
   $('gf-col-m').addEventListener('click',()=>_gfAdj('c',-1));
   $('gf-col-p').addEventListener('click',()=>_gfAdj('c',1));
@@ -5175,6 +5197,10 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
   $('shape-done').addEventListener('click',commitShape);
   $('shape-cancel').addEventListener('click',cancelShape);
   $('shape-center').addEventListener('click',centerShape);
+  $('shape-anchor').addEventListener('click',anchorShape);
+  $('shape-rot-l').addEventListener('click',()=>rotShape(-15));
+  $('shape-rot-r').addEventListener('click',()=>rotShape(15));
+  $('shape-aim').addEventListener('click',aimShapeAtAnchor);
   $('shape-less').addEventListener('click',()=>{G.frameKind==='grid'?shapeAddGridDim('cols',-1):shapeAddStitch(-1);});
   $('shape-more').addEventListener('click',()=>{G.frameKind==='grid'?shapeAddGridDim('cols',1):shapeAddStitch(1);});
   $('shape-less2').addEventListener('click',()=>shapeAddGridDim('rows',-1));
@@ -5554,6 +5580,27 @@ function moveShapeBy(s,dx,dy){
   else{s.cx+=dx;s.cy+=dy;}
 }
 function centerShape(){if(!G.shape)return;const bb=bboxOf(shapeToPoly(G.shape));moveShapeBy(G.shape,CW/2-(bb.x+bb.w/2),CH/2-(bb.y+bb.h/2));renderEdit();}
+// 앵커(＋ 십자점)에 도형 중심을 정렬 — 원형 도안을 앵커 기준으로 쌓을 때
+function anchorShape(){
+  if(!G.shape)return;
+  const a=G.anchor||{x:CW/2,y:CH/2};
+  const bb=bboxOf(shapeToPoly(G.shape));
+  moveShapeBy(G.shape,a.x-(bb.x+bb.w/2),a.y-(bb.y+bb.h/2));
+  renderEdit();showToast('앵커에 중심 정렬');
+}
+// 도형 기울기를 앵커 방향으로 정렬 — 긴 축이 앵커를 향하게 (타원·사각)
+function aimShapeAtAnchor(){
+  if(!G.shape||(G.shape.type!=='ellipse'&&G.shape.type!=='rect'))return;
+  const a=G.anchor||{x:CW/2,y:CH/2}, s=G.shape;
+  s.rot=Math.atan2(a.y-s.cy,a.x-s.cx);
+  renderEdit();showToast('앵커 방향으로 기울기 정렬');
+}
+// 터치용 회전 버튼(±15°) — 키보드 Q/R과 동일
+function rotShape(deg){
+  if(!G.shape)return;
+  const s=G.shape;
+  if(s.type==='ellipse'||s.type==='rect'||s.rot!==undefined){s.rot=(s.rot||0)+deg*Math.PI/180;renderEdit();}
+}
 function commitShape(){if(!G.shape)return;if(G.frameKind){commitFrame();return;}if(G.mode==='stamp'||(G.mode==='draw'&&G.symBrush))stampShape(mainCtx,G.shape,false);else strokePolyCtx(mainCtx,shapeToPoly(G.shape));exitEdit();composite();saveH();}
 function cancelShape(){exitEdit();}
 function exitEdit(){const hadFE=!!G.frameEditId;G.editing=false;G.shape=null;G.dragH=null;G.awaitLift=false;G.frameKind=null;G.frameEditId=null;G.path=null;G.snap=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);hideShapeBar();if(hadFE)drawBg();}
@@ -5757,14 +5804,15 @@ function commitFrame(){
     ?{id:Date.now(),name:names[kind]+' '+(G.canvasFrames.length+1),x:bb.x,y:bb.y+bb.h/2,w:bb.w,h:bb.h/2,kind}
     :{id:Date.now(),name:names[kind]+' '+(G.canvasFrames.length+1),x:bb.x,y:bb.y,w:bb.w,h:bb.h,kind};
   if(kind==='grid'){f.cols=Math.max(2,G._frameCols||13);f.rows=Math.max(2,G._frameRows||13);} // 편집 중 −/＋로 정한 가로×세로 칸 수
-  let oldChainBox=null;
+  let oldChainBox=null,oldRect=null;
+  if(G.frameEditId){const _o=G.canvasFrames.find(x=>x.id===G.frameEditId);if(_o&&_o.kind==='grid')oldRect={x:_o.x,y:_o.y,w:_o.w,h:_o.h};}
   if(G.frameEditId){ // 기존 프레임 재편집: 교체 (id·이름 유지)
     const i=G.canvasFrames.findIndex(x=>x.id===G.frameEditId);
     if(i>=0){f.id=G.frameEditId;f.name=G.canvasFrames[i].name;oldChainBox=G.canvasFrames[i]._chainBox||null;G.canvasFrames[i]=f;}
     else G.canvasFrames.push(f);
     G.frameEditId=null;
   }else G.canvasFrames.push(f);
-  if(kind==='grid'){f._chainBox=oldChainBox;stampFoundationChain(f);composite();saveH();}
+  if(kind==='grid'){f._chainBox=oldChainBox;regraphRepaint(f,oldRect);stampFoundationChain(f);composite();saveH();}
   if(kind==='circle'||kind==='semi'){
     G.anchor=kind==='circle'?{x:f.x+f.w/2,y:f.y+f.h/2}:{x:f.x+f.w/2,y:f.y};
     // 다중 링 배치를 프레임 크기에 자동 정렬 — 가이드 동심원과 배치 반지름 일치
