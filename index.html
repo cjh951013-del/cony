@@ -915,13 +915,13 @@ body.ui-hidden #row-counter{display:none!important}
         <span class="sb-cnt" id="shape-count-wrap" style="display:none">
           <b class="sb-axis" id="sb-axis1"></b>
           <button class="sb-ic" id="shape-less">−</button>
-          <b id="shape-count">0</b>
+          <input type="number" id="shape-count" min="2" max="200" style="width:46px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;font-weight:700;font-size:12px;border-radius:6px;padding:2px 4px;text-align:center">
           <button class="sb-ic" id="shape-more">＋</button>
         </span>
         <span class="sb-cnt" id="shape-count-wrap2" style="display:none">
           <b class="sb-axis">세로</b>
           <button class="sb-ic" id="shape-less2">−</button>
-          <b id="shape-count2">0</b>
+          <input type="number" id="shape-count2" min="2" max="100" style="width:46px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;font-weight:700;font-size:12px;border-radius:6px;padding:2px 4px;text-align:center">
           <button class="sb-ic" id="shape-more2">＋</button>
         </span>
         <button class="sb-ic" id="shape-center" title="캔버스 중앙 정렬">⊕</button>
@@ -5172,6 +5172,18 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
   $('shape-more').addEventListener('click',()=>{G.frameKind==='grid'?shapeAddGridDim('cols',1):shapeAddStitch(1);});
   $('shape-less2').addEventListener('click',()=>shapeAddGridDim('rows',-1));
   $('shape-more2').addEventListener('click',()=>shapeAddGridDim('rows',1));
+  // 코·칸 수 숫자 직접 입력 (+/− 스테퍼와 병행)
+  $('shape-count').addEventListener('change',e=>{
+    const v=Math.max(2,Math.min(200,parseInt(e.target.value)||2));
+    if(G.frameKind==='grid'){G._frameCols=Math.min(100,v);}
+    else if(G.shape)G.shape.n=v;
+    showShapeBar();renderEdit();
+  });
+  $('shape-count2').addEventListener('change',e=>{
+    const v=Math.max(2,Math.min(100,parseInt(e.target.value)||2));
+    if(G.frameKind==='grid')G._frameRows=v;
+    showShapeBar();renderEdit();
+  });
   
   // KEYS
   document.addEventListener('keydown',e=>{
@@ -5478,9 +5490,9 @@ function cycleShapeTypeBtn(){cycleShapeType();}
 function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';const t=$('shape-type');if(t)t.textContent=G.frameKind?'프레임':(TYPE_LABEL[G.shape.type]||'모양');const sym=G.mode==='stamp'||(G.mode==='draw'&&G.symBrush);const isGridF=G.frameKind==='grid';
   const cw=$('shape-count-wrap');if(cw)cw.style.display=(isGridF||(sym&&!G.frameKind))?'inline-flex':'none';
   const ax1=$('sb-axis1');if(ax1)ax1.textContent=isGridF?'가로':'';
-  const cc=$('shape-count');if(cc){if(isGridF)cc.textContent=(G._frameCols||13)+'칸';else if(sym&&!G.frameKind)cc.textContent=shapeStitchCount(G.shape)+'코';}
+  const cc=$('shape-count');if(cc){if(isGridF)cc.value=G._frameCols||13;else if(sym&&!G.frameKind)cc.value=shapeStitchCount(G.shape);}
   const cw2=$('shape-count-wrap2');if(cw2)cw2.style.display=isGridF?'inline-flex':'none';
-  const cc2=$('shape-count2');if(cc2&&isGridF)cc2.textContent=(G._frameRows||13)+'칸';
+  const cc2=$('shape-count2');if(cc2&&isGridF)cc2.value=G._frameRows||13;
 }
 function hideShapeBar(){const b=$('shape-bar');if(b)b.style.display='none';}
 function renderEdit(){
@@ -6353,62 +6365,87 @@ function showSymbolConvert(){
   renderSymChart();
   openM('m-sym-chart');
 }
+// 기호 변환 차트 — 핀피노 실측 비율의 완전한 필레 조직으로 렌더:
+// 칠한 칸=블록(그 색 28% 틴트 + 기둥 촘촘), 빈 칸=사슬 망, 기둥코는 단 시작쪽 경계 대체,
+// 맨 아래 기초사슬 줄, 코 번호(위, per코 간격, 오른쪽=1)·단 번호(홀수단 오른쪽/짝수단 왼쪽)
 function renderSymChart(){
-  const data=G.graphData;const stitch=G.scStitch||'sc';
+  const data=G.graphData;
+  const stitch=G.scStitch||'dc';
+  const GS=GSTITCH[stitch]||GSTITCH.dc;
   const keys=Object.keys(data);
   if(!keys.length)return;
-  const cols=keys.map(k=>+k.split(',')[0]);
-  const rows=keys.map(k=>+k.split(',')[1]);
-  const minC=Math.min(...cols),maxC=Math.max(...cols);
-  const minR=Math.min(...rows),maxR=Math.max(...rows);
-  const numC=maxC-minC+1,numR=maxR-minR+1;
-  // 기법별 셀 높이 비율
-  const hRatio={sc:1,hdc:1.4,dc:1.8,tr:2.2};
-  const cellW=14,cellH=Math.round(14*(hRatio[stitch]||1));
-  const leftM=28,botM=18;
-  const W=leftM+numC*cellW+2,H=numR*cellH+botM+2;
+  // 범위: 격자 프레임 전체(있으면) — 기초사슬·진행 트래커와 코수 일치
+  const gf=(G.canvasFrames||[]).find(f=>f.kind==='grid');
+  let cols,rows;
+  if(gf){const gd=frameGridDims(gf);cols=gd.cols;rows=gd.rows;}
+  else{cols=Math.max(...keys.map(k=>+k.split(',')[0]))+1;rows=Math.max(...keys.map(k=>+k.split(',')[1]))+1;}
+  const cellAt=(c,r)=>data[c+','+r]||null; // r=아래가 0
+  // 레이아웃 (핀피노 실측: 칸 20px, 두길긴 24px)
+  const COL=stitch==='tr'?24:20, ROW=20, PADV=stitch==='sc'?0:1, SLOT=ROW+2*PADV;
+  const NUM=30, TOP=16, chainH=13, labelH=14;
+  const W=NUM+cols*COL+NUM, H=TOP+rows*SLOT+chainH+labelH;
   const canv=$('sym-chart-c');
   canv.width=W;canv.height=H;
   const ctx=canv.getContext('2d');
   ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
-  // 격자선
-  ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=0.5;
-  for(let c=0;c<=numC;c++){const x=leftM+c*cellW;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H-botM);ctx.stroke();}
-  for(let r=0;r<=numR;r++){const y=r*cellH;ctx.beginPath();ctx.moveTo(leftM,y);ctx.lineTo(W,y);ctx.stroke();}
-  // 단 번호 (왼쪽, 아래=1)
-  ctx.font='6px sans-serif';ctx.fillStyle='#888';ctx.textAlign='right';
-  for(let r=minR;r<=maxR;r++){
-    const dispR=r-minR+1;const chartR=maxR-r;
-    if(dispR%2===1||numR<=20)ctx.fillText(dispR,leftM-2,chartR*cellH+cellH/2+2);
+  const fx=NUM;
+  const subW=COL/GS.per, symW=subW*0.75, symH=ROW*0.75, lw=Math.max(0.6,COL*0.03);
+  const tint=(col,x,y,w,hh)=>{const m=col.replace('#','');
+    ctx.fillStyle='rgba('+(parseInt(m.substr(0,2),16)||0)+','+(parseInt(m.substr(2,2),16)||0)+','+(parseInt(m.substr(4,2),16)||0)+',0.28)';
+    ctx.fillRect(x,y,w,hh);};
+  for(let vi=0;vi<rows;vi++){
+    const r=rows-1-vi, rowNum=r+1, odd=rowNum%2===1;
+    const slotY=TOP+vi*SLOT, yTop=slotY+PADV+(ROW-symH)/2;
+    if(GS.per===1){ // 짧은뜨기: 칸마다 X, 칠한 칸은 틴트 — 통짜 원단
+      for(let c=0;c<cols;c++){
+        const col=cellAt(c,r);
+        if(col)tint(col,fx+c*COL,slotY+PADV,COL,ROW);
+        chartDC(ctx,fx+(c+0.5)*COL,yTop,symW,symH,'#000',lw,-1);
+      }
+      const px=odd?fx+cols*COL:fx; // 기둥코 사슬1 — 시작쪽 경계
+      chartChain(ctx,px,yTop+symH/2,symH*0.28,symH*0.55,'#000',lw*1.1,true);
+    }else{
+      const pillarB=odd?cols:0;
+      for(let c=0;c<cols;c++){const col=cellAt(c,r);if(col)tint(col,fx+c*COL,yTop-1,COL,symH+2);}
+      for(let b=0;b<=cols;b++){
+        if(b===pillarB){const ph=symH/GS.pillar,pw=ph*0.5;for(let k=0;k<GS.pillar;k++)chartChain(ctx,fx+b*COL,yTop+ph*(k+0.5),pw,ph*0.92,'#000',lw*1.1,true);}
+        else chartDC(ctx,fx+b*COL,yTop,symW,symH,'#000',lw,GS.ticks);
+      }
+      for(let c=0;c<cols;c++){
+        if(cellAt(c,r)){ // 블록: 내부 기둥 per-1개
+          for(let k=1;k<GS.per;k++)chartDC(ctx,fx+c*COL+k*subW,yTop,symW,symH,'#000',lw,GS.ticks);
+        }else{ // 스페이스: 머리선 위 사슬 per-1개
+          const dx=symW*0.45+1, nCh=GS.per-1, ow=(COL-2*dx)/nCh, oh=Math.min(ow*0.31,symH*0.22);
+          for(let k=0;k<nCh;k++)chartChain(ctx,fx+c*COL+dx+ow*(k+0.5),yTop,ow*0.92,oh,'#000',lw,false);
+        }
+      }
+    }
+    // 단 번호: 홀수단 오른쪽/짝수단 왼쪽 (핀피노 동일)
+    ctx.fillStyle='#666';ctx.font='500 10px sans-serif';ctx.textBaseline='middle';
+    ctx.textAlign=odd?'left':'right';
+    ctx.fillText(String(rowNum),odd?fx+cols*COL+6:fx-6,slotY+SLOT/2);
   }
-  // 코 번호 (아래, 오른쪽=1 핀피노 스타일)
-  ctx.textAlign='center';
-  for(let c=minC;c<=maxC;c++){
-    const dispC=numC-(c-minC);const chartC=c-minC;
-    if(dispC%5===1||numC<=20)ctx.fillText(dispC,leftM+chartC*cellW+cellW/2,H-botM+10);
-  }
-  // 기호 렌더링
-  const sz=Math.min(cellW,cellH)*0.82;
-  for(const [key,color] of Object.entries(data)){
-    const [c,r]=key.split(',').map(Number);
-    const px=leftM+(c-minC)*cellW+cellW/2;
-    const py=(maxR-r)*cellH+cellH/2;
-    drawSVGStitch(ctx,px,py,stitch,color,sz,0);
-  }
-  // 통계
+  // 기초사슬 줄
+  const fcy=TOP+rows*SLOT+chainH*0.5;
+  if(GS.per===1){for(let c=0;c<cols;c++)chartChain(ctx,fx+(c+0.5)*COL,fcy,COL*0.7,COL*0.22,'#000',lw,false);}
+  else{const ow=subW*0.95;for(let s=0;s<=cols*GS.per;s++)chartChain(ctx,fx+s*subW,fcy,ow,ow*0.31,'#000',lw,false);}
+  // 코 번호 (위, per코 간격, 오른쪽이 1)
+  ctx.fillStyle='#666';ctx.font='500 9px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';
+  if(GS.per===1){for(let c=0;c<cols;c++){const num=cols-c;if(num%5===1||cols<=20)ctx.fillText(String(num),fx+(c+0.5)*COL,TOP-3);}}
+  else{const total=cols*GS.per+1;for(let c=0;c<=cols;c++){const num=total-c*GS.per;ctx.fillText(String(num),fx+c*COL,TOP-3);}}
+  // 통계 — 우리 규약(칸수×per+1 +기둥코)과 진행 트래커·서술도안 공식 일치
   const colorCounts={};
   for(const c of Object.values(data))colorCounts[c]=(colorCounts[c]||0)+1;
-  const extraChains={sc:1,hdc:2,dc:3,tr:4};
-  const stitchName={sc:'짧은뜨기',hdc:'긴뜨기',dc:'한길긴뜨기',tr:'두길긴뜨기'};
+  const chainCount=GS.per===1?cols+1:cols*GS.per+1+GS.pillar;
   let html=`<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">`;
-  html+=`<div><strong>${numC} sts × ${numR} rows</strong>`;
+  html+=`<div><strong>${cols}칸 × ${rows}단</strong>`;
   for(const [col,cnt] of Object.entries(colorCounts))
-    html+=`<div style="display:flex;align-items:center;gap:5px;margin-top:3px"><span style="width:13px;height:13px;border-radius:2px;background:${col};display:inline-block;border:1px solid rgba(0,0,0,.15)"></span><span style="font-size:10px">${cnt}코</span></div>`;
+    html+=`<div style="display:flex;align-items:center;gap:5px;margin-top:3px"><span style="width:13px;height:13px;border-radius:2px;background:${col};display:inline-block;border:1px solid rgba(0,0,0,.15)"></span><span style="font-size:10px">${cnt}칸</span></div>`;
   html+=`</div><div style="background:rgba(168,85,247,.08);border-radius:8px;padding:7px 10px;font-size:10px;line-height:1.7">`;
-  html+=`<div><b>뜨기:</b> ${stitchName[stitch]}</div>`;
-  html+=`<div><b>기초사슬:</b> ${numC+extraChains[stitch]}코 (양쪽 ${extraChains[stitch]}코 더)</div>`;
-  html+=`<div><b>방향:</b> 아래→위, 좌↔우 교대</div>`;
-  html+=`<div><b>총 유색 코:</b> ${keys.length}코 / ${numC*numR}코</div>`;
+  html+=`<div><b>뜨기:</b> ${GS.name} (칸당 ${GS.per}코)</div>`;
+  html+=`<div><b>가로 코수:</b> ${GS.per===1?cols:cols*GS.per+1}코 · <b>기초사슬:</b> ${chainCount}코 (기둥코 ${GS.pillar} 포함)</div>`;
+  html+=`<div><b>방향:</b> 아래→위, 홀수단 오른쪽→왼쪽 (좌↔우 교대)</div>`;
+  html+=`<div><b>채운 칸:</b> ${keys.length} / ${cols*rows}칸</div>`;
   html+=`</div></div>`;
   $('sym-chart-stats').innerHTML=html;
 }
@@ -6971,7 +7008,7 @@ function chartChain(ctx,cx,cy,w,h,col,lw,vert){
 // 채운 칸 = 기둥 사이 한길긴뜨기 2코 추가 + 그 색상 28% 틴트(기호 높이만큼의 띠),
 // 빈 칸 = 머리선 높이에 작은 사슬 타원 2개. 기호는 가늘고 작게, 단 사이 여백 유지(성긴 인상).
 // 기둥코 사슬3은 단 시작쪽 경계 기둥 자리를 대체(홀수단 오른쪽·짝수단 왼쪽).
-function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifColor){
+function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifColor,opts){
   const R=rows.length,C=rows[0].length,cw=fw/C,chh=fh/R;
   const gd={};
   const SYM='#000';
@@ -7016,17 +7053,20 @@ function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifColor){
   const fcy=fy+fh+Math.max(8,chh*0.3);
   for(let s=0;s<=C*3;s++)chartChain(ctx,fx+s*cw/3,fcy,fow,foh,SYM,lw,false);
   // 3) 코 번호(위, 3코 간격, 오른쪽이 1) · 단 번호(홀수단 오른쪽/짝수단 왼쪽) — 실측: #666, 칸폭×0.35
-  const fs=Math.max(9,Math.round(cw*0.35));
-  ctx.save();ctx.fillStyle='#666';ctx.font='500 '+fs+'px sans-serif';
-  ctx.textAlign='center';ctx.textBaseline='bottom';
-  for(let s=1;s<=C*3+1;s+=3)ctx.fillText(String(s),fx+fw-(s-1)*cw/3,fy-6);
-  ctx.textBaseline='middle';
-  for(let vi=0;vi<R;vi++){
-    const rowNum=R-vi, odd=rowNum%2===1;
-    ctx.textAlign=odd?'left':'right';
-    ctx.fillText(String(rowNum),odd?fx+fw+9:fx-9,fy+(vi+0.5)*chh);
+  // 격자 프레임 위에 굽는 샘플은 가이드의 보라 번호와 겹치므로 opts.numbers=false로 생략
+  if(!(opts&&opts.numbers===false)){
+    const fs=Math.max(9,Math.round(cw*0.35));
+    ctx.save();ctx.fillStyle='#666';ctx.font='500 '+fs+'px sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='bottom';
+    for(let s=1;s<=C*3+1;s+=3)ctx.fillText(String(s),fx+fw-(s-1)*cw/3,fy-6);
+    ctx.textBaseline='middle';
+    for(let vi=0;vi<R;vi++){
+      const rowNum=R-vi, odd=rowNum%2===1;
+      ctx.textAlign=odd?'left':'right';
+      ctx.fillText(String(rowNum),odd?fx+fw+9:fx-9,fy+(vi+0.5)*chh);
+    }
+    ctx.restore();
   }
-  ctx.restore();
   // 4) 읽는 법 안내(기초사슬 줄 아래)
   const n=C*3+4;
   ctx.save();ctx.fillStyle='#2a2a2a';ctx.font='600 14px sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
@@ -7051,12 +7091,12 @@ function buildSampleDocs(){
   // 1) 검은고양이 필레 코스터 (24×30)
   {const f={id:Date.now(),name:'격자 1',x:180,y:180,w:840,h:840,kind:'grid',cols:24,rows:30};
    const p=mk('검은고양이 필레 코스터','crochet',1200,1200,[f]);
-   paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_CAT_ROWS);});
+   paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_CAT_ROWS,null,{numbers:false});});
    p.usedSyms=['dc','ch'];}
   // 2) 발바닥 필레 코스터 (26×26)
   {const f={id:Date.now()+1,name:'격자 1',x:250,y:170,w:700,h:700,kind:'grid',cols:26,rows:26};
    const p=mk('발바닥 필레 코스터','crochet',1200,1200,[f]);
-   paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_PAW_ROWS,'#8a6a2e');});
+   paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_PAW_ROWS,'#8a6a2e',{numbers:false});});
    p.usedSyms=['dc','ch'];}
   // 2.5) 타원 가방 바닥 — 기초사슬 8코에서 양쪽으로 돌려 뜨는 스타디움 구조(업로드 사진 재현):
   // 가운데 사슬 줄, 직선부는 위/아래로 나란히, 양 끝 반원 캡은 부채꼴 늘림(단마다 캡 코수 증가)
