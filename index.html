@@ -1349,6 +1349,7 @@ body.ui-hidden #row-counter{display:none!important}
     <!-- 통계 -->
     <div id="sym-chart-stats" style="padding:8px 14px;font-size:11px;flex-shrink:0;border-top:1px solid var(--border)"></div>
     <div class="mf" style="gap:6px">
+      <button class="mb" id="btn-sym-fit">⤢ 실제 크기</button>
       <button class="mb" id="btn-sym-dl" style="background:var(--accent);color:#fff">↓ 이미지 다운로드</button>
       <button class="mb" onclick="closeM('m-sym-chart')">닫기</button>
     </div>
@@ -4798,8 +4799,10 @@ function bindAll(){
       G.scStitch=btn.dataset.scStitch;
       document.querySelectorAll('.sc-tab').forEach(b=>{b.style.background=b===btn?'var(--accent)':'var(--panel2)';b.style.color=b===btn?'#fff':'var(--text)';b.classList.toggle('act',b===btn);});
       renderSymChart();
+      symChartFit(G._symFit!==false); // 탭 전환 후에도 보기 모드 유지
     });
   });
+  $('btn-sym-fit').addEventListener('click',()=>symChartFit(G._symFit===false));
   $('btn-sym-dl').addEventListener('click',()=>{const c=$('sym-chart-c');if(!c)return;const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='symbol-chart.png';a.click();});
   $('sw-ring-preview').addEventListener('click',()=>{G.ringPreview=!G.ringPreview;$('sw-ring-preview').classList.toggle('on',G.ringPreview);renderRingPreview();});
   $('sym-sel').addEventListener('change',()=>{G.symmetry=$('sym-sel').value;$('symn-row').style.display=(G.symmetry==='radial')?'flex':'none';drawBg();renderSymGuide();renderDaBadge();});
@@ -6363,7 +6366,15 @@ function graphClearData(){
 function showSymbolConvert(){
   if(!Object.keys(G.graphData).length){showToast('방안에 칠한 칸이 없어요');return;}
   renderSymChart();
+  symChartFit(true); // 핀피노처럼 열자마자 도안 전체가 한눈에 — ⤢ 버튼으로 실제 크기 전환
   openM('m-sym-chart');
+}
+// 변환 차트 보기 모드: 맞춤(전체 한눈에) ↔ 실제 크기(스크롤)
+function symChartFit(fit){
+  const c=$('sym-chart-c'),b=$('btn-sym-fit');
+  G._symFit=fit;
+  if(fit){c.style.width='100%';c.style.height='auto';if(b)b.textContent='⤢ 실제 크기';}
+  else{c.style.width=c.width+'px';c.style.height=c.height+'px';if(b)b.textContent='⤢ 전체 보기';}
 }
 // 기호 변환 차트 — 핀피노 실측 비율의 완전한 필레 조직으로 렌더:
 // 칠한 칸=블록(그 색 28% 틴트 + 기둥 촘촘), 빈 칸=사슬 망, 기둥코는 단 시작쪽 경계 대체,
@@ -6381,7 +6392,8 @@ function renderSymChart(){
   else{cols=Math.max(...keys.map(k=>+k.split(',')[0]))+1;rows=Math.max(...keys.map(k=>+k.split(',')[1]))+1;}
   const cellAt=(c,r)=>data[c+','+r]||null; // r=아래가 0
   // 레이아웃 (핀피노 실측: 칸 20px, 두길긴 24px)
-  const COL=stitch==='tr'?24:20, ROW=20, PADV=stitch==='sc'?0:1, SLOT=ROW+2*PADV;
+  // 기호가 단(ROW)을 세로로 꽉 채움 — 단끼리 맞물려 공중에 뜨지 않음(사용자 확인 문제)
+  const COL=stitch==='tr'?24:20, ROW=20, PADV=0, SLOT=ROW;
   const NUM=30, TOP=16, chainH=13, labelH=14;
   const W=NUM+cols*COL+NUM, H=TOP+rows*SLOT+chainH+labelH;
   const canv=$('sym-chart-c');
@@ -6389,7 +6401,7 @@ function renderSymChart(){
   const ctx=canv.getContext('2d');
   ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
   const fx=NUM;
-  const subW=COL/GS.per, symW=subW*0.75, symH=ROW*0.75, lw=Math.max(0.6,COL*0.03);
+  const subW=COL/GS.per, symW=subW*0.75, symH=ROW, lw=Math.max(0.6,COL*0.03);
   const tint=(col,x,y,w,hh)=>{const m=col.replace('#','');
     ctx.fillStyle='rgba('+(parseInt(m.substr(0,2),16)||0)+','+(parseInt(m.substr(2,2),16)||0)+','+(parseInt(m.substr(4,2),16)||0)+',0.28)';
     ctx.fillRect(x,y,w,hh);};
@@ -7015,12 +7027,14 @@ function drawFiletChart(ctx,fx,fy,fw,fh,rows,motifColor,opts){
   const MC=motifColor||'#1d1d1f';
   const mh=MC.replace('#','');
   const SHADE='rgba('+(parseInt(mh.substr(0,2),16)||0)+','+(parseInt(mh.substr(2,2),16)||0)+','+(parseInt(mh.substr(4,2),16)||0)+',0.28)';
-  const symW=cw*0.25, symH=chh*0.68, lw=Math.max(0.8,cw*0.03);
-  const padY=(chh-symH)/2;
-  // 1) 채운 칸 틴트: 기호 높이만큼의 띠(핀피노: bgY=기호 y, bgH=기호 높이 ±1)
+  // 기호가 칸을 세로로 꽉 채움(머리선=칸 위 격자선, 발=아래 격자선) — 단끼리 맞물리고
+  // 격자 프레임 선과 정확히 일치한다. 68%로 띄우면 단 사이가 떠 보이고 격자와 어긋나 보임(사용자 확인)
+  const symW=cw*0.25, symH=chh, lw=Math.max(0.8,cw*0.03);
+  const padY=0;
+  // 1) 채운 칸 틴트: 칸 전체
   for(let vi=0;vi<R;vi++)for(let c=0;c<C;c++){
     if(rows[vi][c]==='#'){
-      ctx.fillStyle=SHADE;ctx.fillRect(fx+c*cw,fy+vi*chh+padY-1,cw,symH+2);
+      ctx.fillStyle=SHADE;ctx.fillRect(fx+c*cw,fy+vi*chh,cw,chh);
       gd[c+','+(R-1-vi)]=MC;
     }
   }
