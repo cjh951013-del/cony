@@ -1566,6 +1566,35 @@ const STITCHES={
     {id:'puff',name:'퍼프뜨기',svg:'puff',visible:true},
     {id:'shell',name:'조개뜨기(부채꼴)',svg:'shell',visible:true},
     {id:'spike',name:'롱스티치',svg:'spike',visible:true},
+    // ── 와디즈 브러시 세트 확충 (docs/WADIZ-SYMBOLS.md, 파라메트릭 글리프) ──
+    {id:'scinc2',name:'짧은뜨기 2코 늘려뜨기',svg:'pm',visible:true},
+    {id:'scinc3',name:'짧은뜨기 3코 늘려뜨기',svg:'pm',visible:true},
+    {id:'scdec2',name:'짧은뜨기 2코 모아뜨기',svg:'pm',visible:true},
+    {id:'scdec3',name:'짧은뜨기 3코 모아뜨기',svg:'pm',visible:true},
+    {id:'hdcinc2',name:'긴뜨기 2코 늘려뜨기',svg:'pm',visible:true},
+    {id:'hdcdec2',name:'긴뜨기 2코 모아뜨기',svg:'pm',visible:true},
+    {id:'hdcdec3',name:'긴뜨기 3코 모아뜨기',svg:'pm',visible:true},
+    {id:'hdcbob2',name:'긴뜨기 2코 구슬뜨기',svg:'pm',visible:true},
+    {id:'hdcbob3',name:'긴뜨기 3코 구슬뜨기',svg:'pm',visible:true},
+    {id:'hdcbob4',name:'긴뜨기 4코 구슬뜨기',svg:'pm',visible:true},
+    {id:'hdcbob5',name:'긴뜨기 5코 구슬뜨기',svg:'pm',visible:true},
+    {id:'hdcpop5',name:'긴뜨기 5코 팝콘뜨기',svg:'pm',visible:true},
+    {id:'dcinc2',name:'한길긴뜨기 2코 늘려뜨기',svg:'pm',visible:true},
+    {id:'dcinc3',name:'한길긴뜨기 3코 늘려뜨기',svg:'pm',visible:true},
+    {id:'dcinc4',name:'한길긴뜨기 4코 늘려뜨기',svg:'pm',visible:true},
+    {id:'dcinc5',name:'한길긴뜨기 5코 늘려뜨기',svg:'pm',visible:true},
+    {id:'dcdec2',name:'한길긴뜨기 2코 모아뜨기',svg:'pm',visible:true},
+    {id:'dcdec3',name:'한길긴뜨기 3코 모아뜨기',svg:'pm',visible:true},
+    {id:'dcbob2',name:'한길긴뜨기 2코 구슬뜨기',svg:'pm',visible:true},
+    {id:'dcbob3',name:'한길긴뜨기 3코 구슬뜨기',svg:'pm',visible:true},
+    {id:'dcbob4',name:'한길긴뜨기 4코 구슬뜨기',svg:'pm',visible:true},
+    {id:'dcbob5',name:'한길긴뜨기 5코 구슬뜨기',svg:'pm',visible:true},
+    {id:'dcpop3',name:'한길긴뜨기 3코 팝콘뜨기',svg:'pm',visible:true},
+    {id:'dcpop4',name:'한길긴뜨기 4코 팝콘뜨기',svg:'pm',visible:true},
+    {id:'dcpop5',name:'한길긴뜨기 5코 팝콘뜨기',svg:'pm',visible:true},
+    {id:'trinc2',name:'두길긴뜨기 2코 늘려뜨기',svg:'pm',visible:true},
+    {id:'trdec2',name:'두길긴뜨기 2코 모아뜨기',svg:'pm',visible:true},
+    {id:'trbob3',name:'두길긴뜨기 3코 구슬뜨기',svg:'pm',visible:true},
   ],
   knitting:[
     {id:'k',name:'겉뜨기(K)',svg:'X',visible:true},
@@ -2014,8 +2043,62 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
     case 'ann-star':{const n=5,r1=h*.65,r2=h*.28;ctx.beginPath();for(let i=0;i<n*2;i++){const a=i*Math.PI/n-Math.PI/2,r=i%2?r2:r1;i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);}ctx.closePath();ctx.fill();break;}
     case 'ann-x':{ctx.beginPath();ctx.arc(0,0,h*.6,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(-h*.38,-h*.38);ctx.lineTo(h*.38,h*.38);ctx.moveTo(h*.38,-h*.38);ctx.lineTo(-h*.38,h*.38);ctx.stroke();break;}
     case 'ann-dim-h':{const cap=h*.35;ctx.beginPath();ctx.moveTo(-h*.7,-cap);ctx.lineTo(-h*.7,cap);ctx.moveTo(-h*.7,0);ctx.lineTo(h*.7,0);ctx.moveTo(h*.7,-cap);ctx.lineTo(h*.7,cap);ctx.stroke();break;}
-    default:
+    default:{
+      // 파라메트릭 패밀리(와디즈 브러시 세트 스펙, docs/WADIZ-SYMBOLS.md):
+      // (sc|hdc|dc|tr)(inc|dec|bob|pop)N — 늘려뜨기 V부채 / 모아뜨기 Λ / 구슬 / 팝콘
+      const pm=/^(sc|hdc|dc|tr)(inc|dec|bob|pop)(\d)$/.exec(id);
+      if(pm){
+        const ticks={sc:-1,hdc:0,dc:1,tr:2}[pm[1]], n=Math.max(2,Math.min(5,+pm[3])), kind=pm[2];
+        const leg=(x0,y0,x1,y1)=>{ // 밑점(x0,y0)→윗점(x1,y1) 다리 + 종류별 머리/틱
+          ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);
+          const ang=Math.atan2(y1-y0,x1-x0), px=Math.cos(ang+Math.PI/2), py=Math.sin(ang+Math.PI/2), bw=h*.3;
+          if(ticks===-1){ // 짧은뜨기: 윗점에 작은 ×
+            ctx.moveTo(x1-bw*.7,y1-bw*.7);ctx.lineTo(x1+bw*.7,y1+bw*.7);
+            ctx.moveTo(x1+bw*.7,y1-bw*.7);ctx.lineTo(x1-bw*.7,y1+bw*.7);
+          }else{
+            ctx.moveTo(x1-px*bw,y1-py*bw);ctx.lineTo(x1+px*bw,y1+py*bw); // 머리 막대(다리에 직각)
+            for(let t=0;t<ticks;t++){ // 사선 틱
+              const mx=x0+(x1-x0)*(.45+t*.18), my=y0+(y1-y0)*(.45+t*.18);
+              ctx.moveTo(mx-bw*.8,my+bw*.35);ctx.lineTo(mx+bw*.8,my-bw*.35);
+            }
+          }
+          ctx.stroke();
+        };
+        if(kind==='inc'){ // 늘려뜨기: 한 밑점(아래)에서 n다리가 위로 부채
+          const spread=Math.min(.5+(n-2)*.16,1.0);
+          for(let i=0;i<n;i++){
+            const a=-Math.PI/2-spread/2+spread*i/(n-1);
+            leg(0,h*.6, Math.cos(a)*h*1.15, h*.6+Math.sin(a)*h*1.15);
+          }
+        }else if(kind==='dec'){ // 모아뜨기: n다리(아래)가 윗점 하나로 모이고 꼭짓점에 가로 막대 하나
+          const spread=Math.min(.5+(n-2)*.16,1.0);
+          ctx.beginPath();
+          for(let i=0;i<n;i++){
+            const a=Math.PI/2-spread/2+spread*i/(n-1);
+            const x0=Math.cos(a)*h*1.15, y0=-h*.6+Math.sin(a)*h*1.15;
+            ctx.moveTo(x0,y0);ctx.lineTo(0,-h*.6);
+            if(ticks>0)for(let t=0;t<ticks;t++){ // 다리 중간 사선 틱
+              const f=.45+t*.18, mx=x0*(1-f), my=y0+(-h*.6-y0)*f;
+              ctx.moveTo(mx-h*.2,my+h*.09);ctx.lineTo(mx+h*.2,my-h*.09);
+            }
+          }
+          ctx.moveTo(-h*.34,-h*.6);ctx.lineTo(h*.34,-h*.6); // 꼭짓점 머리 막대
+          if(ticks===-1){ctx.moveTo(-h*.16,-h*.28);ctx.lineTo(h*.16,-h*.02);ctx.moveTo(h*.16,-h*.28);ctx.lineTo(-h*.16,-h*.02);} // 짧은뜨기: 중앙 작은 ×
+          ctx.stroke();
+        }else{ // 구슬(bob)/팝콘(pop): 뾰족 타원 + 내부 세로선(n-1) + 윗줄기
+          ctx.beginPath();
+          ctx.moveTo(0,-h*.6);ctx.quadraticCurveTo(h*.5,-h*.1,0,h*.55);
+          ctx.quadraticCurveTo(-h*.5,-h*.1,0,-h*.6);
+          if(kind==='pop'){ctx.moveTo(-h*.3,-h*.42);ctx.lineTo(h*.3,-h*.42);} // 팝콘: 윗쪽 가로 막음
+          for(let i=1;i<n;i++){const fx=-h*.3+h*.6*i/n;
+            ctx.moveTo(fx*.8,-h*.35);ctx.quadraticCurveTo(fx,0,fx*.8,h*.3);}
+          ctx.moveTo(0,-h*.6);ctx.lineTo(0,-h*.78);
+          ctx.stroke();
+        }
+        break;
+      }
       ctx.beginPath();ctx.arc(0,0,h*.5,0,Math.PI*2);ctx.stroke();
+    }
   }
   ctx.restore();
 }
