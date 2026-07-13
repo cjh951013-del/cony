@@ -2362,32 +2362,8 @@ function drawFrameGuide(ctx,f){
       const{cols,rows,cw,ch}=frameGridDims(f);
       for(let i=1;i<cols;i++){const x=f.x+i*cw;ctx.beginPath();ctx.moveTo(x,f.y);ctx.lineTo(x,f.y+f.h);ctx.stroke();}
       for(let i=1;i<rows;i++){const y=f.y+i*ch;ctx.beginPath();ctx.moveTo(f.x,y);ctx.lineTo(f.x+f.w,y);ctx.stroke();}
-      // 코바늘 방안뜨기 가이드: 그래프 모드에서만 모든 칸에 기본 필레 망(경계 기둥+사슬2)을 깔아
-      // 조직이 보이게 한다 — fillCell이 채운 칸의 블록을 메인 레이어에 그린다. 다른 모드에서는
-      // 생략(구워진 샘플 차트 위에 보라 망이 겹쳐 지저분해지는 문제). 기하·비율은 drawFiletChart와 동일
-      if((G.cur?.type)!=='knitting'&&G.mode==='graph'&&cols*rows<=2000){
-        const gcol='rgba(150,110,200,.5)';
-        const GS=gStitch(); // 뜨기 방식별: 칸당 코수·틱수·기둥코 사슬수 (핀피노 실측)
-        const symW=cw*0.25, symH=ch*0.68, lw=Math.max(0.8,cw*0.03), padY=(ch-symH)/2;
-        for(let r=0;r<rows;r++){
-          const yTop=f.y+r*ch+padY;
-          const rowNum=rows-r, pillarB=(rowNum%2===1)?cols:0;
-          if(GS.per===1){ // 짧은뜨기: 칸마다 X 하나(통짜 원단), 기둥코는 시작쪽 경계 칸에 사슬 1
-            for(let c=0;c<cols;c++)chartDC(ctx,f.x+(c+0.5)*cw,yTop,symW,symH,gcol,lw,-1);
-            const ph=symH*0.5,pw=ph*0.5;
-            chartChain(ctx,f.x+(pillarB===0?0:cols)*cw,yTop+symH/2,pw,ph,gcol,lw*1.1,true);
-            continue;
-          }
-          for(let b=0;b<=cols;b++){
-            if(b===pillarB){const ph=symH/GS.pillar,pw=ph*0.5;for(let k=0;k<GS.pillar;k++)chartChain(ctx,f.x+b*cw,yTop+ph*(k+0.5),pw,ph*0.92,gcol,lw*1.1,true);}
-            else chartDC(ctx,f.x+b*cw,yTop,symW,symH,gcol,lw,GS.ticks);
-          }
-          for(let c=0;c<cols;c++){ // 빈 칸 사슬: 칸당 코수-1개 (긴1·한길긴2·두길긴2)
-            const nCh=GS.per-1, stDx=symW*0.45+1, ow=(cw-2*stDx)/nCh, oh=Math.min(ow*0.31,symH*0.2);
-            for(let k=0;k<nCh;k++)chartChain(ctx,f.x+c*cw+stDx+ow*(k+0.5),yTop,ow*0.92,oh,gcol,lw,false);
-          }
-        }
-      }
+      // 방안뜨기 가이드는 격자선·번호만 — 필레 망을 실시간으로 깔면 그리는 칸과 안 맞아
+      // 보이는 위치가 생김(사용자 확인). 기호 조직은 '기호 변환' 버튼의 차트에서만 생성
       // 코(열)·단(행) 번호 — 도안 차트 관례: 아래 왼→오 코 번호, 왼쪽 아래→위 단 번호. 칸이 좁으면 5칸 간격
       const fs2=Math.max(9,Math.min(14,Math.min(cw,ch)*0.42));
       ctx.fillStyle='rgba(168,85,247,.8)';ctx.font='600 '+fs2+'px sans-serif';
@@ -2841,23 +2817,14 @@ function paintGraphCell(gf,c,r,erase){
   const cx=gf.x+c*cw, cy=gf.y+(rows-1-r)*ch;
   mainCtx.clearRect(cx,cy,cw,ch);
   if(erase){delete G.graphData[c+','+r];return;}
-  // 차트 글리프(핀피노 실측 비율) — drawFiletChart·가이드 망과 동일 기하.
-  // 단 시작쪽 경계(홀수단 오른쪽/짝수단 왼쪽)는 가이드의 기둥코 자리라 기호를 덮지 않는다
-  const GS=gStitch();
-  const symW=cw*0.25, symH=ch*0.68, lw2=Math.max(0.8,cw*0.03), yTop=cy+(ch-symH)/2;
-  const hx=G.color.replace('#','');
-  mainCtx.fillStyle='rgba('+(parseInt(hx.substr(0,2),16)||0)+','+(parseInt(hx.substr(2,2),16)||0)+','+(parseInt(hx.substr(4,2),16)||0)+',0.28)';
-  mainCtx.fillRect(cx,yTop-1,cw,symH+2); // 틴트는 기호 높이 띠(핀피노 동일)
-  if(GS.per===1){
-    chartDC(mainCtx,cx+cw/2,yTop,symW,symH,'#000',lw2,-1);
-  }else{
-    const rowNum=r+1, pillarB=(rowNum%2===1)?cols:0;
-    for(let k=0;k<=GS.per;k++){
-      const bIdx=k===0?c:(k===GS.per?c+1:-1); // 경계 기둥의 열 인덱스(내부는 -1)
-      if(bIdx===pillarB)continue;
-      chartDC(mainCtx,cx+k*cw/GS.per,yTop,symW,symH,'#000',lw2,GS.ticks);
-    }
-  }
+  // 칠할 때는 단순 색 채움 네모(픽셀 방식, 핀피노 픽셀 에디터 동일) — 기호 조직은
+  // '기호 변환' 버튼을 눌렀을 때만 차트로 생성한다. 그리는 중 기호를 실시간으로 얹으면
+  // 격자와 안 맞아 보이는 위치가 생기고 무겁다(사용자 확인 문제). 경계선은 실콘텐츠로
+  // 직접 그린다 — PNG 단독 내보내기에서 배경 격자가 빠져도 칸이 보이게
+  mainCtx.fillStyle=G.color;
+  mainCtx.fillRect(cx,cy,cw,ch);
+  mainCtx.strokeStyle='rgba(0,0,0,.18)';mainCtx.lineWidth=1;
+  mainCtx.strokeRect(cx+0.5,cy+0.5,cw-1,ch-1);
   G.graphData[c+','+r]=G.color;
 }
 // 격자 프레임 크기·칸수 변경 후 graphData 기준으로 전체 재칠 — 칠해둔 내용이 옛 좌표에
