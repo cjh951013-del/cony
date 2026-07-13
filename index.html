@@ -2341,8 +2341,33 @@ function frameRingCount(f,ring){
   const n0=Math.max(2,G.mringStart|0)||6, inc=Math.max(0,G.mringInc|0);
   return Math.max(2,n0+(ring-1)*inc);
 }
+// 타원(스타디움) 프레임 기하: 반원 캡 2개 + 직선 변, 링은 캡 반지름만 축소되고 직선 길이는 고정
+function ovalGeom(f){
+  const R=f.h/2, cy=f.y+R;
+  const cap=Math.min(R,f.w/2);
+  const cx1=f.x+cap, cx2=f.x+f.w-cap;
+  return{R,cy,cx1,cx2,L:(cx2-cx1)/2};
+}
+// 링 rr(픽셀 반지름)의 스타디움 둘레 위 slot번째 코 위치 — 시작은 위 왼쪽, 시계방향
+function ovalSlotPos(f,ring,slot,n){
+  const g=ovalGeom(f);
+  const rr=Math.max(6,g.R*Math.min(ring,n)/n);
+  const straight=g.cx2-g.cx1, P=2*straight+2*Math.PI*rr;
+  const cnt=Math.max(4,Math.round(P/(G.stampGap||38)));
+  let t=((slot%cnt)+cnt)%cnt/cnt*P;
+  let x,y;
+  if(t<straight){x=g.cx1+t;y=g.cy-rr;}                                     // 윗변 →
+  else if(t<straight+Math.PI*rr){const a=-Math.PI/2+(t-straight)/rr;x=g.cx2+rr*Math.cos(a);y=g.cy+rr*Math.sin(a);} // 오른쪽 캡
+  else if(t<2*straight+Math.PI*rr){x=g.cx2-(t-straight-Math.PI*rr);y=g.cy+rr;} // 아랫변 ←
+  else{const a=Math.PI/2+(t-2*straight-Math.PI*rr)/rr;x=g.cx1+rr*Math.cos(a);y=g.cy+rr*Math.sin(a);} // 왼쪽 캡
+  return{x,y,count:cnt,rings:n};
+}
 function frameSlotPos(f,ring,slot){
   const k=f.kind||'circle';
+  if(k==='oval'){
+    const n=Math.max(1,Math.round((f.h/2)/(G.stampGap||38)));
+    return ovalSlotPos(f,ring,slot,n);
+  }
   const cx=f.x+f.w/2, cy=k==='semi'?f.y:f.y+f.h/2;
   const rx=f.w/2, ry=k==='semi'?f.h:f.h/2;
   const R=Math.min(rx,ry), n=Math.max(1,Math.round(R/(G.stampGap||38)));
@@ -2358,7 +2383,11 @@ function frameHitTest(p,tol){
   const frames=G.canvasFrames||[];
   for(let i=frames.length-1;i>=0;i--){ // 겹치면 나중에 놓인(위에 보이는) 프레임 우선
     const f=frames[i],k=f.kind||'rect';
-    if(k==='rect'||k==='grid'){
+    if(k==='oval'){
+      const g=ovalGeom(f);
+      const d=p.x<g.cx1?Math.hypot(p.x-g.cx1,p.y-g.cy):(p.x>g.cx2?Math.hypot(p.x-g.cx2,p.y-g.cy):Math.abs(p.y-g.cy));
+      if(Math.abs(d-g.R)<=tol)return f;
+    }else if(k==='rect'||k==='grid'){
       const dx=Math.max(f.x-p.x,0,p.x-(f.x+f.w)),dy=Math.max(f.y-p.y,0,p.y-(f.y+f.h));
       const outside=Math.hypot(dx,dy);
       const dist=outside>0?outside:Math.min(p.x-f.x,f.x+f.w-p.x,p.y-f.y,f.y+f.h-p.y);
@@ -2375,6 +2404,25 @@ function frameHitTest(p,tol){
 function frameSnapInfo(p){
   for(const f of (G.canvasFrames||[])){
     const k=f.kind||'rect';
+    if(k==='oval'){
+      const g=ovalGeom(f);
+      // 스타디움 "반지름": 직선 구간은 |y-cy|, 캡 구간은 가까운 캡 중심으로부터의 거리
+      const d=p.x<g.cx1?Math.hypot(p.x-g.cx1,p.y-g.cy):(p.x>g.cx2?Math.hypot(p.x-g.cx2,p.y-g.cy):Math.abs(p.y-g.cy));
+      if(g.R<8||d>g.R*1.15)continue;
+      const n=Math.max(1,Math.round(g.R/(G.stampGap||38)));
+      const ring=Math.max(1,Math.min(n,Math.round(d/g.R*n)));
+      const rr=Math.max(6,g.R*ring/n);
+      const straight=g.cx2-g.cx1, P=2*straight+2*Math.PI*rr;
+      const cnt=Math.max(4,Math.round(P/(G.stampGap||38)));
+      // 둘레 좌표 t 역산 (ovalSlotPos와 동일 파라미터화: 윗변→오른캡→아랫변→왼캡)
+      let t;
+      if(p.x>=g.cx1&&p.x<=g.cx2){t=p.y<g.cy?(p.x-g.cx1):(straight+Math.PI*rr+(g.cx2-p.x));}
+      else if(p.x>g.cx2){let a=Math.atan2(p.y-g.cy,p.x-g.cx2);t=straight+(a+Math.PI/2)*rr;}
+      else{let a=Math.atan2(p.y-g.cy,p.x-g.cx1);if(a<Math.PI/2)a+=Math.PI*2;t=2*straight+Math.PI*rr+(a-Math.PI/2)*rr;}
+      const slot=((Math.round(t/P*cnt))%cnt+cnt)%cnt;
+      const pos=ovalSlotPos(f,ring,slot,n);
+      return{x:pos.x,y:pos.y,f,ring,slot,count:pos.count,rings:n};
+    }
     if(k!=='circle'&&k!=='semi')continue;
     const cx=f.x+f.w/2, cy=k==='semi'?f.y:f.y+f.h/2;
     const rx=f.w/2, ry=k==='semi'?f.h:f.h/2;
