@@ -886,6 +886,15 @@ body.ui-hidden #row-counter{display:none!important}
         <button class="selb" id="cpm-clrl">🧽 레이어 지우기</button>
         <button class="selb" id="cpm-x" style="background:var(--panel2)">✕</button>
       </div>
+      <!-- 모티브 보관함: 복사한 선택 영역을 저장해두고 도안 꾸미기에 재사용 -->
+      <div id="motif-pop" style="display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:60;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);width:240px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <b style="font-size:12px">🗂 모티브 보관함 <span id="mtf-cnt" style="color:var(--text3);font-weight:400"></span></b><button class="pcol" id="mtf-x">✕</button>
+        </div>
+        <button class="ib" id="mtf-save" style="width:100%;margin-bottom:6px;font-size:11px">＋ 복사한 영역을 모티브로 저장</button>
+        <div id="mtf-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:190px;overflow:auto"></div>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px">모티브를 탭하면 캔버스에 붙여넣기 · ✕로 삭제 · 기기에 저장되어 다른 도안에서도 사용</div>
+      </div>
       <div id="gesture-hint">✌️ 두 손가락=이동·확대 · 두 손가락 탭=실행취소 · 세 손가락 탭=다시실행 · 세 손가락 아래=복사/붙이기 메뉴 · 선 긋고 2초=도형 고정 · 네 손가락 탭=UI 숨기기</div>
       <div id="sel-shape">
         <button class="ssb act" data-sm="rect" title="사각 선택">▭</button>
@@ -898,6 +907,7 @@ body.ui-hidden #row-counter{display:none!important}
           <button class="selb" id="sel-cp">📋 복사</button>
           <button class="selb d" id="sel-ct">✂ 자르기</button>
           <button class="selb" id="sel-pa">📌 붙이기</button>
+          <button class="selb" id="sel-mtf">🗂 보관함</button>
           <button class="selb" id="sel-fl">🎨 채우기</button>
           <button class="selb" id="sel-pat">✦ 기호채우기</button>
           <button class="selb" id="sel-gd">↕ 그라디언트</button>
@@ -1205,6 +1215,7 @@ body.ui-hidden #row-counter{display:none!important}
           <div style="display:flex;gap:4px">
             <button class="ib" id="btn-merge-vis" style="font-size:10px;padding:3px 7px" title="보이는 레이어 모두 합치기">⬇ 합치기</button>
             <button class="ib" id="btn-addl" style="font-size:10px;padding:3px 7px">＋ 추가</button>
+            <button class="ib" id="btn-clr-all" style="font-size:10px;padding:3px 7px;color:#f87171" title="모든 레이어 + 방안 칠 기록 전체 지우기">🗑 전체</button>
           </div>
         </div>
         <div id="layer-list"></div>
@@ -1262,6 +1273,7 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="fg"><label>너비 (픽셀)</label><input id="rz-w" type="number" min="200" max="4000" value="1200" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text)"></div>
     <div class="fg"><label>높이 (픽셀)</label><input id="rz-h" type="number" min="200" max="4000" value="1200" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text)"></div>
     <div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="rz-anchor" checked><span>현재 콘텐츠 유지 (가운데 정렬)</span></label></div>
+    <div class="fg" id="rz-size-guide" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3);line-height:1.6"></div>
     <div class="fg" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3)">⚠ 크기를 줄이면 캔버스 밖 영역이 잘립니다. 실행 취소 가능합니다.</div>
     <div class="mf"><button class="mb" onclick="closeM('m-resize')">취소</button><button class="mb p" id="btn-resize-ok">적용</button></div>
   </div>
@@ -1289,10 +1301,11 @@ body.ui-hidden #row-counter{display:none!important}
         <span style="color:var(--text3);font-size:13px">×</span>
         <input id="np-h" type="number" value="1200" min="200" max="4000" step="100" style="width:80px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:13px;text-align:center">
         <span style="color:var(--text3);font-size:11px">px</span>
-        <button onclick="$('np-w').value=1200;$('np-h').value=1200" style="padding:5px 8px;font-size:11px;border-radius:7px;border:1px solid var(--border);background:var(--panel2);color:var(--text3);cursor:pointer">1:1</button>
-        <button onclick="$('np-w').value=1600;$('np-h').value=1200" style="padding:5px 8px;font-size:11px;border-radius:7px;border:1px solid var(--border);background:var(--panel2);color:var(--text3);cursor:pointer">4:3</button>
+        <button onclick="$('np-w').value=1200;$('np-h').value=1200;$('np-w').dispatchEvent(new Event('input'))" style="padding:5px 8px;font-size:11px;border-radius:7px;border:1px solid var(--border);background:var(--panel2);color:var(--text3);cursor:pointer">1:1</button>
+        <button onclick="$('np-w').value=1600;$('np-h').value=1200;$('np-w').dispatchEvent(new Event('input'))" style="padding:5px 8px;font-size:11px;border-radius:7px;border:1px solid var(--border);background:var(--panel2);color:var(--text3);cursor:pointer">4:3</button>
       </div>
     </div>
+    <div class="fg" id="np-size-guide" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3);line-height:1.6"></div>
     <div class="mf"><button class="mb" onclick="closeM('m-new')">취소</button><button class="mb p" id="btn-create">생성</button></div>
   </div>
 </div>
@@ -1462,6 +1475,7 @@ body.ui-hidden #row-counter{display:none!important}
       <div class="fmc" data-fmt="png"><div class="fmic">🖼</div><div class="fmn">PNG</div><div class="fms">투명 배경</div></div>
       <div class="fmc" data-fmt="jpg"><div class="fmic">📸</div><div class="fmn">JPG</div><div class="fms">흰 배경</div></div>
     </div>
+    <div class="fg" id="exp-size-guide" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3);line-height:1.6"></div>
     <div class="mf"><button class="mb" onclick="closeM('m-exp')">취소</button><button class="mb p" id="btn-expc">내보내기</button></div>
   </div>
 </div>
@@ -2994,7 +3008,7 @@ function importImageFile(file){
 }
 function flipActiveLayer(dir){flipLayerCv(activeLayer(),dir);composite();renderLayers();saveH();}
 function clearActiveLayer(){if(mainCtx)mainCtx.clearRect(0,0,CW,CH);composite();renderLayers();saveH();}
-function clearAllLayers(){G.layers.forEach(l=>l.ctx&&l.ctx.clearRect(0,0,CW,CH));G.usedSymbols=[];composite();renderLayers();saveHMulti();}
+function clearAllLayers(){G.layers.forEach(l=>l.ctx&&l.ctx.clearRect(0,0,CW,CH));G.usedSymbols=[];G.graphData={};composite();renderLayers();saveHMulti();}
 function rotateCanvas(dir){
   G.layers.forEach(l=>{
     const tmp=document.createElement('canvas');tmp.width=CW;tmp.height=CH;
@@ -4258,6 +4272,15 @@ function doExport(fmt){
   },mime,.95);
 }
 // 인쇄용 도안 PDF: 브라우저 인쇄 파이프라인(오프라인·모바일 OK). 차트+범례+제목.
+/* 실물 크기 가이드: px → cm(화면 96dpi 환산) + PDF/인쇄(A4 자동 맞춤) 기준 안내 */
+function sizeGuideHTML(w,h){
+  w=+w||0;h=+h||0;if(!w||!h)return'';
+  const cm=px=>(px/96*2.54).toFixed(1);
+  const pw=16.9,ph=(16.9*h/w).toFixed(1); // 인쇄 시 차트 폭 640px(≈16.9cm)로 자동 축소됨 (.pl-chart max-width)
+  const fit=h/w<=1.3?'✅ A4 세로 한 장에 들어갑니다':'⚠ 세로가 길어 인쇄 시 여러 장에 걸칠 수 있어요';
+  return `📏 실물 감각 ≈ <b>${cm(w)} × ${cm(h)} cm</b> (화면 기준)<br>🖨 PDF·인쇄 시 A4 폭에 자동 맞춤 → 약 ${pw} × ${ph} cm<br>${fit} · 참고: A4 21×29.7 / A5 14.8×21 cm`;
+}
+function updExpGuide(){const g=$('exp-size-guide');if(g)g.innerHTML=sizeGuideHTML(CW,CH);}
 function exportPrintable(){
   // 차트 이미지(배경+모든 레이어 합성, 흰 배경)
   const cv=document.createElement('canvas');cv.width=CW;cv.height=CH;const ctx=cv.getContext('2d');
@@ -4513,6 +4536,7 @@ function bindAll(){
   {const rq=$('btn-rotq');if(rq)rq.addEventListener('click',()=>rotStep(-15));}
   {const rr3=$('btn-rotr');if(rr3)rr3.addEventListener('click',()=>rotStep(15));}
   {const cl3=$('btn-clr-layer3');if(cl3)cl3.addEventListener('click',()=>{if(confirm('현재 레이어를 전부 지울까요?'))clearActiveLayer();});}
+  {const ca=$('btn-clr-all');if(ca)ca.addEventListener('click',()=>{if(confirm('모든 레이어를 비울까요? (방안 칠 기록 포함 전체 초기화)'))clearAllLayers();});}
   $('btn-undo').addEventListener('click',undo);
   $('btn-redo').addEventListener('click',redo);
   initDock();
@@ -4533,7 +4557,10 @@ function bindAll(){
   $('btn-tile-prev').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-tile');renderTilePreview();});
   $('btn-tile-refresh').addEventListener('click',()=>renderTilePreview());
   $('tile-n').addEventListener('change',()=>renderTilePreview());
-  $('btn-resize').addEventListener('click',()=>{$('morepop').classList.remove('open');$('rz-w').value=CW;$('rz-h').value=CH;openM('m-resize');});
+  $('btn-resize').addEventListener('click',()=>{$('morepop').classList.remove('open');$('rz-w').value=CW;$('rz-h').value=CH;$('rz-w').dispatchEvent(new Event('input'));openM('m-resize');});
+  // 실물 크기 가이드 연동 (새 도안·크기 조정 — 입력할 때마다 cm/A4 판정 갱신)
+  {const wire=(wi,hi,out)=>{const up=()=>{const el=$(out);if(el)el.innerHTML=sizeGuideHTML($(wi).value,$(hi).value);};['input','change'].forEach(ev=>{$(wi).addEventListener(ev,up);$(hi).addEventListener(ev,up);});up();};
+   wire('np-w','np-h','np-size-guide');wire('rz-w','rz-h','rz-size-guide');}
   $('btn-resize-ok').addEventListener('click',()=>{const nw=parseInt($('rz-w').value),nh=parseInt($('rz-h').value);if(!nw||!nh)return;if((nw>1200||nh>1200)&&!isPro()){openM('m-pro');showToast('1200px 초과 대형 캔버스는 Pro 전용입니다');return;}resizeCanvas(nw,nh,$('rz-anchor').checked);closeM('m-resize');});
   $('btn-ctr').addEventListener('click',()=>{fitToScreen();});
   // zoom-hud 탭 → 100%/Fit 토글, rot-hud 탭 → 회전 초기화 (Procreate-style)
@@ -4871,7 +4898,7 @@ function bindAll(){
   $('btn-legend').addEventListener('click',()=>{$('morepop').classList.remove('open');openLegend();});
   $('btn-img').addEventListener('click',()=>{$('morepop').classList.remove('open');$('img-input').click();});
   $('img-input').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];importImageFile(f);e.target.value='';});
-  $('btn-exp2').addEventListener('click',()=>{$('morepop').classList.remove('open');openM('m-exp');});
+  $('btn-exp2').addEventListener('click',()=>{$('morepop').classList.remove('open');updExpGuide();openM('m-exp');});
   $('btn-save-cony').addEventListener('click',()=>{$('morepop').classList.remove('open');exportProject();});
   $('btn-load-cony').addEventListener('click',()=>{$('morepop').classList.remove('open');$('cony-input').click();});
   $('cony-input').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];importProject(f);e.target.value='';});
@@ -4913,7 +4940,7 @@ function bindAll(){
   // localStorage에서 슬롯 복원
   try{const s=localStorage.getItem('qmSlots');if(s){const parsed=JSON.parse(s);if(Array.isArray(parsed)&&parsed.length===6)G.qmSlots=parsed;}}catch(e){}
   renderQMenu();
-  $('btn-exp').addEventListener('click',()=>openM('m-exp'));
+  $('btn-exp').addEventListener('click',()=>{updExpGuide();openM('m-exp');});
   $('btn-narr').addEventListener('click',()=>{
     if(!isPro()){openM('m-pro');return;}
     $('narr-out').textContent=genNarrative(G.narrType);openM('m-narr');
@@ -5091,6 +5118,9 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
   });
   $('sel-mv').addEventListener('click',liftToFloat);
   $('sel-pa').addEventListener('click',pasteFloat);
+  $('sel-mtf').addEventListener('click',()=>{renderMotifs();$('motif-pop').style.display='block';});
+  $('mtf-x').addEventListener('click',()=>{$('motif-pop').style.display='none';});
+  $('mtf-save').addEventListener('click',saveMotifFromClipboard);
   $('sel-fl').addEventListener('click',fillSelection);
   $('sel-pat').addEventListener('click',fillWithPattern);
   $('sel-tile').addEventListener('click',repeatTilePattern);
@@ -5277,7 +5307,7 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
       if(e.code==='Equal'||e.code==='NumpadAdd'){e.preventDefault();G.zoom=Math.min(8,G.zoom*1.25);applyTransform();showZoomHud();}
       if(e.code==='Minus'||e.code==='NumpadSubtract'){e.preventDefault();G.zoom=Math.max(0.08,G.zoom/1.25);applyTransform();showZoomHud();}
       if(e.code==='Digit0'||e.code==='Numpad0'){e.preventDefault();fitToScreen();showToast('화면 맞춤  Ctrl+0');}
-      if(e.code==='KeyE'){e.preventDefault();openM('m-exp');}
+      if(e.code==='KeyE'){e.preventDefault();updExpGuide();openM('m-exp');}
       if(e.code==='KeyS'){e.preventDefault();exportProject();}
       if(e.code==='KeyA'&&!e.shiftKey){
         e.preventDefault();
@@ -6018,6 +6048,41 @@ function renderFloat(){
   const h=floatRotHandle(f);prevCtx.save();prevCtx.setLineDash([]);prevCtx.strokeStyle='rgba(34,197,94,.9)';prevCtx.lineWidth=Math.max(1,1.5/G.zoom);prevCtx.beginPath();prevCtx.moveTo(cx,cy);prevCtx.lineTo(h.x,h.y);prevCtx.stroke();prevCtx.beginPath();prevCtx.arc(h.x,h.y,Math.max(5,8/G.zoom),0,7);prevCtx.fillStyle='#22c55e';prevCtx.fill();prevCtx.lineWidth=Math.max(1,2/G.zoom);prevCtx.strokeStyle='#fff';prevCtx.stroke();prevCtx.restore();
 }
 function liftToFloat(){const r=selRect();if(!r)return;const data=mainCtx.getImageData(r.x,r.y,r.w,r.h);const cv=applySelMask(clipToCanvas(data),r);clearSelectionRegion(r);composite();G.float={cv,x:r.x,y:r.y,w:r.w,h:r.h,dragging:false};$('sel-tb').style.display='none';renderFloat();saveH();}
+/* ===================== 모티브 보관함 (도안 꾸미기용 영구 클립보드) ===================== */
+// 복사한 선택 영역을 PNG로 localStorage에 저장 — 문서를 넘나들며 재사용. 무료 2개 / Pro 30개.
+function loadMotifs(){try{return JSON.parse(localStorage.getItem('cony_motifs')||'[]');}catch(e){return[];}}
+function persistMotifs(m){try{localStorage.setItem('cony_motifs',JSON.stringify(m));return true;}catch(e){showToast('저장 공간 부족 — 오래된 모티브를 삭제해주세요');return false;}}
+function motifLimit(){return isPro()?30:2;}
+function renderMotifs(){
+  const g=$('mtf-grid');if(!g)return;const ms=loadMotifs();
+  const cnt=$('mtf-cnt');if(cnt)cnt.textContent=`${ms.length}/${motifLimit()}`;
+  g.innerHTML=ms.length?'':'<div style="grid-column:1/-1;font-size:10px;color:var(--text3);text-align:center;padding:12px 0">비어 있어요.<br>영역 선택 → 📋 복사 → ＋ 저장</div>';
+  ms.forEach(m=>{
+    const d=document.createElement('div');
+    d.style.cssText='position:relative;border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;background:#fff';
+    d.innerHTML=`<img src="${m.url}" style="width:100%;height:56px;object-fit:contain;display:block"><button data-del="1" style="position:absolute;top:2px;right:2px;border:0;background:rgba(0,0,0,.55);color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;line-height:1;cursor:pointer">✕</button>`;
+    d.addEventListener('click',e=>{
+      if(e.target.dataset.del){persistMotifs(loadMotifs().filter(x=>x.id!==m.id));renderMotifs();return;}
+      const img=new Image();
+      img.onload=()=>{
+        const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+        const x=c.getContext('2d');x.drawImage(img,0,0);
+        G.clipboard=x.getImageData(0,0,c.width,c.height);
+        $('motif-pop').style.display='none';pasteFloat();showToast('모티브를 붙였습니다 — 드래그로 위치 조정');
+      };
+      img.src=m.url;
+    });
+    g.appendChild(d);
+  });
+}
+function saveMotifFromClipboard(){
+  if(!G.clipboard){showToast('먼저 영역을 선택하고 📋 복사해주세요');return;}
+  const ms=loadMotifs();
+  if(ms.length>=motifLimit()){showToast(isPro()?'보관함이 가득 찼어요 (30개)':'무료는 2개까지 — Pro에서 30개까지 저장');return;}
+  const url=clipToCanvas(G.clipboard).toDataURL('image/png');
+  ms.unshift({id:Date.now(),url});
+  if(persistMotifs(ms)){renderMotifs();showToast('모티브 저장 완료');}
+}
 function pasteFloat(){if(!G.clipboard)return;const r=selRect();const x=r?r.x:Math.round(CW/2-G.clipboard.width/2),y=r?r.y:Math.round(CH/2-G.clipboard.height/2);G.float={cv:clipToCanvas(G.clipboard),x,y,w:G.clipboard.width,h:G.clipboard.height,dragging:false};$('sel-tb').style.display='none';renderFloat();}
 function commitFloat(){if(!G.float)return;const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;mainCtx.save();mainCtx.translate(cx,cy);mainCtx.rotate(r);mainCtx.drawImage(f.cv,-f.w/2,-f.h/2);mainCtx.restore();G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();saveH();}
 let _sprayIv=null;
