@@ -1105,6 +1105,7 @@ body.ui-hidden #row-counter{display:none!important}
           <button class="ib" id="gf-edit" style="width:100%;font-size:11px;padding:6px;margin-bottom:6px">◫ 프레임 크기·위치 편집</button>
           <button class="ib" id="btn-sym-convert" style="width:100%;padding:8px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;border-radius:10px;margin-bottom:4px">▦ → ⊙  기호 변환 (Symbol Convert)</button>
           <button class="ib" id="btn-progress" style="width:100%;padding:8px;background:var(--gold);color:#1a1208;font-size:12px;font-weight:700;border-radius:10px;margin-bottom:4px">🧶 뜨면서 체크 (진행 트래커)</button>
+          <button class="ib" id="btn-img2px" style="width:100%;padding:8px;font-size:12px;font-weight:700;border-radius:10px;margin-bottom:4px">🖼 이미지 → 방안 변환</button>
           <button class="ib" id="btn-graph-clear" style="width:100%;font-size:10px;padding:5px">↺ 방안 초기화</button>
         </div>
 
@@ -1276,6 +1277,21 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="fg" id="rz-size-guide" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3);line-height:1.6"></div>
     <div class="fg" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3)">⚠ 크기를 줄이면 캔버스 밖 영역이 잘립니다. 실행 취소 가능합니다.</div>
     <div class="mf"><button class="mb" onclick="closeM('m-resize')">취소</button><button class="mb p" id="btn-resize-ok">적용</button></div>
+  </div>
+</div>
+
+<!-- ===== MODAL: 이미지 → 방안 변환 ===== -->
+<div class="mo" id="m-i2p">
+  <div class="mc" style="max-width:340px">
+    <div class="mh"><h2>🖼 이미지 → 방안 변환</h2><button class="mhx" onclick="closeM('m-i2p')">✕</button></div>
+    <div class="fg" id="i2p-info" style="font-size:11px;color:var(--text3)"></div>
+    <div class="fg"><button class="ib" id="i2p-pick" style="width:100%;padding:8px;font-size:12px">📂 이미지 선택 (사진·그림)</button><input type="file" id="i2p-file" accept="image/*" style="display:none"></div>
+    <div class="fg"><label>색상 수 <span id="i2p-n-v" style="color:var(--accent);font-weight:700">6</span></label>
+      <input type="range" id="i2p-n" min="2" max="16" value="6" style="width:100%"></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px;font-size:12px"><input type="checkbox" id="i2p-bg" checked><span>밝은 배경 제거 (흰 배경 → 빈 칸)</span></label></div>
+    <div class="fg" style="text-align:center;background:var(--panel2);border-radius:8px;padding:8px;min-height:80px"><canvas id="i2p-cv" style="max-width:100%;image-rendering:pixelated;border:1px solid var(--border)"></canvas></div>
+    <div class="fg" style="font-size:10px;color:var(--text3)">⚠ 적용하면 현재 방안 칠 기록을 대체합니다</div>
+    <div class="mf"><button class="mb" onclick="closeM('m-i2p')">취소</button><button class="mb p" id="i2p-apply">방안에 적용</button></div>
   </div>
 </div>
 
@@ -2856,6 +2872,99 @@ function regraphRepaint(gf,oldRect){
     G.color=col;paintGraphCell(gf,c,row,false);G.color=keep;
   });
   composite();
+}
+/* ===================== 이미지 → 방안(픽셀) 변환 ===================== */
+// 사진·그림을 격자 프레임의 칸수로 축소 샘플링(자동 평균) → median-cut으로 N색 양자화 →
+// graphData로 적용. 축소는 contain(전체 이미지가 격자 안에 들어감, 남는 칸은 빈 칸).
+const I2P={img:null,cells:null,cols:0,rows:0};
+function i2pFrame(){return (G.canvasFrames||[]).find(f=>f.kind==='grid');}
+function i2pMedianCut(px,n){
+  if(!px.length)return[];
+  let boxes=[px];
+  while(boxes.length<n){
+    // 가장 큰 채널 범위를 가진 박스를 그 채널 중앙값으로 이분
+    let bi=-1,bc=0,br=-1;
+    boxes.forEach((b,i)=>{
+      if(b.length<2)return;
+      for(let ch=0;ch<3;ch++){
+        let mn=255,mx=0;b.forEach(p=>{if(p[ch]<mn)mn=p[ch];if(p[ch]>mx)mx=p[ch];});
+        if(mx-mn>br){br=mx-mn;bi=i;bc=ch;}
+      }
+    });
+    if(bi<0)break;
+    const b=boxes[bi];b.sort((a,c)=>a[bc]-c[bc]);
+    const mid=b.length>>1;
+    boxes.splice(bi,1,b.slice(0,mid),b.slice(mid));
+  }
+  return boxes.filter(b=>b.length).map(b=>{
+    const s=[0,0,0];b.forEach(p=>{s[0]+=p[0];s[1]+=p[1];s[2]+=p[2];});
+    return[Math.round(s[0]/b.length),Math.round(s[1]/b.length),Math.round(s[2]/b.length)];
+  });
+}
+function i2pHex(c){return'#'+c.map(v=>v.toString(16).padStart(2,'0')).join('');}
+function i2pProcess(){
+  if(!I2P.img)return;
+  const gf=i2pFrame();if(!gf)return;
+  const{cols,rows}=frameGridDims(gf);
+  const n=+$('i2p-n').value, rmBg=$('i2p-bg').checked;
+  const c=document.createElement('canvas');c.width=cols;c.height=rows;
+  const x=c.getContext('2d');
+  const s=Math.min(cols/I2P.img.width,rows/I2P.img.height);
+  const w=I2P.img.width*s,h=I2P.img.height*s;
+  x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
+  x.drawImage(I2P.img,(cols-w)/2,(rows-h)/2,w,h);
+  const d=x.getImageData(0,0,cols,rows).data;
+  const px=[];
+  for(let i=0;i<cols*rows;i++){
+    const r=d[i*4],g=d[i*4+1],b=d[i*4+2],a=d[i*4+3];
+    if(a<128){px.push(null);continue;}
+    if(rmBg&&(0.2126*r+0.7152*g+0.0722*b)>230){px.push(null);continue;}
+    px.push([r,g,b]);
+  }
+  const pal=i2pMedianCut(px.filter(Boolean),n);
+  I2P.cells={};I2P.cols=cols;I2P.rows=rows;
+  for(let i=0;i<px.length;i++){
+    if(!px[i])continue;
+    let best=0,bd=1e9;
+    for(let j=0;j<pal.length;j++){
+      const dd=(pal[j][0]-px[i][0])**2+(pal[j][1]-px[i][1])**2+(pal[j][2]-px[i][2])**2;
+      if(dd<bd){bd=dd;best=j;}
+    }
+    const cc=i%cols, rr=rows-1-Math.floor(i/cols); // graphData는 row 0 = 맨 아래 단
+    I2P.cells[cc+','+rr]=i2pHex(pal[best]);
+  }
+  i2pPreview();
+}
+function i2pPreview(){
+  const cv=$('i2p-cv');if(!cv||!I2P.cells)return;
+  const cols=I2P.cols,rows=I2P.rows;
+  const cs=Math.max(1,Math.floor(280/Math.max(cols,rows)));
+  cv.width=cols*cs;cv.height=rows*cs;
+  const x=cv.getContext('2d');
+  x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);
+  Object.keys(I2P.cells).forEach(k=>{
+    const[c,r]=k.split(',').map(Number);
+    x.fillStyle=I2P.cells[k];
+    x.fillRect(c*cs,(rows-1-r)*cs,cs,cs);
+  });
+}
+function openImg2Px(){
+  const gf=i2pFrame();
+  if(!gf){showToast('먼저 ◫에서 격자 프레임을 배치해주세요');return;}
+  const{cols,rows}=frameGridDims(gf);
+  I2P.img=null;I2P.cells=null;
+  $('i2p-info').textContent=`격자 ${cols}칸 × ${rows}단에 맞춰 변환합니다 — 칸수가 클수록 정밀해요`;
+  const cv=$('i2p-cv');cv.width=1;cv.height=1;
+  openM('m-i2p');
+}
+function i2pApply(){
+  if(!I2P.cells||!Object.keys(I2P.cells).length){showToast('먼저 이미지를 불러와주세요');return;}
+  const gf=i2pFrame();if(!gf)return;
+  G.graphData=I2P.cells;
+  regraphRepaint(gf,gf);
+  saveHMulti();
+  closeM('m-i2p');
+  showToast(`이미지 → 방안 변환 완료 (${Object.keys(I2P.cells).length}칸 칠함)`);
 }
 function fillCell(p){
   // 방안뜨기는 격자 프레임 안에서만 — 배경 격자에 섞여 들어가던 문제 차단
@@ -4699,6 +4808,19 @@ function bindAll(){
   $('g-mir-h').addEventListener('change',e=>{G.graphMirH=e.target.checked;});
   $('g-mir-v').addEventListener('change',e=>{G.graphMirV=e.target.checked;});
   $('btn-graph-clear').addEventListener('click',()=>{if(confirm('방안 내용을 모두 지울까요?'))graphClearData();});
+  // ── 이미지 → 방안 변환 ──
+  $('btn-img2px').addEventListener('click',openImg2Px);
+  $('i2p-pick').addEventListener('click',()=>$('i2p-file').click());
+  $('i2p-file').addEventListener('change',e=>{
+    const f=e.target.files&&e.target.files[0];if(!f)return;
+    const rd=new FileReader();
+    rd.onload=()=>{const img=new Image();img.onload=()=>{I2P.img=img;i2pProcess();};img.src=rd.result;};
+    rd.readAsDataURL(f);
+    e.target.value='';
+  });
+  $('i2p-n').addEventListener('input',()=>{$('i2p-n-v').textContent=$('i2p-n').value;i2pProcess();});
+  $('i2p-bg').addEventListener('change',i2pProcess);
+  $('i2p-apply').addEventListener('click',i2pApply);
   // ── 뜨면서 체크 (진행 트래커) — 방안뜨기 도안을 뜨는 동안 단·코 진행을 체크. 문서별 저장 ──
   // 핀피노는 차트 안 클릭 마킹(단 하이라이트·코 선택)뿐이지만 우리는 카운터+단별 뜨는 순서+진행률까지
   let PG={row:1,st:0}, _pgL=null; // _pgL: 렌더 때 저장하는 레이아웃(클릭 판정용)
