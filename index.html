@@ -297,6 +297,8 @@ body.ui-hidden #recent-bar{display:none!important}
 #prev-c{pointer-events:none}
 #snap-badge{position:absolute;top:68px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:5px 12px;border-radius:15px;font-size:11px;font-weight:600;display:none;pointer-events:none;z-index:10}
 #sel-tb{position:absolute;top:68px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 8px;gap:5px;display:none;z-index:10;max-width:calc(100vw - 16px);flex-wrap:wrap;justify-content:center}
+#float-tb{position:absolute;top:68px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 8px;gap:5px;display:none;z-index:11;max-width:calc(100vw - 16px);flex-wrap:wrap;justify-content:center;align-items:center}
+#float-tb .fa-sep{width:1px;height:18px;background:var(--border)}
 @media(max-width:420px){#sel-tb{gap:3px;padding:4px 5px}.selb{padding:4px 6px;font-size:10px}}
 .selb{white-space:nowrap}
 #sel-gd,#sel-inv,#sel-grow,#sel-shrink,#sel-tile,#sel-frame,#sel-pat{display:none}
@@ -900,6 +902,20 @@ body.ui-hidden #row-counter{display:none!important}
         <button class="ssb act" data-sm="rect" title="사각 선택">▭</button>
         <button class="ssb" data-sm="ellipse" title="타원 선택">⬭</button>
         <button class="ssb" data-sm="lasso" title="올가미 선택">✎</button>
+      </div>
+      <!-- 플로팅(이동·붙여넣기 중) 정렬 바: 프레임 안이면 프레임, 아니면 캔버스 기준 -->
+      <div id="float-tb">
+        <span style="font-size:10px;color:var(--text3)" id="fa-target">캔버스 기준</span>
+        <button class="selb" id="fa-l" title="왼쪽 정렬">⇤</button>
+        <button class="selb" id="fa-c" title="가로 가운데">↔</button>
+        <button class="selb" id="fa-r" title="오른쪽 정렬">⇥</button>
+        <div class="fa-sep"></div>
+        <button class="selb" id="fa-t" title="위 정렬">⤒</button>
+        <button class="selb" id="fa-m" title="세로 가운데">↕</button>
+        <button class="selb" id="fa-b" title="아래 정렬">⤓</button>
+        <div class="fa-sep"></div>
+        <button class="selb" id="fa-ok" style="background:var(--accent);color:#fff">✓ 완료</button>
+        <button class="selb d" id="fa-x">✕ 취소</button>
       </div>
       <div id="sel-tb" style="flex-direction:column;align-items:center;gap:4px">
         <span id="sel-count" style="font-size:10px;color:var(--primary);font-weight:700;min-width:60px;text-align:center"></span>
@@ -5376,6 +5392,10 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
   $('sel-mtf').addEventListener('click',()=>{renderMotifs();$('motif-pop').style.display='block';});
   $('mtf-x').addEventListener('click',()=>{$('motif-pop').style.display='none';});
   $('mtf-save').addEventListener('click',saveMotifFromClipboard);
+  // 플로팅 정렬 바
+  [['fa-l','l'],['fa-c','c'],['fa-r','r'],['fa-t','t'],['fa-m','m'],['fa-b','b']].forEach(([bid,k])=>$(bid).addEventListener('click',()=>alignFloat(k)));
+  $('fa-ok').addEventListener('click',commitFloat);
+  $('fa-x').addEventListener('click',()=>{G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();syncFloatTb();showToast('변형 취소');});
   $('sel-fl').addEventListener('click',fillSelection);
   $('sel-pat').addEventListener('click',fillWithPattern);
   $('sel-tile').addEventListener('click',repeatTilePattern);
@@ -5490,7 +5510,7 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
       }
       return;
     }
-    if(e.code==='Escape'){const qm=$('qmenu');if(qm&&qm.classList.contains('open')){qm.classList.remove('open');return;}if(G.float){G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();showToast('변형 취소');return;}}
+    if(e.code==='Escape'){const qm=$('qmenu');if(qm&&qm.classList.contains('open')){qm.classList.remove('open');return;}if(G.float){G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();syncFloatTb();showToast('변형 취소');return;}}
     if(G.editing){
       if(e.code==='Enter'){e.preventDefault();commitShape();}
       else if(e.code==='Escape')cancelShape();
@@ -5499,7 +5519,7 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
     // 플로트(자유변형) 키보드 조작
     if(G.float){
       if(e.code==='Enter'){e.preventDefault();commitFloat();return;}
-      if(e.code==='Delete'||e.code==='Backspace'){e.preventDefault();G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();showToast('삭제됨');return;}
+      if(e.code==='Delete'||e.code==='Backspace'){e.preventDefault();G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();syncFloatTb();showToast('삭제됨');return;}
       if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code)){
         e.preventDefault();
         const step=e.shiftKey?10:1;
@@ -6278,8 +6298,26 @@ function floatCorners(f){
   const rot=(lx,ly)=>({x:cx+lx*cos-ly*sin,y:cy+lx*sin+ly*cos});
   return{tl:rot(-hw,-hh),tr:rot(hw,-hh),br:rot(hw,hh),bl:rot(-hw,hh)};
 }
+/* 플로팅 정렬: 중심이 프레임 안이면 그 프레임, 아니면 캔버스 기준 6방향 */
+function floatAlignTarget(){
+  const f=G.float;if(!f)return{x:0,y:0,w:CW,h:CH};
+  const cx=f.x+f.w/2,cy=f.y+f.h/2;
+  const fr=(G.canvasFrames||[]).find(r=>cx>=r.x&&cx<=r.x+r.w&&cy>=r.y&&cy<=r.y+r.h);
+  return fr?{x:fr.x,y:fr.y,w:fr.w,h:fr.h,frame:true}:{x:0,y:0,w:CW,h:CH};
+}
+function alignFloat(k){
+  const f=G.float;if(!f)return;const t=floatAlignTarget();
+  if(k==='l')f.x=t.x;else if(k==='c')f.x=t.x+(t.w-f.w)/2;else if(k==='r')f.x=t.x+t.w-f.w;
+  else if(k==='t')f.y=t.y;else if(k==='m')f.y=t.y+(t.h-f.h)/2;else if(k==='b')f.y=t.y+t.h-f.h;
+  renderFloat();
+}
+function syncFloatTb(){
+  const tb=$('float-tb');if(!tb)return;const f=G.float;
+  tb.style.display=f?'flex':'none';
+  if(f){const t=floatAlignTarget();const lb=$('fa-target');if(lb)lb.textContent=t.frame?'프레임 기준':'캔버스 기준';}
+}
 function renderFloat(){
-  if(!prevCtx)return;prevCtx.clearRect(0,0,CW,CH);const f=G.float;if(!f)return;
+  if(!prevCtx)return;prevCtx.clearRect(0,0,CW,CH);const f=G.float;syncFloatTb();if(!f)return;
   const cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;
   // 정렬 스냅 가이드라인 (이동 중일 때, Procreate-style)
   if(f.dragging&&!(f.rot)){
@@ -6339,7 +6377,7 @@ function saveMotifFromClipboard(){
   if(persistMotifs(ms)){renderMotifs();showToast('모티브 저장 완료');}
 }
 function pasteFloat(){if(!G.clipboard)return;const r=selRect();const x=r?r.x:Math.round(CW/2-G.clipboard.width/2),y=r?r.y:Math.round(CH/2-G.clipboard.height/2);G.float={cv:clipToCanvas(G.clipboard),x,y,w:G.clipboard.width,h:G.clipboard.height,dragging:false};$('sel-tb').style.display='none';renderFloat();}
-function commitFloat(){if(!G.float)return;const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;mainCtx.save();mainCtx.translate(cx,cy);mainCtx.rotate(r);mainCtx.drawImage(f.cv,-f.w/2,-f.h/2);mainCtx.restore();G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();saveH();}
+function commitFloat(){if(!G.float)return;const f=G.float,cx=f.x+f.w/2,cy=f.y+f.h/2,r=f.rot||0;mainCtx.save();mainCtx.translate(cx,cy);mainCtx.rotate(r);mainCtx.drawImage(f.cv,-f.w/2,-f.h/2);mainCtx.restore();G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();saveH();syncFloatTb();}
 let _sprayIv=null;
 function sprayAt(pos){
   if(!mainCtx||!pos)return;
