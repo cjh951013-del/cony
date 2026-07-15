@@ -1680,8 +1680,6 @@ const STITCHES={
     {id:'scbp',name:'짧은뜨기 뒤걸어뜨기',svg:'pm',visible:true},
     {id:'hdcfp',name:'긴뜨기 앞걸어뜨기',svg:'pm',visible:true},
     {id:'hdcbp',name:'긴뜨기 뒤걸어뜨기',svg:'pm',visible:true},
-    {id:'dcfp',name:'한길긴뜨기 앞걸어뜨기',svg:'pm',visible:true},
-    {id:'dcbp',name:'한길긴뜨기 뒤걸어뜨기',svg:'pm',visible:true},
     {id:'hdcx',name:'긴뜨기 교차뜨기',svg:'pm',visible:true},
     {id:'dcx',name:'한길긴뜨기 교차뜨기',svg:'pm',visible:true},
     {id:'trx',name:'두길긴뜨기 교차뜨기',svg:'pm',visible:true},
@@ -2197,7 +2195,7 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
     default:{
       // 파라메트릭 패밀리(와디즈 브러시 세트 스펙, docs/WADIZ-SYMBOLS.md):
       // (sc|hdc|dc|tr)(inc|dec|bob|pop)N — 늘려뜨기 V부채 / 모아뜨기 Λ / 구슬 / 팝콘
-      // (sc|hdc|dc|tr)(fp|bp) — 앞걸어(J 갈고리)/뒤걸어(반전 갈고리)
+      // (sc|hdc)(fp|bp) — 앞걸어(J 갈고리)/뒤걸어(반전 갈고리). dc는 기존 fpdc/bpdc 사용(중복 방지)
       // (hdc|dc|tr)x — 교차뜨기(기둥 2개 X자, 각 윗끝 머리 막대)
       // chlinkN — 연결사슬코 N개(완만한 호), chringN — 원형코 N코 시작(사슬 링), chstN — 기둥코 사슬 N스택
       const cl=/^chlink([1-6])$/.exec(id);
@@ -2230,7 +2228,7 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
         }
         break;
       }
-      const fb=/^(sc|hdc|dc|tr)(fp|bp)$/.exec(id);
+      const fb=/^(sc|hdc)(fp|bp)$/.exec(id);
       if(fb){
         const ticks={sc:-1,hdc:0,dc:1,tr:2}[fb[1]], flip=fb[2]==='bp'?-1:1;
         ctx.beginPath();
