@@ -299,6 +299,9 @@ body.ui-hidden #recent-bar{display:none!important}
 #sel-tb{position:absolute;top:68px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 8px;gap:5px;display:none;z-index:10;max-width:calc(100vw - 16px);flex-wrap:wrap;justify-content:center}
 #float-tb{position:absolute;top:68px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 8px;gap:5px;display:none;z-index:11;max-width:calc(100vw - 16px);flex-wrap:wrap;justify-content:center;align-items:center}
 #float-tb .fa-sep{width:1px;height:18px;background:var(--border)}
+/* 미니맵: 확대 중에만 표시, 클릭·드래그로 뷰 이동 */
+#minimap{position:absolute;left:10px;bottom:64px;width:140px;height:140px;background:var(--panel);border:1px solid var(--border);border-radius:10px;z-index:11;display:none;cursor:crosshair;box-shadow:0 4px 14px rgba(0,0,0,.3);touch-action:none}
+@media(max-width:600px){#minimap{width:100px;height:100px;bottom:96px}}
 @media(max-width:420px){#sel-tb{gap:3px;padding:4px 5px}.selb{padding:4px 6px;font-size:10px}}
 .selb{white-space:nowrap}
 #sel-gd,#sel-inv,#sel-grow,#sel-shrink,#sel-tile,#sel-frame,#sel-pat{display:none}
@@ -879,6 +882,7 @@ body.ui-hidden #row-counter{display:none!important}
         <button id="btn-modify" style="display:none"></button>
       </aside>
       <div id="snap-badge">📐 직선 고정 ON</div>
+      <canvas id="minimap" width="280" height="280"></canvas>
       <!-- Drawing Assist 배지 (Procreate-style) -->
       <div id="da-badge" style="position:absolute;bottom:64px;right:10px;z-index:12;display:none;flex-direction:column;gap:3px;align-items:flex-end;pointer-events:none"></div>
       <div id="cpm" style="display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.45);flex-direction:row;gap:6px">
@@ -1867,6 +1871,7 @@ function composite(){
     dispCtx.drawImage(src,0,0);
   }
   dispCtx.globalAlpha=1;dispCtx.globalCompositeOperation='source-over';
+  if(typeof updateMinimap==='function')updateMinimap(); // 그리는 동안 미니맵 썸네일 갱신(rAF 병합)
 }
 function resetLayers(){ // 새 프로젝트: 단일 빈 레이어로 초기화
   G.layers=[{id:1,name:'레이어 1',visible:true,opacity:1}];
@@ -2848,6 +2853,51 @@ function applyTransform(){
     });
   }
   const zt=$('zt');if(zt)zt.textContent=Math.round(G.zoom*100)+'%';
+  updateMinimap();
+}
+/* ===================== 미니맵 (확대 중 전체 조망 + 클릭·드래그 이동) ===================== */
+let _mmLast=0,_mmTm=0;
+function fitZoomVal(){
+  const cw=$('cw');if(!cw)return 1;
+  const vw=cw.clientWidth||window.innerWidth, vh=cw.clientHeight||window.innerHeight;
+  if(vw<2||vh<2)return 1;
+  const m=Math.max(8,Math.min(vw,vh)*0.04);
+  return Math.max(0.08,Math.min(8,Math.min((vw-2*m)/CW,(vh-2*m)/CH)));
+}
+function updateMinimap(){
+  const mm=$('minimap');if(!mm)return;
+  const show=G.screen==='ed'&&!G.viewRot&&G.zoom>fitZoomVal()*1.06;
+  mm.style.display=show?'block':'none';
+  if(!show)return;
+  // rAF는 백그라운드 탭에서 멎으므로 시간 스로틀(≥80ms)로 갱신
+  const now=Date.now();
+  if(now-_mmLast>80){_mmLast=now;drawMinimap();}
+  else if(!_mmTm){_mmTm=setTimeout(()=>{_mmTm=0;_mmLast=Date.now();drawMinimap();},90);}
+}
+function drawMinimap(){
+  const mm=$('minimap');if(!mm||mm.style.display==='none')return;
+  const S=280; if(mm.width!==S){mm.width=S;mm.height=S;}
+  const x=mm.getContext('2d');
+  x.clearRect(0,0,S,S);
+  const sc=Math.min(S/CW,S/CH), ox=(S-CW*sc)/2, oy=(S-CH*sc)/2;
+  x.fillStyle='#fff';x.fillRect(ox,oy,CW*sc,CH*sc);
+  const bg=$('bg-c'),mc=$('main-c');
+  if(bg)x.drawImage(bg,ox,oy,CW*sc,CH*sc);
+  if(mc)x.drawImage(mc,ox,oy,CW*sc,CH*sc);
+  const cw=$('cw');if(!cw)return;
+  const vw=cw.clientWidth,vh=cw.clientHeight;
+  const rx=(-G.pan.x)/G.zoom, ry=(-G.pan.y)/G.zoom, rw=vw/G.zoom, rh=vh/G.zoom;
+  x.strokeStyle='#f59e0b';x.lineWidth=3;
+  x.strokeRect(ox+rx*sc,oy+ry*sc,rw*sc,rh*sc);
+}
+function mmPanTo(e){
+  const mm=$('minimap');const r=mm.getBoundingClientRect();if(!r.width)return;
+  const S=mm.width, k=S/r.width;
+  const sc=Math.min(S/CW,S/CH), ox=(S-CW*sc)/2, oy=(S-CH*sc)/2;
+  const mx=((e.clientX-r.left)*k-ox)/sc, my=((e.clientY-r.top)*k-oy)/sc;
+  const cw=$('cw');const vw=cw.clientWidth,vh=cw.clientHeight;
+  G.pan.x=vw/2-mx*G.zoom; G.pan.y=vh/2-my*G.zoom;
+  applyTransform();
 }
 // 전체 캔버스(1200×1200)를 화면(#cw)에 꽉 차게 맞추고 가운데 정렬 — 폰/태블릿 필수
 function fitToScreen(){
@@ -5396,6 +5446,12 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
   [['fa-l','l'],['fa-c','c'],['fa-r','r'],['fa-t','t'],['fa-m','m'],['fa-b','b']].forEach(([bid,k])=>$(bid).addEventListener('click',()=>alignFloat(k)));
   $('fa-ok').addEventListener('click',commitFloat);
   $('fa-x').addEventListener('click',()=>{G.float=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);composite();syncFloatTb();showToast('변형 취소');});
+  // 미니맵: 클릭·드래그로 뷰 이동 (캔버스 제스처와 분리 — stopPropagation)
+  {const mm=$('minimap');let dn=false;
+   mm.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();dn=true;try{mm.setPointerCapture(e.pointerId);}catch(_){}mmPanTo(e);});
+   mm.addEventListener('pointermove',e=>{if(dn){e.preventDefault();e.stopPropagation();mmPanTo(e);}});
+   mm.addEventListener('pointerup',e=>{dn=false;e.stopPropagation();});
+   mm.addEventListener('pointercancel',()=>{dn=false;});}
   $('sel-fl').addEventListener('click',fillSelection);
   $('sel-pat').addEventListener('click',fillWithPattern);
   $('sel-tile').addEventListener('click',repeatTilePattern);
