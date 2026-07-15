@@ -1144,6 +1144,13 @@ body.ui-hidden #row-counter{display:none!important}
           <div class="sw-wrap" style="margin-bottom:5px">
             <div class="sw on" id="sw-grid"></div><span>격자(Grid)</span>
           </div>
+          <div class="cgl" style="margin-top:4px">안내선 (가이드라인)</div>
+          <div style="display:flex;gap:3px;margin-bottom:5px">
+            <button class="ib" id="gd-add-h" style="flex:1;font-size:10px" title="가로 안내선 추가">＋가로</button>
+            <button class="ib" id="gd-add-v" style="flex:1;font-size:10px" title="세로 안내선 추가">＋세로</button>
+            <button class="ib" id="gd-edit" style="flex:1;font-size:10px" title="안내선 드래그 이동 모드">✋이동</button>
+            <button class="ib" id="gd-clear" style="flex:1;font-size:10px;color:#f87171">지움</button>
+          </div>
           <div class="sw-wrap" style="margin-bottom:5px;display:none">
             <div class="sw" id="sw-iso"></div><span>등각(Isometric) 그리드</span>
           </div>
@@ -2455,6 +2462,26 @@ function drawBg(){
   drawCanvasFrames(ctx);
   drawAnchor(ctx);
   if(G.symmetry)drawSymAxes(ctx);
+  drawGuides(ctx);
+}
+// 사용자 안내선(가로·세로) — 시안색 점선, 편집 모드에선 굵게 + 위치 라벨
+function drawGuides(ctx){
+  const gs=G.guides||[];if(!gs.length)return;
+  ctx.save();
+  gs.forEach(g=>{
+    ctx.strokeStyle=G.guideEdit?'rgba(34,211,238,.95)':'rgba(34,211,238,.55)';
+    ctx.lineWidth=G.guideEdit?2.4:1.2;ctx.setLineDash([12,8]);
+    ctx.beginPath();
+    if(g.d==='h'){ctx.moveTo(0,g.p);ctx.lineTo(CW,g.p);}
+    else{ctx.moveTo(g.p,0);ctx.lineTo(g.p,CH);}
+    ctx.stroke();
+    if(G.guideEdit){
+      ctx.setLineDash([]);ctx.fillStyle='rgba(34,211,238,.95)';ctx.font='600 12px sans-serif';
+      if(g.d==='h')ctx.fillText(Math.round(g.p)+'px',8,g.p-6);
+      else ctx.fillText(Math.round(g.p)+'px',g.p+6,16);
+    }
+  });
+  ctx.restore();
 }
 // 대칭축 가이드선(앵커 기준)
 function drawSymAxes(ctx){
@@ -3415,13 +3442,14 @@ function snapshotCurrent(){
   try{G.cur.data=$('main-c').toDataURL('image/png');}catch(e){}
   G.cur.frames=(G.canvasFrames&&G.canvasFrames.length)?G.canvasFrames:null;
   G.cur.graphData=Object.keys(G.graphData||{}).length?G.graphData:null; // 방안 칠 기록 — 기호 변환용
+  G.cur.guides=(G.guides&&G.guides.length)?G.guides:null; // 안내선 — 문서별
   G.cur.graphCols=G.graphCols||null;
   G.cur.usedSyms=(G.usedSymbols&&G.usedSymbols.length)?G.usedSymbols:null; // 서술도안 '사용 기호'가 재접속 후 비지 않도록
   persistLayers();
   persistProjects();
 }
 function persistProjects(){
-  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date,frames:p.frames||null,graphData:p.graphData||null,graphCols:p.graphCols||null,usedSyms:p.usedSyms||null,cw:p.cw||null,ch:p.ch||null,customNarrative:p.customNarrative||null}));
+  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date,frames:p.frames||null,graphData:p.graphData||null,graphCols:p.graphCols||null,usedSyms:p.usedSyms||null,cw:p.cw||null,ch:p.ch||null,customNarrative:p.customNarrative||null,guides:p.guides||null}));
   const full=G.projects.map((p,i)=>Object.assign({},meta[i],{data:p.data||null,thumb:p.thumb||null}));
   try{localStorage.setItem('cony_projects_v1',JSON.stringify(full));}
   catch(e){try{localStorage.setItem('cony_projects_v1',JSON.stringify(meta));}catch(e2){}}
@@ -4662,6 +4690,8 @@ function openP(id){
   G.anchor={x:CW/2,y:CH/2};G.anchorMode=false;
   G.canvasFrames=Array.isArray(p.frames)?p.frames:[];
   G.graphData=(p.graphData&&typeof p.graphData==='object')?p.graphData:{}; // 방안 기록 복원 — 없으면 초기화(문서 간 누출 방지)
+  G.guides=Array.isArray(p.guides)?p.guides:[];G.guideEdit=false;G._gDrag=null; // 안내선 복원(문서 간 누출 방지)
+  {const ge=$('gd-edit');if(ge){ge.style.background='';ge.style.color='';}}
   if(p.graphCols){G.graphCols=p.graphCols;const gc=$('graph-cols');if(gc)gc.value=p.graphCols;}
   // 원형·반원 프레임이 있으면 앵커·다중 링을 프레임에 맞춰 복원
   {const f0=G.canvasFrames.find(f=>f.kind==='circle'||f.kind==='semi');
@@ -5008,6 +5038,15 @@ function bindAll(){
   $('g-mir-h').addEventListener('change',e=>{G.graphMirH=e.target.checked;});
   $('g-mir-v').addEventListener('change',e=>{G.graphMirV=e.target.checked;});
   $('btn-graph-clear').addEventListener('click',()=>{if(confirm('방안 내용을 모두 지울까요?'))graphClearData();});
+  // ── 안내선 ──
+  $('gd-add-h').addEventListener('click',()=>{(G.guides=G.guides||[]).push({d:'h',p:CH/2});drawBg();showToast('가로 안내선 추가 — ✋이동으로 드래그');});
+  $('gd-add-v').addEventListener('click',()=>{(G.guides=G.guides||[]).push({d:'v',p:CW/2});drawBg();showToast('세로 안내선 추가 — ✋이동으로 드래그');});
+  $('gd-edit').addEventListener('click',()=>{
+    G.guideEdit=!G.guideEdit;G._gDrag=null;
+    $('gd-edit').style.background=G.guideEdit?'var(--accent)':'';$('gd-edit').style.color=G.guideEdit?'#fff':'';
+    drawBg();showToast(G.guideEdit?'안내선 이동 모드 — 선을 드래그 (그리기 잠금)':'안내선 이동 모드 해제');
+  });
+  $('gd-clear').addEventListener('click',()=>{G.guides=[];G.guideEdit=false;G._gDrag=null;$('gd-edit').style.background='';$('gd-edit').style.color='';drawBg();});
   // ── 이미지 → 방안 변환 ──
   $('btn-img2px').addEventListener('click',openImg2Px);
   $('i2p-pick').addEventListener('click',()=>$('i2p-file').click());
@@ -7161,6 +7200,11 @@ function onDown(e){
   }
   if(G.touchLock&&e.type==='touchstart'&&e.touches&&e.touches.length<2){return;}
   const pos=getPos(e);
+  if(G.guideEdit){ // 안내선 이동 모드: 근처 선 잡아 드래그 — 그리기로 내려가지 않음
+    const tol=Math.max(12,16/G.zoom);
+    G._gDrag=(G.guides||[]).find(g=>g.d==='h'?Math.abs(pos.y-g.p)<tol:Math.abs(pos.x-g.p)<tol)||null;
+    return;
+  }
   if(G.anchorMode){setAnchor(pos);return;}
   if(G.mode==='pick'){pickColorAt(pos);if(G.prevMode&&G.prevMode!=='pick')setMode(G.prevMode);return;}
   if(G.editing){G.dragH=hitHandle(G.shape,pos,Math.max(14,18/G.zoom));return;}
@@ -7240,6 +7284,7 @@ function onMove(e){
   e.preventDefault();
   if(e.touches&&e.touches.length>=2){if(G.editing&&G.awaitLift)return;updateMulti(e);return;}
   if(G.multi)return;
+  if(G.guideEdit&&G._gDrag){const p=getPos(e);G._gDrag.p=Math.max(0,Math.min(G._gDrag.d==='h'?CH:CW,G._gDrag.d==='h'?p.y:p.x));drawBg();return;}
   if(G.editing){if(G.dragH){let ep=G.dragH==='rot'?getPos(e):snapToGrid(getPos(e));if(G.dragH==='mv')ep=magnetToFrames(ep);dragHandle(G.shape,G.dragH,ep);renderEdit();}return;}
   if(G.isPanning){const raw=getRaw(e);G.pan={x:raw.x-G.panStart.x,y:raw.y-G.panStart.y};applyTransform();return;}
   // 치수선 미리보기 (G.isDrawing=false 상태에서도 작동)
@@ -7339,6 +7384,7 @@ function onMove(e){
 }
 function onUp(e){
   cancelLpPick();stopContinuousUndoRedo();
+  if(G.guideEdit){G._gDrag=null;return;}
   if(G.multi){
     if(!e.touches||e.touches.length<2){
       const dt=Date.now()-G.multi.t0;
