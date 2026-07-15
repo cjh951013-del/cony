@@ -56,6 +56,9 @@ select,input{font-family:inherit}
 .cb{position:absolute;top:5px;right:5px;padding:2px 6px;border-radius:8px;font-size:9px;font-weight:700}
 .bc{background:rgba(168,85,247,.25);color:#c084fc;border:1px solid rgba(168,85,247,.4)}
 .bk{background:rgba(59,130,246,.25);color:#60a5fa;border:1px solid rgba(59,130,246,.4)}
+.catchip{padding:5px 11px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--panel2);color:var(--text3);cursor:pointer;white-space:nowrap}
+.catchip.act{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pt-cat{position:absolute;top:5px;left:5px;padding:2px 6px;border-radius:8px;font-size:9px;font-weight:700;background:rgba(0,0,0,.5);color:#fff}
 .pi{padding:9px}
 .pi h4{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px}
 .pi span{font-size:10px;color:var(--text3)}
@@ -668,6 +671,7 @@ body.ui-hidden #row-counter{display:none!important}
     </div>
     <div class="ad-strip" id="ad1">📢 [광고] 뜨개질 실 & 도구 최저가 쇼핑 — 코니 추천 상품 보러가기 →</div>
     <div class="sec"><h3>내 도안방</h3><span class="badge" id="pc-badge">0개</span></div>
+    <div id="cat-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px"></div>
     <div class="pgrid" id="pgrid"></div>
   </div>
   <footer id="df">© 2026 CONY 코니 · 멈춰도 돼, 포기만 안 하면,</footer>
@@ -1329,6 +1333,15 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="fg"><label>프로젝트 이름</label><input id="np-nm" value="봄날의 꽃잎 티코스터"></div>
     <div class="fg"><label>공예 종류</label>
       <select id="np-tp"><option value="crochet">코바늘 (Crochet)</option><option value="knitting">대바늘 (Knitting)</option></select>
+    </div>
+    <div class="fg"><label>카테고리</label>
+      <select id="np-cat">
+        <option value="basic">기본</option>
+        <option value="motif">모티브 (도일리·코스터)</option>
+        <option value="bag">가방</option>
+        <option value="clothing">의류</option>
+        <option value="accessory">소품</option>
+      </select>
     </div>
     <div class="fg" style="display:none"><label>시작 템플릿</label><!-- 프레임 배치로 대체 — 선택 불필요 -->
       <select id="np-tpl">
@@ -3449,7 +3462,7 @@ function snapshotCurrent(){
   persistProjects();
 }
 function persistProjects(){
-  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,frame:p.frame,date:p.date,frames:p.frames||null,graphData:p.graphData||null,graphCols:p.graphCols||null,usedSyms:p.usedSyms||null,cw:p.cw||null,ch:p.ch||null,customNarrative:p.customNarrative||null,guides:p.guides||null}));
+  const meta=G.projects.map(p=>({id:p.id,name:p.name,type:p.type,category:p.category||'basic',frame:p.frame,date:p.date,frames:p.frames||null,graphData:p.graphData||null,graphCols:p.graphCols||null,usedSyms:p.usedSyms||null,cw:p.cw||null,ch:p.ch||null,customNarrative:p.customNarrative||null,guides:p.guides||null}));
   const full=G.projects.map((p,i)=>Object.assign({},meta[i],{data:p.data||null,thumb:p.thumb||null}));
   try{localStorage.setItem('cony_projects_v1',JSON.stringify(full));}
   catch(e){try{localStorage.setItem('cony_projects_v1',JSON.stringify(meta));}catch(e2){}}
@@ -4662,12 +4675,26 @@ function saveThumb(){
 }
 
 /* ===================== DASHBOARD ===================== */
+const CAT_LABEL={basic:'기본',motif:'모티브',bag:'가방',clothing:'의류',accessory:'소품'};
+function renderCatFilter(){
+  const el=$('cat-filter');if(!el)return;
+  const used=new Set(G.projects.map(p=>p.category||'basic'));
+  if(used.size<=1){el.innerHTML='';return;} // 카테고리가 섞여 있을 때만 필터를 보여줌 — 도안 1~2개짜리에겐 잡음
+  const cur=G.dashCat||'all';
+  const chips=[['all','전체']].concat(Object.entries(CAT_LABEL).filter(([k])=>used.has(k)));
+  el.innerHTML=chips.map(([k,label])=>`<button class="catchip${cur===k?' act':''}" data-cat="${k}">${label}</button>`).join('');
+  el.querySelectorAll('.catchip').forEach(b=>b.addEventListener('click',()=>{G.dashCat=b.dataset.cat;renderDash();}));
+}
 function renderDash(){
+  renderCatFilter();
+  const cur=G.dashCat||'all';
+  const list=cur==='all'?G.projects:G.projects.filter(p=>(p.category||'basic')===cur);
   const g=$('pgrid');g.innerHTML='';
-  $('pc-badge').textContent=G.projects.length+'개';
-  G.projects.forEach(p=>{
+  $('pc-badge').textContent=list.length+'개'+(cur==='all'?'':' / 전체 '+G.projects.length+'개');
+  list.forEach(p=>{
+    const cat=p.category||'basic';
     const el=document.createElement('div');el.className='pc';
-    el.innerHTML=`<div class="pt">${p.thumb?`<img src="${p.thumb}">`:'🧶'}<span class="cb ${p.type==='crochet'?'bc':'bk'}">${p.type==='crochet'?'코바늘':'대바늘'}</span></div>
+    el.innerHTML=`<div class="pt">${p.thumb?`<img src="${p.thumb}">`:'🧶'}<span class="cb ${p.type==='crochet'?'bc':'bk'}">${p.type==='crochet'?'코바늘':'대바늘'}</span>${cat!=='basic'?`<span class="pt-cat">${CAT_LABEL[cat]||cat}</span>`:''}</div>
     <div class="pi"><h4>${p.name}</h4><div class="pif"><span>${p.date}</span><button class="db" onclick="delP('${p.id}',event)">🗑</button></div></div>`;
     el.addEventListener('click',()=>openP(p.id));
     g.appendChild(el);
@@ -4844,7 +4871,7 @@ function bindAll(){
     let nw=Math.round(Math.max(200,Math.min(4000,parseInt($('np-w').value)||1200)));
     let nh=Math.round(Math.max(200,Math.min(4000,parseInt($('np-h').value)||1200)));
     if((nw>maxSz||nh>maxSz)&&!isPro()){openM('m-pro');showToast('1200px 초과 대형 캔버스는 Pro 전용입니다');return;}
-    const p={id:'p_'+Date.now(),name:$('np-nm').value||'새 도안',type:$('np-tp').value,frame:'none',cw:nw,ch:nh,date:new Date().toLocaleDateString('ko-KR'),thumb:null};
+    const p={id:'p_'+Date.now(),name:$('np-nm').value||'새 도안',type:$('np-tp').value,category:$('np-cat')?$('np-cat').value:'basic',frame:'none',cw:nw,ch:nh,date:new Date().toLocaleDateString('ko-KR'),thumb:null};
     // 시작 템플릿: 프레임을 미리 배치한 상태로 생성 (openP가 frames를 복원)
     const tpl=$('np-tpl')?$('np-tpl').value:'';
     if(tpl){
@@ -7632,17 +7659,20 @@ function buildSampleDocs(){
   // 1) 검은고양이 필레 코스터 (24×30)
   {const f={id:Date.now(),name:'격자 1',x:180,y:180,w:840,h:840,kind:'grid',cols:24,rows:30};
    const p=mk('검은고양이 필레 코스터','crochet',1200,1200,[f]);
+   p.category='motif';
    paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_CAT_ROWS,null,{numbers:false});});
    p.usedSyms=['dc','ch'];}
   // 2) 발바닥 필레 코스터 (26×26)
   {const f={id:Date.now()+1,name:'격자 1',x:250,y:170,w:700,h:700,kind:'grid',cols:26,rows:26};
    const p=mk('발바닥 필레 코스터','crochet',1200,1200,[f]);
+   p.category='motif';
    paint(p,ctx=>{p.graphData=drawFiletChart(ctx,f.x,f.y,f.w,f.h,SAMPLE_PAW_ROWS,'#8a6a2e',{numbers:false});});
    p.usedSyms=['dc','ch'];}
   // 2.5) 타원 가방 바닥 — 기초사슬 8코에서 양쪽으로 돌려 뜨는 스타디움 구조(업로드 사진 재현):
   // 가운데 사슬 줄, 직선부는 위/아래로 나란히, 양 끝 반원 캡은 부채꼴 늘림(단마다 캡 코수 증가)
   {const f={id:Date.now()+7,name:'타원 1',x:105,y:165,w:690,h:370,kind:'oval'};
    const p=mk('타원 가방 바닥','crochet',900,700,[f]);
+   p.category='bag';
    paint(p,ctx=>{
      const C='#5b4426', cy=350, chainN=8, sp=32, sz=25;
      const L=(chainN-1)*sp/2, mx=450;
@@ -7674,6 +7704,7 @@ function buildSampleDocs(){
   // 긴뜨기+사슬틈→조개뜨기 마감) — 출처: haakmaarraak.nl 원형 모티브 차트 읽는 법 예시.
   {const f={id:Date.now()+2,name:'원형 1',x:32,y:32,w:456,h:456,kind:'circle'};
    const p=mk('원형 도일리 코스터','crochet',520,520,[f]);
+   p.category='motif';
    paint(p,ctx=>{
      const cx=260,cy=260,Rm=228,SZ=17;
      const C1='#c98b2d',C2='#8a6a2e',C3='#5b7fa6',C4='#b8556f';
@@ -7716,6 +7747,7 @@ function buildSampleDocs(){
   // 4) 브로큰립 가디건 — 도식+무늬차트(6코 반복+양끝 2코 대칭)
   {const chart={id:Date.now()+3,name:'무늬차트',x:230,y:560,w:800,h:480,kind:'grid',cols:21,rows:12};
    const p=mk('브로큰립 가디건','knitting',1260,1100,[chart]);
+   p.category='clothing';
    paint(p,ctx=>{
      const dim=(x1,y1,x2,y2,t)=>{ctx.save();ctx.strokeStyle='#8b3a52';ctx.lineWidth=1.4;
        ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
