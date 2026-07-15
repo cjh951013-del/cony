@@ -1400,6 +1400,7 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="mf" style="gap:6px">
       <button class="mb" id="btn-sym-fit">⤢ 실제 크기</button>
       <button class="mb" id="btn-sym-dl" style="background:var(--accent);color:#fff">↓ 이미지 다운로드</button>
+      <button class="mb" id="btn-sym-svg">↓ SVG (벡터)</button>
       <button class="mb" onclick="closeM('m-sym-chart')">닫기</button>
     </div>
   </div>
@@ -5152,6 +5153,14 @@ function bindAll(){
   });
   $('btn-sym-fit').addEventListener('click',()=>symChartFit(G._symFit===false));
   $('btn-sym-dl').addEventListener('click',()=>{const c=$('sym-chart-c');if(!c)return;const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='symbol-chart.png';a.click();});
+  $('btn-sym-svg').addEventListener('click',()=>{
+    const svg=symChartSVG();if(!svg){showToast('먼저 방안을 칠해주세요');return;}
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));
+    a.download=((G.cur&&G.cur.name)||'cony')+'-chart.svg';a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+    showToast('SVG 저장 — 일러스트·인쇄에서 무손실 확대');
+  });
   $('sw-ring-preview').addEventListener('click',()=>{G.ringPreview=!G.ringPreview;$('sw-ring-preview').classList.toggle('on',G.ringPreview);renderRingPreview();});
   $('sym-sel').addEventListener('change',()=>{G.symmetry=$('sym-sel').value;$('symn-row').style.display=(G.symmetry==='radial')?'flex':'none';drawBg();renderSymGuide();renderDaBadge();});
   $('sym-n').addEventListener('input',()=>{G.symN=Math.max(2,Math.min(16,parseInt($('sym-n').value)||6));drawBg();renderDaBadge();});
@@ -6874,6 +6883,64 @@ function renderSymChart(){
   html+=`<div><b>채운 칸:</b> ${keys.length} / ${cols*rows}칸</div>`;
   html+=`</div></div>`;
   $('sym-chart-stats').innerHTML=html;
+}
+// 기호 차트 SVG(벡터) 내보내기 — renderSymChart와 같은 레이아웃 수식(수정 시 동기 유지).
+// 래스터 캔버스에서 유일하게 완전 벡터로 뽑을 수 있는 산출물 — 인쇄·일러스트 편집용.
+function symChartSVG(){
+  const data=G.graphData;const keys=Object.keys(data);if(!keys.length)return null;
+  const stitch=G.scStitch||'dc';const GS=GSTITCH[stitch]||GSTITCH.dc;
+  const gf=(G.canvasFrames||[]).find(f=>f.kind==='grid');
+  let cols,rows;
+  if(gf){const gd=frameGridDims(gf);cols=gd.cols;rows=gd.rows;}
+  else{cols=Math.max(...keys.map(k=>+k.split(',')[0]))+1;rows=Math.max(...keys.map(k=>+k.split(',')[1]))+1;}
+  const cellAt=(c,r)=>data[c+','+r]||null;
+  const COL=stitch==='tr'?24:20, ROW=20, SLOT=ROW;
+  const NUM=30, TOP=16, chainH=13, labelH=14;
+  const W=NUM+cols*COL+NUM, H=TOP+rows*SLOT+chainH+labelH;
+  const fx=NUM, subW=COL/GS.per, symW=subW*0.75, symH=ROW, lw=Math.max(0.6,COL*0.03);
+  let s='';
+  const L=(x1,y1,x2,y2,w)=>{s+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#000" stroke-width="${(w||lw).toFixed(2)}" stroke-linecap="round"/>`;};
+  const E=(cx,cy,rx,ry,w)=>{s+=`<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="none" stroke="#000" stroke-width="${(w||lw).toFixed(2)}"/>`;};
+  const DC=(cx,yTop,ticks)=>{ // chartDC 미러
+    if(ticks===-1){const sz=Math.min(symW*1.8,symH*0.55),cy=yTop+symH/2;L(cx-sz/2,cy-sz/2,cx+sz/2,cy+sz/2);L(cx+sz/2,cy-sz/2,cx-sz/2,cy+sz/2);return;}
+    L(cx-symW/2,yTop,cx+symW/2,yTop);L(cx,yTop+lw*0.6,cx,yTop+symH);
+    for(let t=0;t<ticks;t++){const ty=yTop+symH*(0.4+t*0.18);L(cx-symW*0.3,ty+symH*0.05,cx+symW*0.3,ty-symH*0.05);}
+  };
+  const CH2=(cx,cy,w,h,wd)=>E(cx,cy,w*0.5,h*0.5,wd); // chartChain 미러(가로·세로 동일 타원)
+  const T=(x,y,txt,anchor,size)=>{s+=`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="sans-serif" font-size="${size||10}" fill="#666" text-anchor="${anchor}">${txt}</text>`;};
+  const hexRGB=col=>{const m=col.replace('#','');return(parseInt(m.substr(0,2),16)||0)+','+(parseInt(m.substr(2,2),16)||0)+','+(parseInt(m.substr(4,2),16)||0);};
+  for(let vi=0;vi<rows;vi++){
+    const r=rows-1-vi, rowNum=r+1, odd=rowNum%2===1;
+    const slotY=TOP+vi*SLOT, yTop=slotY;
+    if(GS.per===1){
+      for(let c=0;c<cols;c++){
+        const col=cellAt(c,r);
+        if(col)s+=`<rect x="${fx+c*COL}" y="${slotY}" width="${COL}" height="${ROW}" fill="rgb(${hexRGB(col)})" fill-opacity="0.28"/>`;
+        DC(fx+(c+0.5)*COL,yTop,-1);
+      }
+      const px=odd?fx+cols*COL:fx;
+      CH2(px,yTop+symH/2,symH*0.28,symH*0.55,lw*1.1);
+    }else{
+      const pillarB=odd?cols:0;
+      for(let c=0;c<cols;c++){const col=cellAt(c,r);if(col)s+=`<rect x="${fx+c*COL}" y="${(yTop-1).toFixed(1)}" width="${COL}" height="${symH+2}" fill="rgb(${hexRGB(col)})" fill-opacity="0.28"/>`;}
+      for(let b=0;b<=cols;b++){
+        if(b===pillarB){const ph=symH/GS.pillar,pw=ph*0.5;for(let k=0;k<GS.pillar;k++)CH2(fx+b*COL,yTop+ph*(k+0.5),pw,ph*0.92,lw*1.1);}
+        else DC(fx+b*COL,yTop,GS.ticks);
+      }
+      for(let c=0;c<cols;c++){
+        if(cellAt(c,r)){for(let k=1;k<GS.per;k++)DC(fx+c*COL+k*subW,yTop,GS.ticks);}
+        else{const dx=symW*0.45+1,nCh=GS.per-1,ow=(COL-2*dx)/nCh,oh=Math.min(ow*0.31,symH*0.22);
+          for(let k=0;k<nCh;k++)CH2(fx+c*COL+dx+ow*(k+0.5),yTop,ow*0.92,oh);}
+      }
+    }
+    T(odd?fx+cols*COL+6:fx-6,slotY+SLOT/2+3.5,String(rowNum),odd?'start':'end');
+  }
+  const fcy=TOP+rows*SLOT+chainH*0.5;
+  if(GS.per===1){for(let c=0;c<cols;c++)CH2(fx+(c+0.5)*COL,fcy,COL*0.7,COL*0.22);}
+  else{const ow=subW*0.95;for(let st=0;st<=cols*GS.per;st++)CH2(fx+st*subW,fcy,ow,ow*0.31);}
+  if(GS.per===1){for(let c=0;c<cols;c++){const num=cols-c;if(num%5===1||cols<=20)T(fx+(c+0.5)*COL,TOP-3,String(num),'middle',9);}}
+  else{const total=cols*GS.per+1;for(let c=0;c<=cols;c++)T(fx+c*COL,TOP-3,String(total-c*GS.per),'middle',9);}
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="#fff"/>${s}</svg>`;
 }
 function renderSymGuide(){
   if(!prevCtx||!G.symmetry||G.isDrawing)return;
