@@ -1631,6 +1631,7 @@ const STITCHES={
     {id:'dc',name:'한길긴뜨기',svg:'T1',visible:true},
     {id:'tr',name:'두길긴뜨기',svg:'T2',visible:true},
     {id:'dtr',name:'세길긴뜨기',svg:'T3',visible:true},
+    {id:'qtr',name:'네길긴뜨기',svg:'T4',visible:true},
     {id:'mr',name:'매직링',svg:'circle-arrow',visible:true},
     {id:'inc',name:'코늘리기',svg:'V-down',visible:true},
     {id:'dec',name:'코줄이기',svg:'V-up',visible:true},
@@ -1641,6 +1642,7 @@ const STITCHES={
     {id:'cl',name:'한길긴뜨기모아뜨기',svg:'cl',visible:true},
     {id:'puff',name:'퍼프뜨기',svg:'puff',visible:true},
     {id:'shell',name:'조개뜨기(부채꼴)',svg:'shell',visible:true},
+    {id:'shell4',name:'한길긴뜨기 4코 조개뜨기',svg:'shell4',visible:true},
     {id:'spike',name:'롱스티치',svg:'spike',visible:true},
     // ── 와디즈 브러시 세트 확충 (docs/WADIZ-SYMBOLS.md, 파라메트릭 글리프) ──
     {id:'scinc2',name:'짧은뜨기 2코 늘려뜨기',svg:'pm',visible:true},
@@ -1670,7 +1672,10 @@ const STITCHES={
     {id:'dcpop5',name:'한길긴뜨기 5코 팝콘뜨기',svg:'pm',visible:true},
     {id:'trinc2',name:'두길긴뜨기 2코 늘려뜨기',svg:'pm',visible:true},
     {id:'trdec2',name:'두길긴뜨기 2코 모아뜨기',svg:'pm',visible:true},
+    {id:'trbob2',name:'두길긴뜨기 2코 구슬뜨기',svg:'pm',visible:true},
     {id:'trbob3',name:'두길긴뜨기 3코 구슬뜨기',svg:'pm',visible:true},
+    {id:'trbob4',name:'두길긴뜨기 4코 구슬뜨기',svg:'pm',visible:true},
+    {id:'trbob5',name:'두길긴뜨기 5코 구슬뜨기',svg:'pm',visible:true},
     {id:'scblo',name:'짧은뜨기 이랑뜨기(뒤이랑)',svg:'pm',visible:true},
     {id:'scflo',name:'짧은뜨기 이랑뜨기(앞이랑)',svg:'pm',visible:true},
     {id:'screv',name:'뒤돌아 짧은뜨기(새우뜨기)',svg:'pm',visible:true},
@@ -1683,7 +1688,6 @@ const STITCHES={
     {id:'hdcx',name:'긴뜨기 교차뜨기',svg:'pm',visible:true},
     {id:'dcx',name:'한길긴뜨기 교차뜨기',svg:'pm',visible:true},
     {id:'trx',name:'두길긴뜨기 교차뜨기',svg:'pm',visible:true},
-    {id:'picot',name:'피코뜨기(사슬 3코)',svg:'pm',visible:true},
     {id:'slpicot',name:'피코빼뜨기',svg:'pm',visible:true},
     {id:'chilbo',name:'칠보뜨기',svg:'pm',visible:true},
     {id:'yinv',name:'역Y자뜨기',svg:'pm',visible:true},
@@ -1994,6 +1998,11 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
       ctx.moveTo(0,-h*.55);ctx.lineTo(0,h*.55);
       for(let i=0;i<3;i++){const yo=-h*.3+i*h*.25;ctx.moveTo(-h*.35,yo);ctx.lineTo(h*.35,yo-h*.2);}
       ctx.stroke();break;
+    case 'qtr': // 네길긴뜨기: dtr(사선 틱3) 계열의 틱4 확장
+      ctx.beginPath();ctx.moveTo(-h*.5,-h*.55);ctx.lineTo(h*.5,-h*.55);
+      ctx.moveTo(0,-h*.55);ctx.lineTo(0,h*.55);
+      for(let i=0;i<4;i++){const yo=-h*.36+i*h*.22;ctx.moveTo(-h*.35,yo);ctx.lineTo(h*.35,yo-h*.16);}
+      ctx.stroke();break;
     case 'mr':
       ctx.beginPath();ctx.arc(0,0,h*.65,0,Math.PI*2);ctx.stroke();
       ctx.beginPath();ctx.moveTo(h*.65,-.25*h);ctx.lineTo(h*.9,0);ctx.lineTo(h*.65,.25*h);ctx.stroke();break;
@@ -2063,6 +2072,11 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
     case 'shell': // 조개뜨기(부채꼴): 아래 점에서 5가닥 부채살
       ctx.beginPath();
       [[-h*.5,-h*.45],[-h*.27,-h*.6],[0,-h*.64],[h*.27,-h*.6],[h*.5,-h*.45]].forEach(p=>{
+        ctx.moveTo(0,h*.6);ctx.lineTo(p[0],p[1]);});
+      ctx.stroke();break;
+    case 'shell4': // 조개뜨기 4코: 같은 부채꼴, 4가닥(한길긴뜨기 4코 조개)
+      ctx.beginPath();
+      [[-h*.42,-h*.55],[-h*.15,-h*.64],[h*.15,-h*.64],[h*.42,-h*.55]].forEach(p=>{
         ctx.moveTo(0,h*.6);ctx.lineTo(p[0],p[1]);});
       ctx.stroke();break;
     case 'spike': // 롱스티치: 길게 내려꽂은 세로 + 아래 작은 ×
@@ -2170,11 +2184,12 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
       ctx.beginPath();ctx.moveTo(-h*.5,-h*.6);ctx.lineTo(-h*.5,h*.15);
       ctx.quadraticCurveTo(-h*.5,h*.62,0,h*.62);ctx.quadraticCurveTo(h*.5,h*.62,h*.5,h*.15);ctx.lineTo(h*.5,-h*.6);ctx.stroke();
       ctx.beginPath();ctx.moveTo(-h*.28,-h*.05);ctx.lineTo(h*.28,-h*.05);ctx.moveTo(0,-h*.33);ctx.lineTo(0,h*.23);ctx.stroke();break;}
-    case 'picot':case 'slpicot':{ // 피코뜨기: 사슬3 세잎 클로버 / 피코빼뜨기: + 아래 빼뜨기 점
-      ctx.beginPath();ctx.ellipse(0,-h*.45,h*.34,h*.16,Math.PI/2,0,Math.PI*2);ctx.stroke();
-      ctx.beginPath();ctx.ellipse(-h*.3,-h*.18,h*.34,h*.16,Math.PI/2+.9,0,Math.PI*2);ctx.stroke();
-      ctx.beginPath();ctx.ellipse(h*.3,-h*.18,h*.34,h*.16,Math.PI/2-.9,0,Math.PI*2);ctx.stroke();
-      if(id==='slpicot'){ctx.beginPath();ctx.ellipse(0,h*.42,h*.3,h*.14,0,0,Math.PI*2);ctx.fill();}
+    case 'slpicot':{ // 피코빼뜨기: 기존 picot(사슬3 고리+V) 아래에 빼뜨기 점 추가
+      [[0,-h*.55],[-.35*h,-.2*h],[.35*h,-.2*h]].forEach(([px,py])=>{
+        ctx.beginPath();ctx.arc(px,py,h*.12,0,Math.PI*2);ctx.fill();
+      });
+      ctx.beginPath();ctx.moveTo(-h*.35,h*.2);ctx.lineTo(0,h*.45);ctx.lineTo(h*.35,h*.2);ctx.stroke();
+      ctx.beginPath();ctx.arc(0,h*.6,h*.13,0,Math.PI*2);ctx.fill(); // 빼뜨기(채운 점)
       break;}
     case 'chilbo':{ // 칠보뜨기: ♦ + 아래 기둥
       ctx.beginPath();ctx.moveTo(0,-h*.62);ctx.lineTo(h*.4,-h*.14);ctx.lineTo(0,h*.34);ctx.lineTo(-h*.4,-h*.14);ctx.closePath();ctx.stroke();
