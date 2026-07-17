@@ -1706,6 +1706,20 @@ const STITCHES={
     {id:'chst3',name:'기둥코 사슬 3',svg:'pm',visible:true},
     {id:'chst4',name:'기둥코 사슬 4',svg:'pm',visible:true},
     {id:'chst5',name:'기둥코 사슬 5',svg:'pm',visible:true},
+    {id:'hdcincu2',name:'긴뜨기 2코 늘려뜨기 (코 아래에서)',svg:'pm',visible:true},
+    {id:'hdcincu3',name:'긴뜨기 3코 늘려뜨기 (코 아래에서)',svg:'pm',visible:true},
+    {id:'dcincu2',name:'한길긴뜨기 2코 늘려뜨기 (코 아래에서)',svg:'pm',visible:true},
+    {id:'dcincu3',name:'한길긴뜨기 3코 늘려뜨기 (코 아래에서)',svg:'pm',visible:true},
+    {id:'dcinc2ch2',name:'한길긴뜨기 2코 늘려 (사이에 사슬 2코)',svg:'pm',visible:true},
+    {id:'dcbobu2',name:'한길긴뜨기 2코 구슬뜨기 (코 아래에서)',svg:'pm',visible:true},
+    {id:'dcbobu3',name:'한길긴뜨기 3코 구슬뜨기 (코 아래에서)',svg:'pm',visible:true},
+    {id:'trbobu2',name:'두길긴뜨기 2코 구슬뜨기 (코 아래에서)',svg:'pm',visible:true},
+    {id:'trbobu3',name:'두길긴뜨기 3코 구슬뜨기 (코 아래에서)',svg:'pm',visible:true},
+    {id:'shell4u',name:'한길긴뜨기 4코 조개뜨기 (코 아래에서)',svg:'pm',visible:true},
+    {id:'dcxl',name:'한길긴뜨기 왼쪽 교차뜨기',svg:'pm',visible:true},
+    {id:'dcxr',name:'한길긴뜨기 오른쪽 교차뜨기',svg:'pm',visible:true},
+    {id:'dcfpinc',name:'한길긴뜨기 앞걸어 늘려뜨기',svg:'pm',visible:true},
+    {id:'trfpinc',name:'두길긴뜨기 앞걸어 늘려뜨기',svg:'pm',visible:true},
   ],
   knitting:[
     {id:'k',name:'겉뜨기(K)',svg:'X',visible:true},
@@ -1980,7 +1994,8 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
   switch(id){
     case 'ch': ctx.beginPath();ctx.ellipse(0,0,h*.8,h*.35,-.52,0,Math.PI*2);ctx.stroke();break;
     case 'slst': ctx.beginPath();ctx.ellipse(0,0,h*.75,h*.32,-.52,0,Math.PI*2);ctx.fill();break;
-    case 'sc': ctx.beginPath();ctx.moveTo(-h*.6,0);ctx.lineTo(h*.6,0);ctx.moveTo(0,-h*.6);ctx.lineTo(0,h*.6);ctx.stroke();break;
+    case 'sc': // 짧은뜨기 = × (와디즈 세트·한국 도안 표준 실물 대조 2026-07-15. 이전 ＋는 비표준)
+      ctx.beginPath();ctx.moveTo(-h*.5,-h*.5);ctx.lineTo(h*.5,h*.5);ctx.moveTo(h*.5,-h*.5);ctx.lineTo(-h*.5,h*.5);ctx.stroke();break;
     case 'hdc':
       ctx.beginPath();ctx.moveTo(-h*.5,-h*.55);ctx.lineTo(h*.5,-h*.55);
       ctx.moveTo(0,-h*.55);ctx.lineTo(0,h*.55);ctx.stroke();break;
@@ -2013,11 +2028,11 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
       ctx.moveTo(-h*.5,-h*.5);ctx.bezierCurveTo(-h*.7,0,-h*.7,h*.6,0,h*.6);
       ctx.bezierCurveTo(h*.7,h*.6,h*.7,0,h*.5,-h*.5);
       ctx.moveTo(0,-h*.5);ctx.lineTo(0,h*.6);ctx.stroke();break;
-    case 'picot':
-      [[0,-h*.55],[-.35*h,-.2*h],[.35*h,-.2*h]].forEach(([px,py])=>{
-        ctx.beginPath();ctx.arc(px,py,h*.12,0,Math.PI*2);ctx.fill();
-      });
-      ctx.beginPath();ctx.moveTo(-h*.35,h*.2);ctx.lineTo(0,h*.6);ctx.lineTo(h*.35,h*.2);ctx.stroke();break;
+    case 'picot': // 피코뜨기(와디즈 실물): 사슬 고리 3개가 얽힌 클로버(아래 열림)
+      ctx.beginPath();ctx.ellipse(0,-h*.42,h*.34,h*.17,Math.PI/2,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.ellipse(-h*.3,-h*.1,h*.34,h*.17,Math.PI/2+1.0,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.ellipse(h*.3,-h*.1,h*.34,h*.17,Math.PI/2-1.0,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-h*.3,h*.3);ctx.quadraticCurveTo(0,h*.62,h*.3,h*.3);ctx.stroke();break;
     // Knitting
     case 'k':
       ctx.beginPath();ctx.moveTo(-h*.5,-h*.5);ctx.lineTo(h*.5,h*.5);
@@ -2046,16 +2061,14 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
     case 'dot-fill':
       ctx.beginPath();ctx.arc(0,0,h*.55,0,Math.PI*2);ctx.globalAlpha=.6;ctx.fill();ctx.globalAlpha=1;break;
     // ── 추가 코바늘 ──
-    case 'fpdc': // 앞걸어 한길긴뜨기: dc 기둥 + 앞으로 도는 고리(오른쪽 ⌐)
-      ctx.beginPath();ctx.moveTo(-h*.5,-h*.55);ctx.lineTo(h*.5,-h*.55);
-      ctx.moveTo(0,-h*.55);ctx.lineTo(0,h*.3);
-      ctx.moveTo(-h*.3,h*.0);ctx.lineTo(h*.3,-h*.25);
-      ctx.moveTo(0,h*.3);ctx.lineTo(h*.32,h*.3);ctx.lineTo(h*.32,h*.0);ctx.stroke();break;
-    case 'bpdc': // 뒤걸어 한길긴뜨기: 고리가 뒤로(왼쪽 ⌐)
-      ctx.beginPath();ctx.moveTo(-h*.5,-h*.55);ctx.lineTo(h*.5,-h*.55);
-      ctx.moveTo(0,-h*.55);ctx.lineTo(0,h*.3);
-      ctx.moveTo(-h*.3,h*.0);ctx.lineTo(h*.3,-h*.25);
-      ctx.moveTo(0,h*.3);ctx.lineTo(-h*.32,h*.3);ctx.lineTo(-h*.32,h*.0);ctx.stroke();break;
+    case 'fpdc':case 'bpdc':{ // 앞/뒤걸어 한길긴뜨기(와디즈 실물): 머리바+틱 기둥이 아래 J/C 갈고리로 끝남
+      const fl=id==='fpdc'?1:-1;
+      ctx.beginPath();ctx.moveTo(-h*.3,-h*.58);ctx.lineTo(h*.3,-h*.58); // 머리바
+      ctx.moveTo(0,-h*.58);ctx.lineTo(0,h*.22); // 기둥
+      ctx.moveTo(-fl*h*.2,-h*.08);ctx.lineTo(fl*h*.2,-h*.22); // 틱
+      ctx.stroke();
+      ctx.beginPath();ctx.arc(-fl*h*.18,h*.24,h*.21,fl>0?0:Math.PI*.1,fl>0?Math.PI*.9:Math.PI,fl<0);ctx.stroke(); // 갈고리
+      break;}
     case 'cl': // 모아뜨기(클러스터): 아래 한 점에서 여러 기둥이 퍼지고 위 가로바
       ctx.beginPath();
       ctx.moveTo(0,h*.55);ctx.lineTo(-h*.42,-h*.5);
@@ -2074,11 +2087,20 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
       [[-h*.5,-h*.45],[-h*.27,-h*.6],[0,-h*.64],[h*.27,-h*.6],[h*.5,-h*.45]].forEach(p=>{
         ctx.moveTo(0,h*.6);ctx.lineTo(p[0],p[1]);});
       ctx.stroke();break;
-    case 'shell4': // 조개뜨기 4코: 같은 부채꼴, 4가닥(한길긴뜨기 4코 조개)
+    case 'shell4':case 'shell4u': // 조개뜨기 4코(실물: 부채 꼭대기 중앙 사슬 타원). u=코 아래에서(밑동 벌어짐)
       ctx.beginPath();
-      [[-h*.42,-h*.55],[-h*.15,-h*.64],[h*.15,-h*.64],[h*.42,-h*.55]].forEach(p=>{
-        ctx.moveTo(0,h*.6);ctx.lineTo(p[0],p[1]);});
-      ctx.stroke();break;
+      [[-h*.42,-h*.5],[-h*.15,-h*.6],[h*.15,-h*.6],[h*.42,-h*.5]].forEach((p,i)=>{
+        const bx=id==='shell4u'?(i-1.5)*h*.16:0;
+        ctx.moveTo(bx,h*.6);ctx.lineTo(p[0],p[1]);});
+      ctx.stroke();
+      ctx.beginPath();ctx.ellipse(0,-h*.76,h*.15,h*.08,0,0,Math.PI*2);ctx.stroke();break;
+    case 'dcinc2ch2':{ // 한길긴 2코 늘려(사이에 사슬 2코, 실물): V 다리 + 사이 위쪽 사슬 타원 2
+      const lg=(x1)=>{ctx.moveTo(0,h*.6);ctx.lineTo(x1,-h*.55);
+        ctx.moveTo(x1-h*.22,-h*.55);ctx.lineTo(x1+h*.22,-h*.55);
+        const mx=x1*.55,my=h*.6+(-h*.55-h*.6)*.5;ctx.moveTo(mx-h*.15,my+h*.07);ctx.lineTo(mx+h*.15,my-h*.07);};
+      ctx.beginPath();lg(-h*.42);lg(h*.42);ctx.stroke();
+      ctx.beginPath();ctx.ellipse(-h*.09,-h*.74,h*.1,h*.06,-.3,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.ellipse(h*.09,-h*.74,h*.1,h*.06,.3,0,Math.PI*2);ctx.stroke();break;}
     case 'spike': // 롱스티치: 길게 내려꽂은 세로 + 아래 작은 ×
       ctx.beginPath();ctx.moveTo(0,-h*.7);ctx.lineTo(0,h*.7);
       ctx.moveTo(-h*.22,h*.35);ctx.lineTo(h*.22,h*.6);
@@ -2166,34 +2188,33 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
     case 'ann-x':{ctx.beginPath();ctx.arc(0,0,h*.6,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(-h*.38,-h*.38);ctx.lineTo(h*.38,h*.38);ctx.moveTo(h*.38,-h*.38);ctx.lineTo(-h*.38,h*.38);ctx.stroke();break;}
     case 'ann-dim-h':{const cap=h*.35;ctx.beginPath();ctx.moveTo(-h*.7,-cap);ctx.lineTo(-h*.7,cap);ctx.moveTo(-h*.7,0);ctx.lineTo(h*.7,0);ctx.moveTo(h*.7,-cap);ctx.lineTo(h*.7,cap);ctx.stroke();break;}
     // ── 와디즈 2차 배치(docs/WADIZ-SYMBOLS.md 5·9번 세트): 짧은뜨기 변형·피코·칠보·역Y ──
-    case 'scblo':case 'scflo':{ // 이랑뜨기: ＋에 뒤이랑 ∪(아래) / 앞이랑 ∩(위)
-      const dy=id==='scblo'?-h*.12:h*.12;
-      ctx.beginPath();ctx.moveTo(-h*.5,dy);ctx.lineTo(h*.5,dy);ctx.moveTo(0,dy-h*.5);ctx.lineTo(0,dy+h*.5);ctx.stroke();
+    case 'scblo':case 'scflo':{ // 이랑뜨기(와디즈 실물): ×에 (1)뒤이랑=아래 가로선 / (2)앞이랑=위 가로선
+      const dy=id==='scblo'?-h*.1:h*.1, by=id==='scblo'?h*.52:-h*.52;
       ctx.beginPath();
-      if(id==='scblo')ctx.arc(0,h*.52,h*.3,Math.PI*.12,Math.PI*.88);
-      else ctx.arc(0,-h*.52,h*.3,Math.PI*1.12,Math.PI*1.88);
+      ctx.moveTo(-h*.42,dy-h*.42);ctx.lineTo(h*.42,dy+h*.42);ctx.moveTo(h*.42,dy-h*.42);ctx.lineTo(-h*.42,dy+h*.42); // ×
+      ctx.moveTo(-h*.42,by);ctx.lineTo(h*.42,by); // 이랑 표시 직선
       ctx.stroke();break;}
-    case 'screv':{ // 뒤돌아 짧은뜨기(새우뜨기): ＋ 위 물결 ~
-      ctx.beginPath();ctx.moveTo(-h*.5,h*.12);ctx.lineTo(h*.5,h*.12);ctx.moveTo(0,-h*.38);ctx.lineTo(0,h*.62);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(-h*.45,-h*.6);
-      ctx.quadraticCurveTo(-h*.22,-h*.85,0,-h*.6);ctx.quadraticCurveTo(h*.22,-h*.35,h*.45,-h*.6);ctx.stroke();break;}
-    case 'sctw':{ // 바늘돌려 짧은뜨기: ＋ 위 작은 고리
-      ctx.beginPath();ctx.moveTo(-h*.5,h*.12);ctx.lineTo(h*.5,h*.12);ctx.moveTo(0,-h*.3);ctx.lineTo(0,h*.62);ctx.stroke();
-      ctx.beginPath();ctx.arc(0,-h*.52,h*.22,0,Math.PI*2);ctx.stroke();break;}
-    case 'scring':{ // 링뜨기: U 안 ＋
+    case 'screv':{ // 뒤돌아 짧은뜨기(새우뜨기, 실물): × 위 물결 ~
+      ctx.beginPath();ctx.moveTo(-h*.42,-h*.28);ctx.lineTo(h*.42,h*.56);ctx.moveTo(h*.42,-h*.28);ctx.lineTo(-h*.42,h*.56);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-h*.45,-h*.55);
+      ctx.quadraticCurveTo(-h*.22,-h*.8,0,-h*.55);ctx.quadraticCurveTo(h*.22,-h*.3,h*.45,-h*.55);ctx.stroke();break;}
+    case 'sctw':{ // 바늘돌려 짧은뜨기(실물): × 위 작은 고리
+      ctx.beginPath();ctx.moveTo(-h*.42,-h*.2);ctx.lineTo(h*.42,h*.6);ctx.moveTo(h*.42,-h*.2);ctx.lineTo(-h*.42,h*.6);ctx.stroke();
+      ctx.beginPath();ctx.arc(0,-h*.5,h*.22,0,Math.PI*2);ctx.stroke();break;}
+    case 'scring':{ // 링뜨기(실물): U 안 ×
       ctx.beginPath();ctx.moveTo(-h*.5,-h*.6);ctx.lineTo(-h*.5,h*.15);
       ctx.quadraticCurveTo(-h*.5,h*.62,0,h*.62);ctx.quadraticCurveTo(h*.5,h*.62,h*.5,h*.15);ctx.lineTo(h*.5,-h*.6);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(-h*.28,-h*.05);ctx.lineTo(h*.28,-h*.05);ctx.moveTo(0,-h*.33);ctx.lineTo(0,h*.23);ctx.stroke();break;}
-    case 'slpicot':{ // 피코빼뜨기: 기존 picot(사슬3 고리+V) 아래에 빼뜨기 점 추가
-      [[0,-h*.55],[-.35*h,-.2*h],[.35*h,-.2*h]].forEach(([px,py])=>{
-        ctx.beginPath();ctx.arc(px,py,h*.12,0,Math.PI*2);ctx.fill();
-      });
-      ctx.beginPath();ctx.moveTo(-h*.35,h*.2);ctx.lineTo(0,h*.45);ctx.lineTo(h*.35,h*.2);ctx.stroke();
-      ctx.beginPath();ctx.arc(0,h*.6,h*.13,0,Math.PI*2);ctx.fill(); // 빼뜨기(채운 점)
+      ctx.beginPath();ctx.moveTo(-h*.26,-h*.32);ctx.lineTo(h*.26,h*.2);ctx.moveTo(h*.26,-h*.32);ctx.lineTo(-h*.26,h*.2);ctx.stroke();break;}
+    case 'slpicot':{ // 피코빼뜨기(와디즈 실물): 사슬 고리 3개 클로버 + 아래 빼뜨기 점
+      ctx.beginPath();ctx.ellipse(0,-h*.45,h*.3,h*.15,Math.PI/2,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.ellipse(-h*.27,-h*.15,h*.3,h*.15,Math.PI/2+1.0,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.ellipse(h*.27,-h*.15,h*.3,h*.15,Math.PI/2-1.0,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.arc(0,h*.45,h*.14,0,Math.PI*2);ctx.fill(); // 빼뜨기(채운 점)
       break;}
-    case 'chilbo':{ // 칠보뜨기: ♦ + 아래 기둥
-      ctx.beginPath();ctx.moveTo(0,-h*.62);ctx.lineTo(h*.4,-h*.14);ctx.lineTo(0,h*.34);ctx.lineTo(-h*.4,-h*.14);ctx.closePath();ctx.stroke();
-      ctx.beginPath();ctx.moveTo(0,h*.34);ctx.lineTo(0,h*.62);ctx.stroke();break;}
+    case 'chilbo':{ // 칠보뜨기(와디즈 실물): 위 십자 + 아래 뾰족 물방울(빈)
+      ctx.beginPath();ctx.moveTo(-h*.26,-h*.5);ctx.lineTo(h*.26,-h*.5);ctx.moveTo(0,-h*.72);ctx.lineTo(0,-h*.28);ctx.stroke(); // 십자
+      ctx.beginPath();ctx.moveTo(0,-h*.28);ctx.quadraticCurveTo(h*.38,h*.1,0,h*.6);
+      ctx.quadraticCurveTo(-h*.38,h*.1,0,-h*.28);ctx.stroke();break;}
     case 'mrspiral':{ // 원형코 시작(나선 소용돌이) — 와디즈 시작코 세트
       ctx.beginPath();
       for(let t=0;t<=1.001;t+=0.02){
@@ -2244,34 +2265,51 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
         break;
       }
       const fb=/^(sc|hdc)(fp|bp)$/.exec(id);
-      if(fb){
-        const ticks={sc:-1,hdc:0,dc:1,tr:2}[fb[1]], flip=fb[2]==='bp'?-1:1;
+      if(fb){ // 와디즈 실물: sc=머리 없는 갈고리(위 작은 훅), hdc=머리바+갈고리. dc는 case fpdc/bpdc와 동일 스타일
+        const flip=fb[2]==='bp'?-1:1, hasHead=fb[1]==='hdc';
         ctx.beginPath();
-        if(ticks===-1){ctx.moveTo(-h*.28,-h*.72);ctx.lineTo(h*.28,-h*.28);ctx.moveTo(h*.28,-h*.72);ctx.lineTo(-h*.28,-h*.28);} // 짧은뜨기 머리 ×
-        else{ctx.moveTo(-h*.34,-h*.62);ctx.lineTo(h*.34,-h*.62);}
-        ctx.moveTo(0,ticks===-1?-h*.28:-h*.62);ctx.lineTo(0,h*.25);
-        for(let t=0;t<Math.max(0,ticks);t++){const my=-h*.2+t*h*.2;ctx.moveTo(-h*.22,my+h*.1);ctx.lineTo(h*.22,my-h*.1);}
+        if(hasHead)ctx.moveTo(-h*.3,-h*.58),ctx.lineTo(h*.3,-h*.58);
+        ctx.moveTo(0,hasHead?-h*.58:-h*.42);ctx.lineTo(0,h*.22);
         ctx.stroke();
-        ctx.beginPath();ctx.arc(flip*h*.16,h*.32,h*.24,flip>0?Math.PI*.5:0,flip>0?Math.PI*1.6:Math.PI*1.1,flip<0);ctx.stroke(); // 갈고리
+        if(!hasHead){ctx.beginPath();ctx.arc(flip*h*.11,-h*.44,h*.13,flip>0?Math.PI*.6:Math.PI*.9,flip>0?Math.PI*1.6:Math.PI*2.1,flip<0);ctx.stroke();} // 위 작은 훅
+        ctx.beginPath();ctx.arc(-flip*h*.18,h*.24,h*.21,flip>0?0:Math.PI*.1,flip>0?Math.PI*.9:Math.PI,flip<0);ctx.stroke(); // 아래 갈고리
         break;
       }
-      const xr=/^(hdc|dc|tr)x$/.exec(id);
+      const xr=/^(hdc|dc|tr)x([lr]?)$/.exec(id);
       if(xr){
-        const ticks={hdc:0,dc:1,tr:2}[xr[1]];
-        const leg2=(x0,x1)=>{ // 아래(x0,h*.62)→위(x1,-h*.62) 기둥 + 윗끝 머리 막대 + 사선 틱
-          ctx.moveTo(x0,h*.62);ctx.lineTo(x1,-h*.62);
+        const ticks={hdc:0,dc:1,tr:2}[xr[1]], dir=xr[2]; // l/r = 왼쪽/오른쪽 교차(위로 지나는 다리 반대편을 교차점에서 끊음)
+        const leg2=(x0,x1,gap)=>{ // 아래(x0,h*.62)→위(x1,-h*.62) 기둥 + 윗끝 머리 막대 + 사선 틱. gap=교차점 끊김
+          if(gap){ctx.moveTo(x0,h*.62);ctx.lineTo(x0*.22,h*.16);ctx.moveTo(x1*.22,-h*.16);ctx.lineTo(x1,-h*.62);}
+          else{ctx.moveTo(x0,h*.62);ctx.lineTo(x1,-h*.62);}
           ctx.moveTo(x1-h*.26,-h*.62);ctx.lineTo(x1+h*.26,-h*.62);
           for(let t=0;t<ticks;t++){
             const f=.24+t*.14, mx=x1+(x0-x1)*f, my=-h*.62+h*1.24*f;
             ctx.moveTo(mx-h*.18,my+h*.08);ctx.lineTo(mx+h*.18,my-h*.08);
           }
         };
-        ctx.beginPath();leg2(-h*.42,h*.42);leg2(h*.42,-h*.42);ctx.stroke();
+        ctx.beginPath();
+        leg2(-h*.42,h*.42,dir==='l'); // 왼쪽 교차 = 왼쪽 다리가 앞 → 오른쪽으로 가는 다리를 끊음
+        leg2(h*.42,-h*.42,dir==='r');
+        ctx.stroke();
         break;
       }
-      const pm=/^(sc|hdc|dc|tr)(inc|dec|bob|pop)(\d)$/.exec(id);
+      const fpi=/^(dc|tr)fpinc$/.exec(id);
+      if(fpi){ // 앞걸어 늘려뜨기(실물): 갈고리 기둥 2개가 V로 벌어짐
+        const ticks=fpi[1]==='dc'?1:2;
+        [-1,1].forEach(s=>{
+          ctx.beginPath();
+          ctx.moveTo(s*h*.14,-h*.58);ctx.lineTo(s*h*.42,-h*.58); // 다리별 머리바
+          ctx.moveTo(s*h*.28,-h*.58);ctx.lineTo(s*h*.1,h*.18);
+          for(let t=0;t<ticks;t++){const f=.35+t*.2, mx=s*(h*.28+(h*.1-h*.28)*f), my=-h*.58+(h*.18+h*.58)*f;
+            ctx.moveTo(mx-h*.14,my+h*.07);ctx.lineTo(mx+h*.14,my-h*.07);}
+          ctx.stroke();
+          ctx.beginPath();ctx.arc(s*h*.1-s*h*.16,h*.2,h*.17,s>0?0:Math.PI*.1,s>0?Math.PI*.9:Math.PI,s<0);ctx.stroke();
+        });
+        break;
+      }
+      const pm=/^(sc|hdc|dc|tr)(inc|dec|bob|pop)(u?)([2-5])$/.exec(id);
       if(pm){
-        const ticks={sc:-1,hdc:0,dc:1,tr:2}[pm[1]], n=Math.max(2,Math.min(5,+pm[3])), kind=pm[2];
+        const ticks={sc:-1,hdc:0,dc:1,tr:2}[pm[1]], n=Math.max(2,Math.min(5,+pm[4])), kind=pm[2], under=pm[3]==='u'; // u = "코 아래에서"(와디즈 실물: 밑동이 벌어짐)
         const leg=(x0,y0,x1,y1)=>{ // 밑점(x0,y0)→윗점(x1,y1) 다리 + 종류별 머리/틱
           ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);
           const ang=Math.atan2(y1-y0,x1-x0), px=Math.cos(ang+Math.PI/2), py=Math.sin(ang+Math.PI/2), bw=h*.3;
@@ -2287,11 +2325,12 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
           }
           ctx.stroke();
         };
-        if(kind==='inc'){ // 늘려뜨기: 한 밑점(아래)에서 n다리가 위로 부채
+        if(kind==='inc'){ // 늘려뜨기: 한 밑점(아래)에서 n다리가 위로 부채. "코 아래에서"는 밑동이 좌우로 벌어짐
           const spread=Math.min(.5+(n-2)*.16,1.0);
           for(let i=0;i<n;i++){
             const a=-Math.PI/2-spread/2+spread*i/(n-1);
-            leg(0,h*.6, Math.cos(a)*h*1.15, h*.6+Math.sin(a)*h*1.15);
+            const bx=under?(i-(n-1)/2)*h*.24:0;
+            leg(bx,h*.6, Math.cos(a)*h*1.15, h*.6+Math.sin(a)*h*1.15);
           }
         }else if(kind==='dec'){ // 모아뜨기: n다리(아래)가 윗점 하나로 모이고 꼭짓점에 가로 막대 하나
           const spread=Math.min(.5+(n-2)*.16,1.0);
@@ -2308,14 +2347,16 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
           ctx.moveTo(-h*.34,-h*.6);ctx.lineTo(h*.34,-h*.6); // 꼭짓점 머리 막대
           if(ticks===-1){ctx.moveTo(-h*.16,-h*.28);ctx.lineTo(h*.16,-h*.02);ctx.moveTo(h*.16,-h*.28);ctx.lineTo(-h*.16,-h*.02);} // 짧은뜨기: 중앙 작은 ×
           ctx.stroke();
-        }else{ // 구슬(bob)/팝콘(pop): 뾰족 타원 + 내부 세로선(n-1) + 윗줄기
+        }else{ // 구슬(bob)/팝콘(pop): 뾰족 타원 + 내부 세로선 n-2개(와디즈 실물: 2코=빈 타원, 3코=1선…) + 윗줄기
           ctx.beginPath();
           ctx.moveTo(0,-h*.6);ctx.quadraticCurveTo(h*.5,-h*.1,0,h*.55);
           ctx.quadraticCurveTo(-h*.5,-h*.1,0,-h*.6);
           if(kind==='pop'){ctx.moveTo(-h*.3,-h*.42);ctx.lineTo(h*.3,-h*.42);} // 팝콘: 윗쪽 가로 막음
-          for(let i=1;i<n;i++){const fx=-h*.3+h*.6*i/n;
-            ctx.moveTo(fx*.8,-h*.35);ctx.quadraticCurveTo(fx,0,fx*.8,h*.3);}
+          const lines=n-2;
+          for(let i=0;i<lines;i++){const fx=(i-(lines-1)/2)*h*.17;
+            ctx.moveTo(fx*.85,-h*.38);ctx.quadraticCurveTo(fx,0,fx*.85,h*.32);}
           ctx.moveTo(0,-h*.6);ctx.lineTo(0,-h*.78);
+          if(under){ctx.moveTo(0,h*.55);ctx.lineTo(-h*.18,h*.8);ctx.moveTo(0,h*.55);ctx.lineTo(h*.18,h*.8);} // 코 아래에서: 밑 두 갈래
           ctx.stroke();
         }
         break;
