@@ -1,7 +1,7 @@
 {
   "appId": "com.cony.crochetflow",
-  "appName": "Crochet Flow",
-  "webDir": ".",
+  "appName": "코니",
+  "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https"

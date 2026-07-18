@@ -1,0 +1,40 @@
+# CONY 코니 — Codemagic 클라우드 iOS 빌드 (Windows PC에서 Mac 없이 iOS 앱 만들기)
+# 사용법: docs/IOS-BUILD.md 참조. Codemagic 개인 계정 무료 500분/월로 충분 (1회 빌드 약 10~15분).
+workflows:
+  ios-build:
+    name: CONY iOS (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    integrations:
+      app_store_connect: cony-asc-key # Codemagic UI > Teams > Integrations에 등록한 App Store Connect API 키 이름
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.cony.crochetflow
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: 의존성 설치
+        script: npm install
+      - name: 웹 자산 빌드 (dist/)
+        script: npm run web:build
+      - name: iOS 플랫폼 생성
+        script: npx cap add ios
+      - name: 웹 자산 동기화
+        script: npx cap sync ios
+      - name: 코드 서명 프로파일 적용
+        script: xcode-project use-profiles
+      - name: 빌드 번호 자동 증가
+        script: |
+          cd ios/App
+          agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_APPLE_ID" 2>/dev/null || echo 0) + 1))
+      - name: IPA 빌드
+        script: xcode-project build-ipa --workspace ios/App/App.xcworkspace --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

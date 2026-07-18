@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "serve": "npx serve . -l 3940",
+    "web:build": "node -e \"const fs=require('fs'),p=require('path');fs.rmSync('dist',{recursive:true,force:true});fs.mkdirSync('dist/icons',{recursive:true});['index.html','manifest.json','sw.js'].forEach(f=>fs.existsSync(f)&&fs.copyFileSync(f,p.join('dist',f)));if(fs.existsSync('icons'))fs.readdirSync('icons').filter(f=>/\\.(png|ico|svg)$/.test(f)).forEach(f=>fs.copyFileSync(p.join('icons',f),p.join('dist/icons',f)));console.log('dist/ 빌드 완료:',fs.readdirSync('dist'));\"",
     "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
     "cap:ios": "npx cap open ios",
