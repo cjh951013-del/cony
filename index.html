@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#13131f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Crochet Flow">
+<meta name="apple-mobile-web-app-title" content="코니">
 <link rel="apple-touch-icon" href="icons/icon.svg">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -1477,7 +1477,7 @@ body.ui-hidden #row-counter{display:none!important}
 <!-- ===== MODAL: PRO 업그레이드 ===== -->
 <div class="mo" id="m-pro">
   <div class="mc">
-    <div class="mh"><h2>👑 Crochet Flow 플랜 선택</h2><button class="mhx" onclick="closeM('m-pro')">✕</button></div>
+    <div class="mh"><h2>👑 코니 플랜 선택</h2><button class="mhx" onclick="closeM('m-pro')">✕</button></div>
     <div class="plans">
       <div class="plan" data-plan="free">
         <div class="plan-badge" style="background:#334155;color:#94a3b8">무료</div>
@@ -4670,7 +4670,7 @@ function doExport(fmt){
   cv.toBlob(async b=>{
     const file=new File([b],fname+'.'+fmt,{type:mime});
     if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-      try{await navigator.share({files:[file],title:'Crochet Flow 도안'});return;}catch(e){if(e.name==='AbortError')return;}
+      try{await navigator.share({files:[file],title:'코니 도안'});return;}catch(e){if(e.name==='AbortError')return;}
     }
     const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fname+'.'+fmt;a.click();
   },mime,.95);
@@ -5465,7 +5465,7 @@ function bindAll(){
     const isLife=_billingType==='life';
     const planKey=isLife?'pro_l':'pro';
     const amount=isLife?29900:4900;
-    const orderName='Crochet Flow Pro '+(isLife?'평생 이용':'월 구독');
+    const orderName='코니 Pro '+(isLife?'평생 이용':'월 구독');
     const orderId='cony_'+Date.now();
     const base=location.origin+location.pathname;
     const isNetlify=location.hostname.includes('netlify.app')||location.hostname.includes('netlify.com');
@@ -5533,7 +5533,7 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
 </style></head><body>
 <h1>📝 ${title} — 서술도안</h1>
 <pre>${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
-<footer>CONY · Crochet Flow · ${new Date().toLocaleDateString('ko-KR')}</footer>
+<footer>코니 CONY · ${new Date().toLocaleDateString('ko-KR')}</footer>
 <script>window.onload=()=>{window.print();}<\/script>
 </body></html>`);
     pw.document.close();

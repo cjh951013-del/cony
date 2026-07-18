@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Crochet Flow · CONY",
-  "short_name": "Crochet Flow",
+  "name": "코니 CONY — 뜨개 도안",
+  "short_name": "코니",
   "version": "1.0.0",
   "description": "코바늘·대바늘 도안 제작 앱 — 멈춰도 돼, 포기만 안 하면",
   "icons": {
@@ -11,7 +11,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Crochet Flow 열기"
+    "default_title": "코니 열기"
   },
   "permissions": ["tabs", "storage"],
   "content_security_policy": {

@@ -1,7 +1,7 @@
 {
-  "name": "crochet-flow",
+  "name": "cony",
   "version": "1.0.0",
-  "description": "코니 — 코바늘·대바늘 도안 제작 앱 (Crochet Flow)",
+  "description": "코니(CONY) — 코바늘·대바늘 도안 제작 앱. 멈춰도 돼, 포기만 안 하면,",
   "private": true,
   "scripts": {
     "serve": "npx serve . -l 3940",

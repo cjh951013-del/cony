@@ -32,9 +32,9 @@
 
 ### 1-D. App Store Connect에서 앱 등록 (한 번만)
 1. App Store Connect → **앱(Apps)** → **＋** → **신규 앱**
-2. 플랫폼 iOS / 이름 **코니** / 기본 언어 한국어 / 번들 ID **com.cony.crochetflow** (없으면 먼저
+2. 플랫폼 iOS / 이름 **코니** / 기본 언어 한국어 / 번들 ID **com.cony.app** (없으면 먼저
    https://developer.apple.com/account/resources/identifiers 에서 Identifiers ＋ → App IDs → Bundle ID
-   `com.cony.crochetflow` 명시적(explicit)으로 등록) / SKU는 아무거나 (예: cony001)
+   `com.cony.app` 명시적(explicit)으로 등록) / SKU는 아무거나 (예: cony001)
 
 여기까지 하면 1회차 끝. 이제 애플·코드매직·GitHub이 전부 연결됐어.
 

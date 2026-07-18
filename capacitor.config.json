@@ -1,5 +1,5 @@
 {
-  "appId": "com.cony.crochetflow",
+  "appId": "com.cony.app",
   "appName": "코니",
   "webDir": "dist",
   "bundledWebRuntime": false,
