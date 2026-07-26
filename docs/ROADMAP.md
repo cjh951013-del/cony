@@ -37,10 +37,8 @@
 
 ## 사용자가 직접 해야 할 것
 
-### 아이콘 생성 (전 플랫폼 공통 선행 작업)
-- `icons/gen-icons.html` 브라우저에서 열어 다운로드:
-  - `icon-512.png`, `icon-192.png` → `icons/` 폴더에 저장 (PWA + Capacitor)
-  - `icon-128.png`, `icon-48.png`, `icon-16.png` → `chrome-ext/icons/` 폴더에 저장 (Chrome Extension)
+### ✅ 아이콘 생성 (전 플랫폼 공통 선행 작업, 2026-07-26 완료)
+- `icon-512.png`, `icon-192.png` → `icons/` 폴더 (PWA + Capacitor), `icon-128.png`, `icon-48.png`, `icon-16.png` → `chrome-ext/icons/`. `dist/` 재빌드 반영 완료.
 
 ### Android APK
 - `npm install` → `npx cap add android` → `npx cap sync`
