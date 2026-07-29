@@ -10,3 +10,6 @@ dist/
 chrome-ext/app/
 chrome-ext/icons/
 build-out/
+*.jks
+*.keystore
+keystore.properties
