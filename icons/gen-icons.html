@@ -76,31 +76,47 @@ function drawIcon(cv) {
   ctx.arc(sz / 2, sz / 2, sz * 0.42, 0, Math.PI * 2);
   ctx.fill();
 
-  // crochet loop symbol
+  // 대바늘 + 코바늘 교차 심볼
   ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = sz * 0.075;
+  ctx.fillStyle = '#ffffff';
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
+  const lw = sz * 0.078;
+  ctx.lineWidth = lw;
 
-  // main loop (chain stitch inspired oval)
+  // 대바늘 — 좌하 → 우상, 끝에 뾰족한 팁 + 반대쪽 둥근 마개
+  const kx0 = sz * 0.305, ky0 = sz * 0.740, kx1 = sz * 0.678, ky1 = sz * 0.316;
   ctx.beginPath();
-  ctx.ellipse(sz * 0.5, sz * 0.46, sz * 0.2, sz * 0.15, 0, 0, Math.PI * 2);
+  ctx.moveTo(kx0, ky0);
+  ctx.lineTo(kx1, ky1);
   ctx.stroke();
-
-  // two legs (like a stitch going down)
+  // 뾰족한 팁 — 축 방향 대칭 테이퍼 (둥근 캡 폭에 정확히 맞물림)
+  const kdx = kx1 - kx0, kdy = ky1 - ky0;
+  const klen = Math.hypot(kdx, kdy);
+  const ux = kdx / klen, uy = kdy / klen;
+  const px = -uy, py = ux;
+  const hw = lw / 2;
   ctx.beginPath();
-  ctx.moveTo(sz * 0.38, sz * 0.58);
-  ctx.lineTo(sz * 0.3, sz * 0.74);
+  ctx.moveTo(kx1 + px * hw, ky1 + py * hw);
+  ctx.lineTo(kx1 + ux * lw * 1.35, ky1 + uy * lw * 1.35);
+  ctx.lineTo(kx1 - px * hw, ky1 - py * hw);
+  ctx.closePath();
+  ctx.fill();
+  // 둥근 마개
+  ctx.beginPath();
+  ctx.arc(kx0 - ux * lw * 0.15, ky0 - uy * lw * 0.15, lw * 0.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 코바늘 — 우하 → 좌상, 끝이 갈고리로 말림
+  ctx.beginPath();
+  ctx.moveTo(sz * 0.705, sz * 0.745);
+  ctx.lineTo(sz * 0.375, sz * 0.368);
   ctx.stroke();
-
+  // 갈고리 (코바늘 특징)
   ctx.beginPath();
-  ctx.moveTo(sz * 0.62, sz * 0.58);
-  ctx.lineTo(sz * 0.7, sz * 0.74);
-  ctx.stroke();
-
-  // small hook at top right of oval
-  ctx.beginPath();
-  ctx.arc(sz * 0.62, sz * 0.36, sz * 0.07, Math.PI * 1.1, Math.PI * 2.2);
+  ctx.moveTo(sz * 0.375, sz * 0.368);
+  ctx.quadraticCurveTo(sz * 0.295, sz * 0.276, sz * 0.238, sz * 0.318);
+  ctx.quadraticCurveTo(sz * 0.199, sz * 0.348, sz * 0.226, sz * 0.394);
   ctx.stroke();
 }
 

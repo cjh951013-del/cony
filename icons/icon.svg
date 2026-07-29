@@ -1,17 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <radialGradient id="bg" cx="50%" cy="40%" r="55%">
-      <stop offset="0%" stop-color="#c084fc"/>
-      <stop offset="100%" stop-color="#7c3aed"/>
+    <radialGradient id="bg" gradientUnits="userSpaceOnUse" cx="256" cy="256" r="235.5" fx="245.8" fy="215">
+      <stop offset="0" stop-color="#d8b4fe"/>
+      <stop offset="0.5" stop-color="#a855f7"/>
+      <stop offset="1" stop-color="#6d28d9"/>
     </radialGradient>
     <clipPath id="rr">
-      <rect width="512" height="512" rx="115"/>
+      <rect width="512" height="512" rx="113"/>
     </clipPath>
   </defs>
-  <rect width="512" height="512" rx="115" fill="#13131f"/>
-  <circle cx="256" cy="230" r="210" fill="url(#bg)" clip-path="url(#rr)"/>
-  <!-- crochet loop symbol -->
-  <circle cx="256" cy="220" r="88" fill="none" stroke="#fff" stroke-width="36" stroke-linecap="round"/>
-  <line x1="198" y1="295" x2="168" y2="370" stroke="#fff" stroke-width="36" stroke-linecap="round"/>
-  <line x1="314" y1="295" x2="344" y2="370" stroke="#fff" stroke-width="36" stroke-linecap="round"/>
+  <g clip-path="url(#rr)">
+    <rect width="512" height="512" fill="#13131f"/>
+    <circle cx="256" cy="256" r="215" fill="url(#bg)"/>
+    <!-- 대바늘: 좌하 → 우상, 뾰족한 팁 + 둥근 마개 -->
+    <line x1="156.2" y1="378.9" x2="347.1" y2="161.8" stroke="#fff" stroke-width="40" stroke-linecap="round"/>
+    <polygon points="362.1,175.0 382.8,121.3 332.1,148.6" fill="#fff"/>
+    <circle cx="152.2" cy="383.4" r="32" fill="#fff"/>
+    <!-- 코바늘: 우하 → 좌상, 끝이 갈고리로 말림 -->
+    <path d="M361.0 381.4 L192.0 188.4 Q151.0 141.3 121.9 162.8 Q101.9 178.2 115.7 201.7"
+          fill="none" stroke="#fff" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
 </svg>
