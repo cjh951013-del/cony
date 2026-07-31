@@ -345,6 +345,8 @@ html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:
 .selb.d:hover{border-color:var(--danger);color:var(--danger)}
 .fb{position:absolute;bottom:14px;right:14px;display:flex;flex-direction:column;gap:5px}
 .fbb{width:34px;height:34px;border-radius:50%;background:var(--panel2);border:1px solid var(--border);color:var(--text2);font-size:14px;display:flex;align-items:center;justify-content:center}
+/* 라벨 있는 알약형 — 이모지만 있으면 기능이 있는 줄도 모른다(서술도안이 실제로 그랬다) */
+.fbb.wide{width:auto;height:34px;border-radius:17px;padding:0 12px;gap:5px;font-size:12px;font-weight:600;color:var(--text);white-space:nowrap}
 .fbb:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
 
 /* ===== SIDEBAR RIGHT (floating — real layout is in the #sl,#sr block above) ===== */
@@ -982,7 +984,7 @@ body.ui-hidden #row-counter{display:none!important}
       </div>
       <div class="fb">
         <button class="fbb" id="btn-ctr" title="화면 중앙">⊕</button>
-        <button class="fbb" id="btn-narr" title="서술도안 보기">📝</button>
+        <button class="fbb wide" id="btn-narr" title="서술도안 보기 — 그린 도안을 뜨는 순서 문장으로">📝 서술도안</button>
       </div>
       <!-- 텍스트 도구 인라인 에디터 -->
       <div id="text-wrap" style="display:none;position:absolute;z-index:50;pointer-events:auto">
@@ -1560,6 +1562,10 @@ body.ui-hidden #row-counter{display:none!important}
       <button class="ntb" data-nt="en">영문 약어 (Pro+)</button>
     </div>
     <div class="narr-out" id="narr-out"></div>
+    <div id="narr-upsell" style="display:none;margin-top:10px;padding:12px 14px;border:1px solid var(--primary);border-radius:10px;background:rgba(168,85,247,.10)">
+      <div style="font-size:12.5px;line-height:1.6;color:var(--text)">그린 도안이 <b>뜨는 순서 문장</b>으로 자동 변환됩니다. 인쇄해서 옆에 두고 뜨거나 그대로 공유할 수 있어요.</div>
+      <button class="mb p" style="margin-top:9px" onclick="closeM('m-narr');openM('m-pro')">👑 Pro로 전체 보기</button>
+    </div>
     <div class="mf">
       <button class="mb" id="btn-narr-copy">📋 복사</button>
       <button class="mb p" id="btn-narr-pdf">PDF 생성 (Pro+)</button>
@@ -4618,6 +4624,27 @@ function genFiletNarrative(type,f){
   lines.push('','마무리: 실 자르고 정리. 가장자리는 짧은뜨기 1단이나 원하는 테두리 기법으로 정리한다.');
   return lines.join('\n');
 }
+// 서술도안 모달 열기. 무료 사용자에겐 앞부분만 보여준다 — 예전엔 버튼을 누르는 즉시
+// 업그레이드 창만 떠서, 이 기능이 뭘 해주는지 본 적도 없이 닫는 사람이 대부분이었다.
+function showNarr(type,keepOpen){
+  const full=genNarrative(type);
+  const pro=isPro();
+  $('narr-out').textContent = pro ? full : narrPreview(full);
+  const up=$('narr-upsell');
+  if(up) up.style.display = pro ? 'none' : '';
+  if(!keepOpen) openM('m-narr');
+}
+// 머리말 + 첫 3단까지만 남기고 잠근다. 경고 메시지(⚠️)는 그대로 보여줘야 원인을 알 수 있다.
+function narrPreview(txt){
+  if(!txt||txt.startsWith('⚠️'))return txt;
+  const lines=txt.split('\n');
+  const isRow=l=>/^\s*\d+단\s*:/.test(l);
+  const total=lines.filter(isRow).length;
+  const first=lines.findIndex(isRow);
+  if(first<0||total<=3)return txt; // 짧으면 굳이 자르지 않는다
+  const shown=lines.slice(0,first+3).join('\n');
+  return shown+`\n\n… 남은 ${total-3}개 단은 잠겨 있습니다.\n🔒 전체 보기·복사·인쇄는 Pro에서 열립니다.`;
+}
 function genNarrative(type){
   // 여러 조각(뒤판+앞판+소매 등)을 진동·목선 줄임까지 손으로 설계한 도안은 자동 생성기가
   // 단일 사각형 기준으로 잘못 계산하므로, 손으로 쓴 완성 서술도안이 있으면 그대로 반환
@@ -5456,8 +5483,7 @@ function bindAll(){
   renderQMenu();
   $('btn-exp').addEventListener('click',()=>{updExpGuide();openM('m-exp');});
   $('btn-narr').addEventListener('click',()=>{
-    if(!isPro()){openM('m-pro');return;}
-    $('narr-out').textContent=genNarrative(G.narrType);openM('m-narr');
+    showNarr(G.narrType);
   });
   
   // TABS
@@ -5577,7 +5603,7 @@ function bindAll(){
   // NARRATIVE
   document.querySelectorAll('.ntb').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('.ntb').forEach(x=>x.classList.remove('act'));b.classList.add('act');
-    G.narrType=b.dataset.nt;$('narr-out').textContent=genNarrative(G.narrType);
+    G.narrType=b.dataset.nt;showNarr(G.narrType,true);
   }));
   $('btn-narr-copy').addEventListener('click',()=>{navigator.clipboard?.writeText($('narr-out').textContent).then(()=>showToast('서술도안 복사됨')).catch(()=>showToast('복사 실패 — 직접 선택 후 복사해주세요'));});
   $('btn-narr-pdf').addEventListener('click',()=>{
