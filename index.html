@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,viewport-fit=cover">
 <title>CONY · 코니</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#13131f">
@@ -645,6 +645,19 @@ body.ui-hidden #row-counter{display:none!important}
 .ref-hbtn:hover{color:var(--text)}
 #ref-img{width:100%;object-fit:contain;max-height:200px;display:block;transition:opacity .2s}
 #ref-panel.minimized #ref-img{display:none}
+
+/* ── 안전영역(노치·상태바·제스처바) ──────────────────────────────
+   안드로이드 15+(타깃 SDK 35~)는 엣지투엣지가 강제라 앱이 상태바·내비게이션 바
+   아래까지 그려진다. viewport-fit=cover와 함께 화면 가장자리에 붙는 크롬에만
+   inset을 더한다. 앞의 모바일 미디어쿼리(#eh 패딩 재정의)보다 뒤에 와야 이긴다.
+   데스크톱·구형 기기에선 env()가 0이라 아무 변화가 없다. */
+#dh{padding-top:calc(10px + env(safe-area-inset-top))}
+#eh{padding-top:calc(8px + env(safe-area-inset-top))}
+@media(max-width:420px){#eh{padding-top:calc(6px + env(safe-area-inset-top))}}
+#col-hist-bar{bottom:calc(14px + env(safe-area-inset-bottom))}
+#tooldock{left:calc(10px + env(safe-area-inset-left))}
+#sz-handle{left:env(safe-area-inset-left)}
+#op-handle{right:calc(8px + env(safe-area-inset-right))}
 </style>
 <script src="https://js.tosspayments.com/v1"></script>
 </head>
