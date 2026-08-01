@@ -1557,9 +1557,10 @@ body.ui-hidden #row-counter{display:none!important}
   <div class="mc lg">
     <div class="mh"><h2>📝 서술도안 변환</h2><button class="mhx" onclick="closeM('m-narr')">✕</button></div>
     <div class="narr-tabs">
-      <button class="ntb act" data-nt="ko">한국어 일반</button>
-      <button class="ntb" data-nt="abbr">약어 보기 (Pro)</button>
-      <button class="ntb" data-nt="en">영문 약어 (Pro+)</button>
+      <button class="ntb act" data-nt="ko">한국어</button>
+      <button class="ntb" data-nt="en">English</button>
+      <button class="ntb" data-nt="ja">日本語</button>
+      <button class="ntb" data-nt="abbr">한글 약어</button>
     </div>
     <div class="narr-out" id="narr-out"></div>
     <div id="narr-upsell" style="display:none;margin-top:10px;padding:12px 14px;border:1px solid var(--primary);border-radius:10px;background:rgba(168,85,247,.10)">
@@ -1768,6 +1769,7 @@ const STITCHES={
     {id:'nostitch',name:'코없음',svg:'nostitch',visible:true},
     {id:'k3tog',name:'오른코3코모아',svg:'k3tog',visible:true},
     {id:'sssk',name:'왼코3코모아',svg:'sssk',visible:true},
+    {id:'k2togtbl',name:'뒤코2코모아',svg:'k2togtbl',visible:true},
     {id:'p3tog',name:'안뜨기3코모아',svg:'p3tog',visible:true},
     {id:'m1l',name:'왼코늘리기(M1L)',svg:'m1l',visible:true},
     {id:'m1r',name:'오른코늘리기(M1R)',svg:'m1r',visible:true},
@@ -2167,6 +2169,11 @@ function drawSVGStitch(ctx,x,y,id,color,size,rot){
       ctx.moveTo(-h*.62,h*.5);ctx.lineTo(0,-h*.5);ctx.lineTo(h*.62,h*.5);
       ctx.moveTo(h*.32,h*.5);ctx.lineTo(h*.04,-h*.1);ctx.stroke();
       ctx.beginPath();ctx.moveTo(0,-h*.5);ctx.lineTo(0,h*.5);ctx.stroke();break;
+    case 'k2togtbl': // 뒤코로 2코 모아: ssk와 같은 왼쪽 기울임 + 뒤코(k-tbl)의 사각 표시
+      ctx.beginPath();
+      ctx.moveTo(-h*.5,h*.5);ctx.lineTo(0,-h*.5);ctx.lineTo(h*.5,h*.5);
+      ctx.moveTo(-h*.4,0);ctx.lineTo(h*.4,0);ctx.stroke();
+      ctx.beginPath();ctx.strokeRect(-h*.16,h*.16,h*.32,h*.32);ctx.stroke();break;
     case 'sssk': // 왼코 3코 모아: cdd의 3다리 + ssk의 가로바(왼쪽 기울기 표시)
       ctx.beginPath();
       ctx.moveTo(-h*.62,h*.5);ctx.lineTo(0,-h*.5);ctx.lineTo(h*.62,h*.5);
@@ -4584,7 +4591,6 @@ Rows 2-${rows}: ${stAb} in each st across (${stCount}), ch ${tch}, turn
 FO: fasten off, weave in ends`;
   }
   if(type==='en'){
-    if(!isPro2())return '⚠️ 영문 약어 변환은 Pro+ 전용 기능입니다.';
     if(isKnit)return '⚠️ 대바늘 도안의 영문 변환은 준비 중입니다 — 한국어 서술도안을 사용해주세요.';
     return `[Crochet Pattern — English Abbreviations, Flat rows]
 Materials: US Size G-6 (4mm) hook / Worsted weight yarn
@@ -4601,7 +4607,6 @@ FO: Fasten off, weave in ends.`;
 // Terry Connor "How to Read and Work Filet Crochet Graphs" + 핀피노 기호 도안 확대 대조.
 // 필레 영문판 — 해외 배포용. 국제 표준 용어(block/space, US terms)를 쓴다.
 function genFiletNarrativeEn(f){
-  if(!isPro2())return '⚠️ 영문 변환은 Pro+ 전용 기능입니다.'; // 기존 영문 경로와 동일한 경계
   const gd=frameGridDims(f), GS=gStitch();
   const ab=GS.ab||'dc';
   const chainCount=GS.per===1?gd.cols+1:gd.cols*GS.per+1+GS.pillar;
@@ -4636,9 +4641,46 @@ function genFiletNarrativeEn(f){
   lines.push('','FO: Fasten off and weave in ends. Edge with a round of sc if you like.');
   return lines.join('\n');
 }
+// 필레 일본어판 — フィレクロッシェ 표기. 일본은 코바늘 종주국이라 자국 용어가 확고하다.
+function genFiletNarrativeJa(f){
+  const gd=frameGridDims(f), GS=gStitch();
+  const st=JA_ST[G.graphStitch]||JA_ST.dc;
+  const chainCount=GS.per===1?gd.cols+1:gd.cols*GS.per+1+GS.pillar;
+  let filled=0;
+  for(let r=0;r<gd.rows;r++)for(let c=0;c<gd.cols;c++)if(G.graphData[c+','+r])filled++;
+  const lines=[
+    `[フィレクロッシェ編み図 — ${st}]`,
+    `作品名: ${(G.cur&&G.cur.name)||'無題'}`,
+    '材料: かぎ針 4/0号 / 中細コットン 1色',
+    '',
+    GS.per===1
+      ?`作り目: 鎖 ${chainCount} 目（マス ${gd.cols} + 立ち上がり 1）。1マス＝${st} 1目、模様は色で表します。`
+      :`作り目: 鎖 ${chainCount} 目（マス ${gd.cols}×${GS.per}+1 ＋ 立ち上がりの鎖 ${GS.pillar}）`,
+    GS.per===1
+      ?'記号: ■＝模様の色、□＝地の色。'
+      :`記号: ■（ブロック）＝${st} ${GS.per}目。□（スペース）＝鎖 ${GS.per-1}目、${GS.per-1}目とばして次の柱に${st} 1目。境の柱は隣のマスと共有します。`,
+    `各段のはじめは鎖 ${GS.pillar}目（立ち上がり）。下から上へ編み、奇数段は右から左、偶数段は左から右に往復します。`,
+    `全体は ${gd.cols}マス × ${gd.rows}段、ブロックは ${filled} マスです。`,
+    ''
+  ];
+  for(let r=0;r<gd.rows;r++){
+    const seq=[];
+    for(let c=0;c<gd.cols;c++)seq.push(G.graphData[c+','+r]?'ブロック':'スペース');
+    if(r%2===0)seq.reverse(); // 왕복 — 한국어판과 동일한 읽기 순서
+    const parts=[];let cur=seq[0],cnt=1;
+    for(let i=1;i<seq.length;i++){
+      if(seq[i]===cur)cnt++; else{parts.push(cur+'×'+cnt);cur=seq[i];cnt=1;}
+    }
+    parts.push(cur+'×'+cnt);
+    lines.push(`${r+1}段: 鎖${GS.pillar}, ${parts.join(', ')}`);
+  }
+  lines.push('','仕上げ: 糸を切って糸始末をします。ふちは細編み1段で整えても構いません。');
+  return lines.join('\n');
+}
 function genFiletNarrative(type,f){
   if(type==='en')return genFiletNarrativeEn(f);
-  if(type!=='ko')return '⚠️ 방안뜨기 약어 변환은 아직 지원하지 않습니다 — 한국어 또는 영문(EN)을 사용해주세요.';
+  if(type==='ja')return genFiletNarrativeJa(f);
+  if(type!=='ko')return '⚠️ 방안뜨기 약어 변환은 아직 지원하지 않습니다 — 한국어·영문·일본어를 사용해주세요.';
   const gd=frameGridDims(f);
   const GS=gStitch();
   const chainCount=GS.per===1?gd.cols+1:gd.cols*GS.per+1+GS.pillar;
@@ -4679,41 +4721,62 @@ function genFiletNarrative(type,f){
 function showNarr(type,keepOpen){
   const full=genNarrative(type);
   const pro=isPro();
-  $('narr-out').textContent = pro ? full : narrPreview(full);
+  $('narr-out').textContent = pro ? full : narrPreview(full,type);
   const up=$('narr-upsell');
   if(up) up.style.display = pro ? 'none' : '';
   if(!keepOpen) openM('m-narr');
 }
 // 머리말 + 첫 3단까지만 남기고 잠근다. 경고 메시지(⚠️)는 그대로 보여줘야 원인을 알 수 있다.
-function narrPreview(txt){
+// ★단 표기는 언어마다 다르다(N단 / N段 / Row N / Rnd N). 한국어만 잡으면 영문·일본어가
+//  조용히 잠금을 빠져나가 무료로 전문이 노출된다 — 실제로 그런 상태였다.
+function narrPreview(txt,lang){
   if(!txt||txt.startsWith('⚠️'))return txt;
   const lines=txt.split('\n');
-  const isRow=l=>/^\s*\d+단\s*:/.test(l);
+  const isRow=l=>/^\s*(\d+\s*단\s*:|\d+\s*段\s*:|Row\s+\d+\s*:|Rnd\s+\d+\s*:)/.test(l);
   const total=lines.filter(isRow).length;
   const first=lines.findIndex(isRow);
   if(first<0||total<=3)return txt; // 짧으면 굳이 자르지 않는다
   const shown=lines.slice(0,first+3).join('\n');
-  return shown+`\n\n… 남은 ${total-3}개 단은 잠겨 있습니다.\n🔒 전체 보기·복사·인쇄는 Pro에서 열립니다.`;
+  const rest=total-3;
+  const msg=lang==='en'
+    ?`\n\n… ${rest} more rows are locked.\n🔒 Unlock the full pattern, copy and print with Pro.`
+    :lang==='ja'
+    ?`\n\n… 残り ${rest} 段はロックされています。\n🔒 全文の表示・コピー・印刷は Pro で開放されます。`
+    :`\n\n… 남은 ${rest}개 단은 잠겨 있습니다.\n🔒 전체 보기·복사·인쇄는 Pro에서 열립니다.`;
+  return shown+msg;
 }
+// 일본어 기호명(JIS 통용 표기). 일본은 코바늘 종주국이라 자국 용어가 확고해 약어로 두면 안 읽힌다.
+// 전 기호(128종)를 옮기는 건 검증이 필요해, 확실한 핵심만 넣고 나머지는 국제 약어로 떨어뜨린다.
+const JA_ST={
+  ch:'鎖編み', sc:'細編み', hdc:'中長編み', dc:'長編み', tr:'長々編み', dtr:'三つ巻き長編み',
+  slst:'引き抜き編み', mr:'わの作り目', picot:'ピコット', shell:'松編み', puff:'パフステッチ',
+  k:'表目', p:'裏目', yo:'かけ目', k2tog:'左上2目一度', ssk:'右上2目一度',
+  cdd:'中上3目一度', kfb:'ねじり増し目', m1:'増し目', bo:'伏せ目', co:'作り目',
+  nostitch:'目なし', slwyif:'すべり目(糸を手前)', slwyib:'すべり目(糸を向こう)', sl1:'すべり目'
+};
+function jaName(id){return JA_ST[id]||String(id).replace(/^cus_.*/,'st');}
 // 같은 기호가 이어지면 묶어서 "짧은뜨기 6코"처럼 센다.
 // 영문은 기호 id를 그대로 쓴다 — id 자체가 국제 표준 약어(sc·dc·k·p·k2tog…)로 지어져 있다.
-function narrRLE(items,en){
+function narrRLE(items,lang){
   const runs=[];
   items.forEach(p=>{
     const last=runs[runs.length-1];
     if(last&&last.id===p.i)last.n++;
     else runs.push({id:p.i,n:1});
   });
-  return runs.map(r=>en?`${String(r.id).replace(/^cus_.*/,'st')} x${r.n}`:`${symName(r.id)||r.id} ${r.n}코`).join(', ');
+  return runs.map(r=>{
+    if(lang==='en')return `${String(r.id).replace(/^cus_.*/,'st')} x${r.n}`;
+    if(lang==='ja')return `${jaName(r.id)} ${r.n}目`;
+    return `${symName(r.id)||r.id} ${r.n}코`;
+  }).join(', ');
 }
 // 찍힌 기호 좌표(G.symPlace)에서 실제 배치를 읽어 서술도안을 만든다.
 // 프레임 종류·방안 칠 여부와 무관하게, 무엇을 어디에 놨든 설명할 수 있는 경로.
 function genNarrativeFromPlace(type){
   const pts=(G.symPlace||[]).filter(p=>p&&isFinite(p.x)&&isFinite(p.y)&&p.i);
   if(pts.length<2)return null;
-  if(type==='abbr')return '⚠️ 좌표 기반 도안의 약어 변환은 아직 지원하지 않습니다 — 한국어 또는 영문(EN)을 사용해주세요.';
-  if(type==='en'&&!isPro2())return '⚠️ 영문 변환은 Pro+ 전용 기능입니다.'; // 기존 영문 경로와 동일한 경계
-  const en=(type==='en');
+  if(type==='abbr')return '⚠️ 좌표 기반 도안의 약어 변환은 아직 지원하지 않습니다 — 한국어·영문·일본어를 사용해주세요.';
+  const en=(type==='en'), ja=(type==='ja'), L=ja?'ja':(en?'en':'ko');
   const isKnit=(G.cur?.type)==='knitting';
   // 같은 단으로 묶을 허용오차. 격자 스냅을 쓰면 단 간격이 격자 칸에 맞춰지므로 칸 크기의 절반이
   // 정확하다. 기호 크기로 잡으면 칸보다 커서 이웃 단까지 삼킨다(실제로 3단이 2단으로 뭉쳤었다).
@@ -4725,6 +4788,10 @@ function genNarrativeFromPlace(type){
     ?[`[${G.cur?.name||'Untitled'} — Written Pattern · from chart placement]`,
       `Materials: ${isKnit?'Knitting needles':'US size G-6 (4.0 mm) hook'} / DK or worsted yarn`,
       `${pts.length} symbols placed on the chart.`,'']
+    :ja
+    ?[`[${G.cur?.name||'編み図'} — 文章パターン・記号配置より]`,
+      `材料: ${isKnit?'棒針':'かぎ針 4/0号'} / 中細〜合太糸`,
+      `記号は全部で ${pts.length} 個配置されています。`,'']
     :[`[${G.cur?.name||'뜨개 도안'} — 서술도안 · 배치 기준]`,
       `재료: ${isKnit?'대바늘':'코바늘 4호'} / 중세사 (면사 또는 아크릴)`,
       `총 ${pts.length}개 기호가 배치되어 있습니다.`,''];
@@ -4741,15 +4808,19 @@ function genNarrativeFromPlace(type){
     });
     head.push(en
       ?`Worked in the round from the centre outward, ${rings.length} rounds, each read clockwise from 12 o'clock.`
+      :ja?`中心から外へ ${rings.length} 段、各段は12時の位置から時計回りに読みます。`
       :`중심에서 바깥으로 ${rings.length}단, 매 단은 12시 방향부터 시계방향으로 읽습니다.`,'');
     // atan2는 9시(-π)에서 시작하므로 그대로 정렬하면 시작 코가 어긋난다. 12시를 0으로 돌려 시계방향.
     const clock=p=>(Math.atan2(p.y-cy,p.x-cx)+Math.PI/2+Math.PI*2)%(Math.PI*2);
     rings.forEach((g,i)=>{
       const seq=g.items.slice().sort((a,b)=>clock(a)-clock(b));
-      body.push(en?`Rnd ${i+1}: ${narrRLE(seq,true)} (${seq.length})`
-                  :`${i+1}단: ${narrRLE(seq)} = ${seq.length}코`);
+      body.push(en?`Rnd ${i+1}: ${narrRLE(seq,'en')} (${seq.length})`
+                :ja?`${i+1}段: ${narrRLE(seq,'ja')} = ${seq.length}目`
+                :`${i+1}단: ${narrRLE(seq,'ko')} = ${seq.length}코`);
     });
-    body.push('',en?'FO: Sl st to close, fasten off and weave in ends.':'마무리: 빼뜨기로 닫고 실을 정리합니다.');
+    body.push('',en?'FO: Sl st to close, fasten off and weave in ends.'
+                :ja?'仕上げ: 引き抜き編みで閉じ、糸始末をします。'
+                :'마무리: 빼뜨기로 닫고 실을 정리합니다.');
   }else{
     // 평편: Y로 단을 묶고 아래→위로, 홀수단 오른쪽→왼쪽 / 짝수단 왼쪽→오른쪽(왕복)
     const sorted=pts.slice().sort((a,b)=>b.y-a.y);
@@ -4761,17 +4832,22 @@ function genNarrativeFromPlace(type){
     });
     head.push(en
       ?`Worked flat, bottom to top, ${rows.length} rows. Odd rows read right to left, even rows left to right.`
+      :ja?`下から上へ ${rows.length} 段。奇数段は右から左、偶数段は左から右に往復します。`
       :`아래에서 위로 ${rows.length}단. 홀수단은 오른쪽→왼쪽, 짝수단은 왼쪽→오른쪽으로 왕복합니다.`,'');
     rows.forEach((g,i)=>{
       const seq=g.items.slice().sort((a,b)=>(i%2===0)?b.x-a.x:a.x-b.x);
-      body.push(en?`Row ${i+1}: ${narrRLE(seq,true)} (${seq.length})`
-                  :`${i+1}단: ${narrRLE(seq)} = ${seq.length}코`);
+      body.push(en?`Row ${i+1}: ${narrRLE(seq,'en')} (${seq.length})`
+                :ja?`${i+1}段: ${narrRLE(seq,'ja')} = ${seq.length}目`
+                :`${i+1}단: ${narrRLE(seq,'ko')} = ${seq.length}코`);
     });
     // 마감 용어는 공예별로 다르다 — 대바늘은 bind off, 코바늘은 fasten off.
     body.push('',en?(isKnit?'Bind off and weave in ends.':'FO: Fasten off and weave in ends.')
-                  :(isKnit?'마무리: 코막음하고 실을 정리합니다.':'마무리: 실을 자르고 정리합니다.'));
+                :ja?(isKnit?'仕上げ: 伏せ止めをして糸始末をします。':'仕上げ: 糸を切って糸始末をします。')
+                :(isKnit?'마무리: 코막음하고 실을 정리합니다.':'마무리: 실을 자르고 정리합니다.'));
   }
-  body.push(en
+  body.push(ja
+    ?'※ 編み図に配置した記号の座標をそのまま読み取った順序です。共有前に自由に手直しできます。'
+    :en
     ?'Note: generated by reading the symbols you placed on the chart. Edit freely before sharing.'
     :'※ 화면에 찍은 기호의 좌표를 그대로 읽어 만든 순서입니다. 손으로 다듬어 쓰셔도 됩니다.');
   return head.concat(body).join('\n');
@@ -4836,7 +4912,6 @@ ${rowsOf(k=>rowAb(k,false))}
 FO: sl st, weave in ends`;
   }
   if(type==='en'){
-    if(!isPro2()) return '⚠️ 영문 약어 변환은 Pro+ 전용 기능입니다.';
     return `[Crochet Pattern — English Abbreviations]
 Materials: US Size G-6 (4mm) hook / Worsted weight yarn
 
