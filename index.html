@@ -1922,13 +1922,64 @@ function setLang(l){
   applyI18n();
 }
 
+/* 전통 기법 샘플 도안 — 전부 자작 문장.
+   그래니 스퀘어와 평면 원형 늘리기는 특정 작가의 창작물이 아니라 오래 전해 내려온 공유 기법이라
+   직접 서술하면 저작권 문제가 없다. 반대로 남이 쓴 도안 문장은 무료 배포본이라도 대개
+   "개인 사용 한정"이므로 여기에 붙여넣으면 안 된다. */
+const SAMPLE_NARR={
+  coaster:[
+    '[봄날의 꽃잎 티코스터 — 전통 기법]',
+    '코바늘 4.0mm / 면 중세사. 완성 지름 약 11cm.',
+    '평면 원형 늘리기와 조개뜨기 가장자리 — 둘 다 오래된 전통 기법입니다.',
+    '',
+    '준비: 매직링',
+    '1단: 사슬3(첫 한길긴뜨기 대신), 링 안에 한길긴뜨기 11코, 빼뜨기로 이음. (12코)',
+    '2단: 사슬3, 같은 코에 한길긴뜨기 1코, 이후 매 코에 한길긴뜨기 2코씩. 빼뜨기 이음. (24코)',
+    '3단: 사슬3, [다음 코에 한길긴뜨기 2코, 그다음 코에 1코] 반복. 빼뜨기 이음. (36코)',
+    '4단: 사슬3, [한길긴뜨기 1코, 1코, 다음 코에 2코] 반복. 빼뜨기 이음. (48코)',
+    '5단(꽃잎): [1코 건너뛰기, 다음 코에 한길긴뜨기 5코, 1코 건너뛰기, 다음 코에 빼뜨기] ×12. → 꽃잎 12장',
+    '',
+    '마무리: 실을 정리하고 물에 적셔 모양을 잡아 말립니다.',
+    '※ 가장자리가 울면 늘리기가 많은 것, 그릇처럼 오므라들면 부족한 것 — 늘림 단을 하나 빼거나 더해 맞춥니다.'
+  ].join('\n'),
+  granny:[
+    '[클래식 그래니 스퀘어 — 전통 기법]',
+    '코바늘 4.0mm / 중세사. 4단 기준 완성 약 10×10cm.',
+    '그래니 스퀘어는 특정 작가의 창작이 아니라 오래 전해 내려온 전통 구성입니다.',
+    '',
+    '준비: 매직링 (또는 사슬4를 빼뜨기로 둥글게 잇기)',
+    '1단: 사슬3(첫 한길긴뜨기 대신), 링 안에 한길긴뜨기 2코, 사슬2,',
+    '     [한길긴뜨기 3코, 사슬2] ×3, 처음 사슬3 꼭대기에 빼뜨기 이음.',
+    '     → 3코 묶음 4개 · 모서리(사슬2) 4개',
+    '2단: 빼뜨기로 옆 2코를 지나 모서리 사슬2 공간으로 이동.',
+    '     사슬3, 같은 공간에 한길긴뜨기 2코, 사슬2, 한길긴뜨기 3코(모서리 완성),',
+    '     [사슬1, 다음 모서리 공간에 (한길긴뜨기 3코, 사슬2, 한길긴뜨기 3코)] ×3, 사슬1, 빼뜨기 이음.',
+    '     → 3코 묶음 8개',
+    '3단: 빼뜨기로 모서리 공간까지 이동. 사슬3, 같은 공간에 한길긴뜨기 2코, 사슬2, 한길긴뜨기 3코,',
+    '     [사슬1, 변의 사슬1 공간에 한길긴뜨기 3코, 사슬1, 다음 모서리에 (한길긴뜨기 3코, 사슬2, 한길긴뜨기 3코)] ×3,',
+    '     사슬1, 마지막 변 공간에 한길긴뜨기 3코, 사슬1, 빼뜨기 이음.',
+    '     → 변마다 묶음 1개씩 생김 (총 12묶음)',
+    '4단: 3단과 같은 방식. 변의 사슬1 공간마다 한길긴뜨기 3코, 모서리에는 (한길긴뜨기 3코, 사슬2, 한길긴뜨기 3코).',
+    '     → 변마다 묶음 2개 (총 16묶음)',
+    '',
+    '마무리: 실을 20cm 남기고 잘라 돗바늘로 정리합니다.',
+    '※ 색을 바꾸려면 매 단 끝 빼뜨기 뒤에 실을 갈아 잇습니다.',
+    '※ 더 크게 하려면 4단 방식을 그대로 반복 — 변의 묶음이 한 개씩 늘어납니다.'
+  ].join('\n')
+};
+
 let G={
   screen:'dash',
   lang:'ko', // ko|en|ja — UI 표시 언어
   plan:'free', // free|pro|pro_l(평생)
   projects:[
-    {id:'p1',name:'봄날의 꽃잎 티코스터',type:'crochet',frame:'circle',date:'2026-05-26',thumb:null},
-    {id:'p2',name:'클래식 그래니 스퀘어',type:'crochet',frame:'square',date:'2026-05-25',thumb:null},
+    // 이 둘은 전통 기법(평면 원형 늘리기 + 조개 가장자리 / 그래니 스퀘어)을 직접 서술한 것이다.
+    // 기법 자체는 오래 전해 내려온 공유 자산이라 저작권이 없지만, 남의 도안 문장을 옮기면 침해다.
+    // 그래서 문장은 전부 자작. 타인의 도안(무료 배포본 포함)을 여기 붙여넣지 말 것.
+    {id:'p1',name:'봄날의 꽃잎 티코스터',type:'crochet',frame:'circle',date:'2026-05-26',thumb:null,
+     customNarrative:SAMPLE_NARR.coaster},
+    {id:'p2',name:'클래식 그래니 스퀘어',type:'crochet',frame:'square',date:'2026-05-25',thumb:null,
+     customNarrative:SAMPLE_NARR.granny},
     {id:'p3',name:'가터뜨기 털목도리',type:'knitting',frame:'stripe',date:'2026-05-27',thumb:null},
   ],
   cur:null,
@@ -4855,10 +4906,13 @@ function narrPreview(txt,lang){
   if(!txt||txt.startsWith('⚠️'))return txt;
   const lines=txt.split('\n');
   const isRow=l=>/^\s*(\d+\s*단\s*:|\d+\s*段\s*:|Row\s+\d+\s*:|Rnd\s+\d+\s*:)/.test(l);
-  const total=lines.filter(isRow).length;
-  const first=lines.findIndex(isRow);
-  if(first<0||total<=3)return txt; // 짧으면 굳이 자르지 않는다
-  const shown=lines.slice(0,first+3).join('\n');
+  // ★줄이 아니라 '단' 단위로 자른다. 한 단이 여러 줄에 걸친 도안(손으로 쓴 완성 도안이 그렇다)에서
+  //  줄 수로 자르면 1단만 보이고 만다 — 실제로 그런 상태였다.
+  const rowAt=[];
+  lines.forEach((l,i)=>{if(isRow(l))rowAt.push(i);});
+  const total=rowAt.length;
+  if(total<=3)return txt; // 짧으면 굳이 자르지 않는다
+  const shown=lines.slice(0,rowAt[3]).join('\n').replace(/\s+$/,'');
   const rest=total-3;
   const msg=lang==='en'
     ?`\n\n… ${rest} more rows are locked.\n🔒 Unlock the full pattern, copy and print with Pro.`
@@ -4977,7 +5031,16 @@ function genNarrativeFromPlace(type){
 function genNarrative(type){
   // 여러 조각(뒤판+앞판+소매 등)을 진동·목선 줄임까지 손으로 설계한 도안은 자동 생성기가
   // 단일 사각형 기준으로 잘못 계산하므로, 손으로 쓴 완성 서술도안이 있으면 그대로 반환
-  if(type==='ko'&&G.cur?.customNarrative)return G.cur.customNarrative;
+  // 손으로 쓴 완성 도안이 있으면 그대로 쓴다. 자동 생성기가 여러 조각(뒤판·소매 등)을
+  // 단일 사각형으로 잘못 계산하기 때문. 번역본이 없으면 원문 + 안내를 붙여 내보낸다 —
+  // 예전엔 영문·일본어에서 "서술할 내용이 없습니다"로 떨어져 샘플이 비어 보였다.
+  if(G.cur?.customNarrative){
+    if(type==='ko')return G.cur.customNarrative;
+    if(type==='en')return G.cur.customNarrative+
+      '\n\n※ This pattern was written by the author in Korean and has no English version. Charts you draw yourself are generated in English.';
+    if(type==='ja')return G.cur.customNarrative+
+      '\n\n※ このパターンは作者が韓国語で書いたもので、日本語版はありません。ご自分で作った編み図は日本語で生成されます。';
+  }
   // 원형·반원 프레임이 있으면 라운드(원형) 도안, 없고 사각·격자 프레임만 있으면 평편(왕복) 도안
   const roundFrame=(G.canvasFrames||[]).find(f=>f.kind==='circle'||f.kind==='semi');
   // 격자 프레임 우선 — 차트가 격자에 있는데 스키마용 사각이 먼저 잡히면 코·단 수가 어긋남
