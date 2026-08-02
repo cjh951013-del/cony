@@ -653,6 +653,13 @@ body.ui-hidden #row-counter{display:none!important}
    아래까지 그려진다. viewport-fit=cover와 함께 화면 가장자리에 붙는 크롬에만
    inset을 더한다. 앞의 모바일 미디어쿼리(#eh 패딩 재정의)보다 뒤에 와야 이긴다.
    데스크톱·구형 기기에선 env()가 0이라 아무 변화가 없다. */
+/* iOS(WKWebView) 길게 누르기 방어.
+   앱은 길게 누르기를 실제 기능으로 쓴다 — 팔레트 2초 누르기=순서변경, 도구 길게=즐겨찾기 토글,
+   캔버스 길게=도형 편집 진입. iOS는 기본적으로 여기서 '복사/검색' 콜아웃과 이미지 저장 시트를
+   띄워 제스처를 가로챈다. 입력창은 제외해야 붙여넣기가 살아있다. */
+#cw,#main-c,#bg-c,#prev-c,.td-btn,.tbtn,.ib,.stl,.stl *,.pc-tb,#tooldock,.fbb{
+  -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
+}
 #dh{padding-top:calc(10px + env(safe-area-inset-top))}
 #eh{padding-top:calc(8px + env(safe-area-inset-top))}
 @media(max-width:420px){#eh{padding-top:calc(6px + env(safe-area-inset-top))}}
@@ -7599,10 +7606,18 @@ function showCopyPasteMenu(){
   clearTimeout(m._hideT);m._hideT=setTimeout(()=>{m.style.display='none';},4000);
 }
 // 4손가락 탭 = UI 숨기기/보이기 (프로크리에이트). 숨김 상태에선 작은 복원 버튼만.
+// 애플펜슬·스타일러스 판별. iOS는 Touch.touchType, 그 외는 PointerEvent.pointerType으로 온다.
+// 둘 다 없는 환경(구형 안드로이드 등)에서는 false — 즉 기존 동작(손가락 차단)을 그대로 유지한다.
+function isStylusEvent(e){
+  if(e.pointerType==='pen')return true;
+  const list=e.touches&&e.touches.length?e.touches:(e.changedTouches||null);
+  if(list)for(let i=0;i<list.length;i++)if(list[i].touchType==='stylus')return true;
+  return false;
+}
 function toggleTouchLock(){
   G.touchLock=!G.touchLock;
   const b=$('btn-tl');if(b){b.textContent=G.touchLock?'🔒':'🔓';b.classList.toggle('act',G.touchLock);}
-  showToast(G.touchLock?'손가락 잠금 ON — 제스처는 유지':'손가락 잠금 OFF');
+  showToast(G.touchLock?'손가락 잠금 ON — 펜·제스처는 그대로':'손가락 잠금 OFF');
 }
 
 /* ===== DOCK (좌측 도구 사이드바) ===== */
@@ -7782,7 +7797,10 @@ function onDown(e){
     startMulti(e);
     return;
   }
-  if(G.touchLock&&e.type==='touchstart'&&e.touches&&e.touches.length<2){return;}
+  // 손가락 잠금은 '펜으로 그리는 동안 손바닥을 막는' 기능이다. 펜까지 막으면 아무것도 못 그린다.
+  // iOS(WKWebView)는 애플펜슬을 touch.touchType==='stylus'로, 안드로이드는 포인터 이벤트의
+  // pointerType==='pen'으로 알려준다. 둘 중 하나라도 잡히면 잠금을 통과시킨다.
+  if(G.touchLock&&e.type==='touchstart'&&e.touches&&e.touches.length<2&&!isStylusEvent(e)){return;}
   const pos=getPos(e);
   if(G.guideEdit){ // 안내선 이동 모드: 근처 선 잡아 드래그 — 그리기로 내려가지 않음
     const tol=Math.max(12,16/G.zoom);
