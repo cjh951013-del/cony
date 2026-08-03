@@ -6403,7 +6403,22 @@ function detectShape(path){
   }
   const a=path[0],b=path[path.length-1],L=polyLen(path)||1,chord=dist2(a,b),bb=bboxOf(path),diag=Math.hypot(bb.w,bb.h)||1;
   if(chord>=0.30*diag){
-    if(chord/L>0.92)return{type:'line',a:{x:a.x,y:a.y},b:{x:b.x,y:b.y}};
+    // 직선 판별은 '양 끝을 이은 선에서 얼마나 벗어났는가'로 한다.
+    // 예전엔 chord/L(직선거리÷경로길이)을 썼는데, 이건 곧은 정도가 아니라 표본 밀도를 잰다.
+    // 촘촘히 찍힐수록 손떨림이 길이에 누적돼 비율이 무너지므로, 펜슬로 천천히 그은 곧은 선이
+    // 곡선으로 판정됐다(실측: 표본 12px→0.9995=직선, 같은 선을 1.5px 간격→0.79=곡선).
+    // 반대로 처짐 40px짜리 뚜렷한 곡선은 0.975로 직선 판정이 났다 — 양쪽으로 틀린 지표였다.
+    let dev=0;
+    if(chord>0.5){
+      const dx=b.x-a.x,dy=b.y-a.y;
+      for(let i=1;i<path.length-1;i++){
+        const d=Math.abs((path[i].x-a.x)*dy-(path[i].y-a.y)*dx)/chord;
+        if(d>dev)dev=d;
+      }
+    }
+    // 실측 경계: 손떨림 직선 ≤0.007 / 의도한 곡선(400px에 6px 처짐) ≥0.015.
+    // 짧은 획은 비율이 과민해지므로 2.5px 바닥을 둔다.
+    if(dev<=Math.max(2.5,chord*0.012))return{type:'line',a:{x:a.x,y:a.y},b:{x:b.x,y:b.y}};
     const simp=rdp(path,Math.max(2,L*0.02));
     return{type:'curve',pts:simp.length>=2?simp:[a,b]};
   }
