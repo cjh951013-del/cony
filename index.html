@@ -762,6 +762,7 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="mtab-panel" data-mpanel="settings" style="display:none">
       <button class="mrow" id="btn-theme"><span class="mi">🌙</span><span>라이트 / 다크 모드</span></button>
       <button class="mrow" id="btn-quickshape"><span class="mi">📐</span><span>길게 눌러 도형 고정: 켜짐</span></button>
+      <button class="mrow" id="btn-autostraight"><span class="mi">📏</span><span>기호 줄 자동 직선: 켜짐</span></button>
       <button class="mrow" id="btn-legend"><span class="mi">📋</span><span>기호 범례 보기</span></button>
       <button class="mrow" id="btn-col-stat"><span class="mi">📊</span><span>색상 사용 통계</span></button>
       <button class="mrow" id="btn-recolor"><span class="mi">🎨</span><span>색상 교체 (Recolor)</span></button>
@@ -2053,6 +2054,7 @@ let G={
   dragSrcIdx:null,
   narrType:'ko',
   quickShape:true,
+  autoStraight:true, // 거의 곧게 그은 기호 줄을 직선으로 펴기 (태블릿엔 스페이스 직선잠금이 없다)
   opacity:1,
   qmSlots:['undo','redo','clrl','pick','center','addl'],
   maskLayerId:null,
@@ -5855,6 +5857,16 @@ function bindAll(){
   initRowCounter();
   $('btn-more').addEventListener('click',e=>{e.stopPropagation();$('colpop').classList.remove('open');$('morepop').classList.toggle('open');});
   $('btn-quickshape').addEventListener('click',()=>{G.quickShape=!G.quickShape;const t=$('btn-quickshape').querySelector('span:last-child');if(t)t.textContent='길게 눌러 도형 고정: '+(G.quickShape?'켜짐':'꺼짐');});
+  $('btn-autostraight').addEventListener('click',()=>{
+    G.autoStraight=!G.autoStraight;
+    try{localStorage.setItem('cony_autostraight',G.autoStraight?'1':'0');}catch(e){}
+    const t=$('btn-autostraight').querySelector('span:last-child');
+    if(t)t.textContent='기호 줄 자동 직선: '+(G.autoStraight?'켜짐':'꺼짐');
+    showToast(G.autoStraight?'거의 곧은 획은 직선으로 폅니다':'획을 그린 그대로 둡니다');
+  });
+  try{if(localStorage.getItem('cony_autostraight')==='0')G.autoStraight=false;}catch(e){}
+  {const t=$('btn-autostraight').querySelector('span:last-child');
+   if(t)t.textContent='기호 줄 자동 직선: '+(G.autoStraight?'켜짐':'꺼짐');}
   $('btn-legend').addEventListener('click',()=>{$('morepop').classList.remove('open');openLegend();});
   $('btn-img').addEventListener('click',()=>{$('morepop').classList.remove('open');$('img-input').click();});
   $('img-input').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];importImageFile(f);e.target.value='';});
@@ -7166,9 +7178,32 @@ function strokePolyCtx(ctx,poly){
   ctx.globalAlpha=oa;
 }
 function snapPts(arr){if(!G.gridOn)return arr;const out=[];let last=null;for(const p of arr){const s=snapToGrid(p);if(!last||Math.abs(s.x-last.x)>0.5||Math.abs(s.y-last.y)>0.5)out.push(s);last=s;}return out;}
+// 거의 곧게 그은 획을 진짜 직선으로 펴준다. 도안의 한 단은 곧은 줄이어야 하는데, 손으로 그으면
+// 1~3px씩 흔들려 기호가 물결친다. 직선 잠금(스페이스)이 있었지만 키보드 전용이라 태블릿에서는
+// 쓸 수가 없었다 — 정작 펜으로 긋는 기기가 태블릿인데.
+// 판별은 detectShape와 같은 '양 끝 이은 선에서의 최대 이탈'을 쓰고, 임계값도 같다(1.2%·바닥 2.5px).
+// 의도한 곡선은 이 값을 훨씬 넘으므로 펴지지 않는다.
+function straightenStroke(poly){
+  if(!poly||poly.length<3)return poly;
+  const a=poly[0],b=poly[poly.length-1];
+  const dx=b.x-a.x,dy=b.y-a.y,chord=Math.hypot(dx,dy);
+  if(chord<12)return poly; // 점 찍기에 가까운 짧은 획은 건드리지 않는다
+  let dev=0;
+  for(let i=1;i<poly.length-1;i++){
+    const d=Math.abs((poly[i].x-a.x)*dy-(poly[i].y-a.y)*dx)/chord;
+    if(d>dev)dev=d;
+  }
+  if(dev>Math.max(2.5,chord*0.012))return poly; // 곡선이면 그대로
+  // 수평·수직·45°에 가까우면 그 각도로 정확히 맞춘다 — 도안의 단·기둥은 대개 축에 나란하다
+  let ang=Math.atan2(dy,dx);
+  const sn=Math.round(ang/(Math.PI/4))*(Math.PI/4);
+  if(Math.abs(ang-sn)<0.09)ang=sn;
+  return [{x:a.x,y:a.y},{x:a.x+Math.cos(ang)*chord,y:a.y+Math.sin(ang)*chord}];
+}
 function stampPolyCtx(ctx,poly,ghost){
   if(!poly||poly.length<1)return;
   const col=G.toolColors[G.stitch]||G.color;
+  if(G.autoStraight!==false&&!G._lineLock&&poly.length>=3)poly=straightenStroke(poly);
   let pts=poly.length<2?[poly[0]]:resampleAlong(poly,(G.stampGap||38));
   if(!G._lineLock)pts=snapPts(pts); // 직선 잠금 중엔 스냅 생략 — 균등 간격 유지
   ctx.globalAlpha=ghost?0.55:G.opacity;
