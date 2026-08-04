@@ -1,5 +1,5 @@
 {
-  "appId": "com.cony.app",
+  "appId": "com.conyami.app",
   "appName": "코니",
   "webDir": "dist",
   "bundledWebRuntime": false,
