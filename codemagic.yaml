@@ -21,6 +21,10 @@ workflows:
         script: npm run web:build
       - name: iOS 플랫폼 생성
         script: npx cap add ios
+      - name: 앱 아이콘·스플래시 생성 (assets/icon.png, splash.png → iOS 전 사이즈)
+        # ★ios/ 폴더는 매 빌드마다 새로 만들어지므로, 이 단계가 없으면 Capacitor 기본
+        #  플레이스홀더 아이콘이 그대로 앱에 박힌다(애플 심사에서 반려 사유가 된다).
+        script: npm run assets:gen
       - name: 웹 자산 동기화
         script: npx cap sync ios
       - name: 코드 서명 프로파일 적용
