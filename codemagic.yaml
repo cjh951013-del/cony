@@ -10,9 +10,13 @@ workflows:
       # 개인 계정은 좌측 Settings(계정 설정) 안의 Integrations에서 등록한다.
       app_store_connect: cony-asc-key
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.conyami.app
+      # ★ios_signing 블록은 쓰지 않는다. 그건 "Codemagic에 미리 업로드해둔 프로파일을 가져오는"
+      #  수동 서명 방식이라, 프로파일이 없으면
+      #  "No matching profiles found for bundle identifier ..." 로 실패한다(첫 빌드가 그랬다).
+      #  아래 '코드 서명' 단계에서 --create 로 인증서·프로파일을 없으면 만들어 쓰는 자동 방식을 쓴다.
+      #  두 방식을 섞으면 안 된다.
+      vars:
+        BUNDLE_ID: "com.conyami.app"
       node: 20
       xcode: latest
       cocoapods: default
@@ -29,8 +33,15 @@ workflows:
         script: npm run assets:gen
       - name: 웹 자산 동기화
         script: npx cap sync ios
-      - name: 코드 서명 프로파일 적용
-        script: xcode-project use-profiles
+      - name: 코드 서명 (인증서·프로파일이 없으면 생성)
+        # --create 가 핵심. App ID를 갓 만들면 배포 인증서도 프로비저닝 프로파일도 없는데,
+        # 이 플래그가 App Store Connect API로 둘 다 만들어 준다. keychain 초기화 → 서명 파일
+        # 내려받기 → 인증서 등록 → Xcode 프로젝트에 프로파일 적용 순서를 지켜야 한다.
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
       - name: 빌드 번호 자동 증가
         # Codemagic이 워크플로마다 자동으로 올려주는 $BUILD_NUMBER를 그대로 쓴다.
         # 예전엔 app-store-connect로 최신 번호를 조회했는데 "$APP_APPLE_ID"가 정의돼 있지 않아
