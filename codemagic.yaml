@@ -15,6 +15,11 @@ workflows:
       #  "No matching profiles found for bundle identifier ..." 로 실패한다(첫 빌드가 그랬다).
       #  아래 '코드 서명' 단계에서 --create 로 인증서·프로파일을 없으면 만들어 쓰는 자동 방식을 쓴다.
       #  두 방식을 섞으면 안 된다.
+      # Codemagic 환경변수는 그룹에 속해야 저장된다. UI(Environment variables 탭)에서
+      # appstore 그룹을 만들고 CERTIFICATE_PRIVATE_KEY 를 Secret 으로 넣어 둔다.
+      # 여기서 그룹을 불러오지 않으면 빌드 중에 그 변수가 보이지 않는다.
+      groups:
+        - appstore
       vars:
         BUNDLE_ID: "com.conyami.app"
       node: 20
