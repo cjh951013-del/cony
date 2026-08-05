@@ -13,3 +13,10 @@ build-out/
 *.jks
 *.keystore
 keystore.properties
+
+# 로컬 도구 런타임 상태 — 기기마다 다르고 바이너리라 커밋 대상이 아니다
+.swarm/
+ruvector.db
+.claude-flow/metrics/
+.claude-flow/daemon-state.json
+.claude-flow/security/
