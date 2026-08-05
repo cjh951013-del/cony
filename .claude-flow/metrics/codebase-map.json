@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-07-24T22:12:16.758Z",
+  "projectRoot": "C:\\Users\\cjh95\\projects\\cony",
+  "structure": {
+    "hasPackageJson": true,
+    "hasTsConfig": false,
+    "hasClaudeConfig": true,
+    "hasClaudeFlow": true
+  },
+  "scannedAt": 1784931136758
+}

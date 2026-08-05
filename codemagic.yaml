@@ -32,6 +32,12 @@ workflows:
         script: npm run web:build
       - name: iOS 플랫폼 생성
         script: npx cap add ios
+      - name: 최소 iOS 버전 15.0 적용
+        # ★반드시 cap sync(=pod install) 앞에서 돈다. Podfile의 platform 값을 Capacitor가
+        #  post_install에서 각 Pod 타깃에 밀어 넣으므로, 나중에 고치면 Pods는 13.0으로 남는다.
+        #  Capacitor 6 기본값이 13.0이라 그냥 두면 업로드는 되지만 ITMS-90068 경고가 붙고
+        #  2027년 봄부터는 업로드 자체가 거부된다(빌드 4에서 실제로 받았다).
+        script: npm run ios:setup
       - name: 앱 아이콘·스플래시 생성 (assets/icon.png, splash.png → iOS 전 사이즈)
         # ★ios/ 폴더는 매 빌드마다 새로 만들어지므로, 이 단계가 없으면 Capacitor 기본
         #  플레이스홀더 아이콘이 그대로 앱에 박힌다(애플 심사에서 반려 사유가 된다).
@@ -46,6 +52,12 @@ workflows:
         script: |
           cd ios/App
           agvtool new-version -all "$BUILD_NUMBER"
+          # agvtool이 pbxproj를 통째로 다시 쓴다. 최소 버전이 살아남았는지 여기서 확인한다.
+          if grep -qE "IPHONEOS_DEPLOYMENT_TARGET = (1[0-4]|[0-9])\.[0-9]+;" App.xcodeproj/project.pbxproj; then
+            echo "최소 iOS 버전이 15.0 미만으로 되돌아갔습니다"
+            grep -n "IPHONEOS_DEPLOYMENT_TARGET" App.xcodeproj/project.pbxproj
+            exit 1
+          fi
       - name: 코드 서명 (인증서·프로파일 생성 후 프로젝트에 적용)
         # --create 가 핵심. App ID를 갓 만들면 배포 인증서도 프로비저닝 프로파일도 없는데,
         # 이 플래그가 App Store Connect API로 둘 다 만들어 준다.

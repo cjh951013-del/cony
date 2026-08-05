@@ -61,5 +61,9 @@
 - **App Store 정식 출시하려면?** TestFlight 테스트가 끝난 뒤 App Store Connect에서 심사 제출
   (스크린샷·설명 등록 → 제출). 그건 그때 다시 안내.
 - **빌드번호/버전은?** yaml이 자동으로 빌드 번호를 올려줌. 마케팅 버전(1.0.0)은 나중에 바꾸고 싶을 때 말해줘.
+- **ITMS-90068 (MinimumOSVersion too low) 메일이 왔다면?** 이미 고쳐져 있다. Capacitor 6 기본값이
+  iOS 13.0인데 애플은 2027년 봄부터 15.0 이상만 받는다. `npm run ios:setup`(tools/ios-setup.js)이
+  `cap add ios` 직후 pbxproj 4곳과 Podfile을 15.0으로 올린다 — **Podfile은 pod install 전에 고쳐야**
+  Pod 타깃까지 따라 올라간다. 빌드 4까지가 13.0, 그 다음 빌드부터 15.0. 지원 기기는 iPhone 6s(2015) 이후.
 - **Android는?** 같은 저장소로 Codemagic에서 Android 워크플로도 추가 가능(로컬 Android Studio 없이).
   원하면 yaml에 추가해줄게.
