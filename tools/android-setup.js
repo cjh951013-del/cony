@@ -58,7 +58,27 @@ if (keystorePropsFile.exists()) keystoreProps.load(new FileInputStream(keystoreP
   return s;
 });
 
-// 3) local.properties — 기기마다 다른 SDK 경로. 커밋 대상이 아니므로 매번 만들어 준다.
+// 3) keystore.properties — 릴리스 서명 정보. 저장소 밖 원본에서 복사해 온다.
+//    android/ 가 새로 생성되면 같이 날아가는데, 이게 없으면 서명 없는 AAB가 조용히
+//    만들어져 Play 업로드에서야 알게 된다. 원본이 없으면 건너뛴다(디버그 빌드는 그대로 됨).
+const KS_SRC = path.join(require('os').homedir(), 'cony-keystore.properties');
+if (fs.existsSync(KS_SRC)) {
+  const body = fs.readFileSync(KS_SRC, 'utf8');
+  // 주석에도 자리표시자 문구가 들어 있으므로, 값만 골라내서 판단한다.
+  const val = k => (body.match(new RegExp(`^\\s*${k}\\s*=\\s*(.+)$`, 'm')) || [, ''])[1].trim();
+  const unset = ['storePassword', 'keyPassword', 'storeFile', 'keyAlias']
+    .filter(k => !val(k) || val(k).includes('여기에_'));
+  if (unset.length) {
+    edits.push(`warn  ${KS_SRC} 의 ${unset.join(', ')} 가 아직 안 채워졌습니다 — 릴리스 서명 불가`);
+  } else {
+    fs.writeFileSync(path.join(AND, 'keystore.properties'), body);
+    edits.push('copy  keystore.properties (저장소 밖 원본에서)');
+  }
+} else {
+  edits.push(`skip  keystore.properties (${KS_SRC} 없음 — 릴리스 서명 건너뜀)`);
+}
+
+// 4) local.properties — 기기마다 다른 SDK 경로. 커밋 대상이 아니므로 매번 만들어 준다.
 //    Java properties 파일이라 역슬래시가 이스케이프로 먹힌다 → 슬래시로 쓴다.
 const sdk = (process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT || '').replace(/\\/g, '/');
 const lp = path.join(AND, 'local.properties');
