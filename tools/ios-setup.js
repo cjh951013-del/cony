@@ -40,7 +40,18 @@ patch('App/Podfile', s =>
   s.replace(/platform :ios, '([\d.]+)'/,
     (m, v) => tooLow(v) ? `platform :ios, '${MIN_IOS}'` : m));
 
+// 3) 수출 규정 면제 선언. 코니는 자체 암호화를 구현하지 않고 HTTPS도 iOS 것을 그대로
+//    쓴다. 이 키가 없으면 업로드할 때마다 App Store Connect 에서 "수출 규정 관련 문서
+//    누락" 이 뜨고, 손으로 답하기 전에는 테스터가 빌드를 설치하지 못한다.
+patch('App/App/Info.plist', s => s.includes('ITSAppUsesNonExemptEncryption') ? s
+  : s.replace(/(\n<\/dict>)/, '\n\t<key>ITSAppUsesNonExemptEncryption</key>\n\t<false/>$1'));
+
 // 적용 결과를 값으로 확인한다. 치환이 조용히 빗나가면 여기서 걸린다.
+const plist = path.join(IOS, 'App/App/Info.plist');
+if (!/<key>ITSAppUsesNonExemptEncryption<\/key>\s*<false\/>/.test(fs.readFileSync(plist, 'utf8'))) {
+  console.error('실패: Info.plist 에 ITSAppUsesNonExemptEncryption=false 가 들어가지 않았습니다');
+  process.exit(1);
+}
 const pbx = path.join(IOS, 'App/App.xcodeproj/project.pbxproj');
 const left = (fs.readFileSync(pbx, 'utf8').match(/IPHONEOS_DEPLOYMENT_TARGET = [\d.]+;/g) || []);
 const bad = left.filter(l => tooLow(l.match(/= ([\d.]+);/)[1]));
