@@ -90,4 +90,12 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        submit_to_testflight: true
+        # ★submit_to_testflight 는 '외부 테스터 베타 심사 제출'까지 간다. 거기엔 연락처
+        #  (Feedback Email, 심사 담당자 이름·전화·이메일)가 필수라, 안 채워두면 빌드가
+        #  업로드까지 다 끝난 뒤 마지막에 post-processing failed 로 빨갛게 끝난다
+        #  (빌드 5가 그랬다 — IPA 는 멀쩡히 올라갔는데 이 단계만 실패).
+        #  내부 테스터는 베타 심사가 없고, 그룹에 '자동 배포'를 켜두면 App Store Connect
+        #  가 처리 완료 즉시 알아서 나눠준다. 그래서 false 로 둔다.
+        #  나중에 외부 테스터를 공개 모집할 때 test-info 를 채우고 true 로 바꾼다:
+        #  https://appstoreconnect.apple.com/apps/6797927244/testflight/test-info
+        submit_to_testflight: false
