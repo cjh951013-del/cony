@@ -203,7 +203,15 @@ html[data-theme=light] .pc-sld input[type=range]{background:rgba(0,0,0,.1)}
 html[data-theme=light] .pc-sq{background:rgba(255,255,255,.7);border-color:rgba(0,0,0,.08)}
 .pc-div{width:24px;height:1px;background:rgba(255,255,255,.12);margin:1px 0}
 #tooldock .ib{background:rgba(52,52,78,.72);border:1px solid rgba(255,255,255,.12);color:var(--text);width:36px;height:32px;border-radius:9px;font-size:15px}
-#tooldock .ib:disabled{opacity:.3}
+#tooldock .ib:disabled{opacity:.45}
+/* 손가락 잠금은 켜져 있는지 한눈에 보여야 한다. 이모지(🔓/🔒)만으론 작은 버튼에서 구별이
+   안 돼 실기기에서 상태를 알 수 없다는 보고를 받았다. 켜지면 버튼을 주황으로 칠하고
+   화면에도 배지를 띄운다. */
+#tooldock .ib.lockon{background:#f59e0b;border-color:#fbbf24;color:#1a1a1a;font-weight:700}
+#lockbadge{position:fixed;top:8px;left:50%;transform:translateX(-50%);
+  z-index:9000;background:#f59e0b;color:#1a1a1a;font-size:12px;font-weight:700;padding:4px 12px;
+  border-radius:999px;pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,.35);display:none}
+#lockbadge.on{display:block}
 /* 드래그 핸들 */
 #td-handle{font-size:14px;color:var(--text3);cursor:grab;letter-spacing:-1px;padding:2px 0;user-select:none;line-height:1}
 #td-handle:active{cursor:grabbing}
@@ -6172,7 +6180,10 @@ footer{margin-top:32px;font-size:10px;color:#888;border-top:1px solid #ddd;paddi
   mc.addEventListener('dblclick',onDblClick);
   // 화면 회전/리사이즈 시 다시 맞춤(그리는 중에는 보류)
   let rezTm=null;
-  const refit=()=>{if(G.screen!=='ed')return;clearTimeout(rezTm);rezTm=setTimeout(()=>{if(!G.isDrawing&&!G.editing&&!G.multi)fitToScreen();},160);};
+  const refit=()=>{
+    // 잠금 배지는 헤더 높이를 실측해 붙이므로, 회전하면 다시 재야 한다(아이패드는 자주 돌아간다).
+    if(G.touchLock)syncLockUI();
+    if(G.screen!=='ed')return;clearTimeout(rezTm);rezTm=setTimeout(()=>{if(!G.isDrawing&&!G.editing&&!G.multi)fitToScreen();},160);};
   window.addEventListener('resize',refit);
   window.addEventListener('orientationchange',refit);
   $('shape-cycle').addEventListener('click',cycleShapeType);
@@ -7666,8 +7677,21 @@ function isStylusEvent(e){
 }
 function toggleTouchLock(){
   G.touchLock=!G.touchLock;
-  const b=$('btn-tl');if(b){b.textContent=G.touchLock?'🔒':'🔓';b.classList.toggle('act',G.touchLock);}
+  syncLockUI();
   showToast(G.touchLock?'손가락 잠금 ON — 펜·제스처는 그대로':'손가락 잠금 OFF');
+}
+// 잠금 상태 표시. 버튼 색 + 화면 상단 배지 둘 다 갱신한다 — 실기기에서 이모지만으론
+// 열림/닫힘 구별이 안 된다는 보고를 받아, 색과 글자로 중복해서 알린다.
+function syncLockUI(){
+  const on=!!G.touchLock;
+  const b=$('btn-tl');
+  if(b){b.textContent=on?'🔒':'🔓';b.classList.toggle('act',on);b.classList.toggle('lockon',on);}
+  let bd=$('lockbadge');
+  if(!bd){bd=document.createElement('div');bd.id='lockbadge';document.body.appendChild(bd);}
+  bd.textContent='🔒 손가락 잠금 — 펜만 그려집니다';
+  bd.classList.toggle('on',on);
+  // 상단 헤더 높이는 뷰포트마다 다르다. 고정값으로 두면 헤더 글자를 덮으므로 실측해서 아래에 붙인다.
+  if(on){const h=$('dh');bd.style.top=((h?h.getBoundingClientRect().bottom:0)+8)+'px';}
 }
 
 /* ===== DOCK (좌측 도구 사이드바) ===== */
