@@ -7695,11 +7695,17 @@ function syncLockUI(){
 }
 
 /* ===== DOCK (좌측 도구 사이드바) ===== */
+// 도크에서 감출 도구. 도장(stamp)은 팔레트에서 기호를 탭하면 자동으로 들어가고,
+// 펜으로 점 하나 찍는 것과 결과가 같아 버튼이 중복이다. 단 stamp '모드' 자체는 지운 게
+// 아니다 — 프레임 연속 배치(seqNextPos)가 G.mode==='stamp' 일 때만 동작하므로,
+// 모드를 없애면 탭마다 다음 코 자리로 넘어가는 기능이 죽는다. 버튼만 감춘다.
+const DOCK_HIDDEN=['stamp'];
 function renderDock(){
   const favs=G.dockFavs||[];
   const isAll=G.dockTab==='all';
   document.querySelectorAll('.td-btn[data-mode]').forEach(b=>{
     const m=b.dataset.mode;
+    if(DOCK_HIDDEN.includes(m)){b.style.display='none';return;}
     const isFav=favs.includes(m);
     b.classList.toggle('fav',isFav);
     b.style.display=(isAll||isFav)?'':'none';
