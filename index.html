@@ -334,6 +334,12 @@ body.ui-hidden #recent-bar{display:none!important}
   #shape-bar .sb-cnt b{min-width:20px}
 }
 html[data-theme=light] #shape-bar{background:rgba(255,255,255,.96);border-color:rgba(0,0,0,.1)}
+/* 모양 툴바는 캔버스 위쪽 고정이라 정작 위쪽에 그린 도형을 가린다(실기기 보고).
+   손잡이를 잡고 옮길 수 있게 하고, 옮긴 자리는 기억한다. 두 번 누르면 원위치. */
+#shape-bar .sb-grip{cursor:grab;color:var(--text3);font-size:15px;line-height:1;padding:0 5px;
+  user-select:none;-webkit-user-select:none;touch-action:none;flex:0 0 auto}
+#shape-bar .sb-grip:active{cursor:grabbing;color:var(--text)}
+#shape-bar.dragging{opacity:.9}
 #shape-bar .sb-name{display:flex;align-items:center;gap:6px;background:transparent;border:none;color:var(--text);
    font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:9px;cursor:pointer;line-height:1}
 #shape-bar .sb-name:hover{background:rgba(255,255,255,.09)}
@@ -979,6 +985,7 @@ body.ui-hidden #row-counter{display:none!important}
         </div>
       </div>
       <div id="shape-bar">
+        <span class="sb-grip" id="sb-grip" title="드래그해서 옮기기 · 두 번 눌러 제자리로">⠿</span>
         <button class="sb-name" id="shape-cycle" title="다른 모양으로"><span id="shape-type">직선</span><span class="sb-caret">⇄</span></button>
         <span class="sb-cnt" id="shape-count-wrap" style="display:none">
           <b class="sb-axis" id="sb-axis1"></b>
@@ -5479,6 +5486,7 @@ function bindAll(){
   $('btn-undo').addEventListener('click',undo);
   $('btn-redo').addEventListener('click',redo);
   initDock();
+  initShapeBarDrag();
   $('btn-clr').addEventListener('click',()=>{$('morepop').classList.remove('open');if(confirm('모든 레이어를 비울까요? (전체 초기화)')){clearAllLayers();}});
   $('btn-fliph').addEventListener('click',()=>{$('morepop').classList.remove('open');flipCanvas('h');});
   $('btn-flipv').addEventListener('click',()=>{$('morepop').classList.remove('open');flipCanvas('v');});
@@ -6528,7 +6536,45 @@ function shapeAddGridDim(axis,d){
   showShapeBar();renderEdit();
 }
 function cycleShapeTypeBtn(){cycleShapeType();}
-function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';const t=$('shape-type');if(t)t.textContent=G.frameKind?'프레임':(TYPE_LABEL[G.shape.type]||'모양');const sym=G.mode==='stamp'||(G.mode==='draw'&&G.symBrush);const isGridF=G.frameKind==='grid';
+// 저장된 자리로 옮긴다. 화면 밖으로 나가지 않게 매번 다시 가둔다(회전하면 화면이 좁아진다).
+function applyShapeBarPos(){
+  const b=$('shape-bar');if(!b)return;
+  const p=G.shapeBarPos;
+  if(!p){b.style.left='50%';b.style.top='68px';b.style.transform='translateX(-50%)';return;}
+  const host=b.offsetParent||document.body;
+  // 레이아웃이 아직 안 잡혀 부모가 0으로 나올 때가 있다(숨은 탭·첫 렌더). 그때 가둬 버리면
+  // 저장해 둔 자리를 잃고 좌상단에 처박힌다 — 못 재면 가두지 않고 그대로 둔다.
+  const hw=host.clientWidth||window.innerWidth||0, hh=host.clientHeight||window.innerHeight||0;
+  const w=b.offsetWidth||220, h=b.offsetHeight||36;
+  b.style.transform='none';
+  const cl=(v,max)=>(max>w+8?Math.max(4,Math.min(max,v)):v);
+  b.style.left=cl(p.x,hw-w-4)+'px';
+  b.style.top =(hh>h+8?Math.max(4,Math.min(hh-h-4,p.y)):p.y)+'px';
+}
+// 옮긴 자리는 새로고침 뒤에도 남아야 한다 — 매번 다시 옮기게 하면 고친 의미가 없다.
+function saveShapeBarPos(){try{G.shapeBarPos?localStorage.setItem('cony_shapebar_pos',JSON.stringify(G.shapeBarPos)):localStorage.removeItem('cony_shapebar_pos');}catch(e){}}
+function loadShapeBarPos(){try{const s=localStorage.getItem('cony_shapebar_pos');if(s){const p=JSON.parse(s);if(p&&isFinite(p.x)&&isFinite(p.y))G.shapeBarPos=p;}}catch(e){}}
+function initShapeBarDrag(){
+  const b=$('shape-bar'),g=$('sb-grip');if(!b||!g)return;
+  loadShapeBarPos();
+  let sx=0,sy=0,ox=0,oy=0,on=false,lastTap=0;
+  g.addEventListener('pointerdown',e=>{
+    e.preventDefault();e.stopPropagation();
+    const now=Date.now();
+    if(now-lastTap<320){G.shapeBarPos=null;applyShapeBarPos();saveShapeBarPos();showToast('툴바 위치 초기화',900);lastTap=0;return;}
+    lastTap=now;
+    const r=b.getBoundingClientRect(),hr=(b.offsetParent||document.body).getBoundingClientRect();
+    ox=r.left-hr.left;oy=r.top-hr.top;sx=e.clientX;sy=e.clientY;on=true;
+    b.classList.add('dragging');try{g.setPointerCapture(e.pointerId);}catch(_){}
+  });
+  g.addEventListener('pointermove',e=>{
+    if(!on)return;e.preventDefault();e.stopPropagation();
+    G.shapeBarPos={x:ox+(e.clientX-sx),y:oy+(e.clientY-sy)};applyShapeBarPos();
+  });
+  const end=()=>{if(!on)return;on=false;b.classList.remove('dragging');saveShapeBarPos();};
+  g.addEventListener('pointerup',end);g.addEventListener('pointercancel',end);
+}
+function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';applyShapeBarPos();const t=$('shape-type');if(t)t.textContent=G.frameKind?'프레임':(TYPE_LABEL[G.shape.type]||'모양');const sym=G.mode==='stamp'||(G.mode==='draw'&&G.symBrush);const isGridF=G.frameKind==='grid';
   const cw=$('shape-count-wrap');if(cw)cw.style.display=(isGridF||(sym&&!G.frameKind))?'inline-flex':'none';
   const ax1=$('sb-axis1');if(ax1)ax1.textContent=isGridF?'가로':'';
   const cc=$('shape-count');if(cc){if(isGridF)cc.value=G._frameCols||13;else if(sym&&!G.frameKind)cc.value=shapeStitchCount(G.shape);}
