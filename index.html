@@ -7215,8 +7215,25 @@ function stampPolyCtx(ctx,poly,ghost){
   if(!poly||poly.length<1)return;
   const col=G.toolColors[G.stitch]||G.color;
   if(G.autoStraight!==false&&!G._lineLock&&poly.length>=3)poly=straightenStroke(poly);
-  let pts=poly.length<2?[poly[0]]:resampleAlong(poly,(G.stampGap||38));
-  if(!G._lineLock)pts=snapPts(pts); // 직선 잠금 중엔 스냅 생략 — 균등 간격 유지
+  // ★등간격으로 뽑은 점을 격자에 붙이면 간격이 깨진다. 격자 24px 에 기호 간격 38px 이면
+  //  스냅 후 24,48,24,48,48,... 로 튀어 "ㅇ ㅇㅇ ㅇ ㅇ" 처럼 들쭉날쭉해진다(실기기 보고).
+  //  나누어떨어지지 않아 생기는 에일리어싱이므로, 스냅을 쓸 때는 간격 자체를 칸의 배수로
+  //  맞춰서 뽑는다. 그러면 모든 점이 N칸마다 정확히 떨어져 스냅해도 등간격이 유지된다.
+  //  간격의 기준이 되는 '격자 눈금'은 획의 방향에 따라 다르다. 가로·세로로 그으면 한 칸(24px)
+  //  마다지만, 45°로 그으면 대각선 한 칸은 24√2≈33.9px 다. 방향을 보고 그 눈금의 배수로 맞춘다.
+  let gap=G.stampGap||38;
+  const useSnap=!G._lineLock&&G.gridOn;
+  if(useSnap&&typeof graphCellSz==='function'&&poly.length>=2){
+    const cell=graphCellSz();
+    const a=poly[0],b=poly[poly.length-1],L=Math.hypot(b.x-a.x,b.y-a.y);
+    if(cell>0.5&&L>0.5){
+      const ux=Math.abs(b.x-a.x)/L, uy=Math.abs(b.y-a.y)/L;
+      const pitch=cell/Math.max(ux,uy); // 축 정렬이면 cell, 45°면 cell*√2
+      gap=Math.max(1,Math.round(gap/pitch))*pitch;
+    }
+  }
+  let pts=poly.length<2?[poly[0]]:resampleAlong(poly,gap);
+  if(useSnap)pts=snapPts(pts); // 직선 잠금 중엔 스냅 생략 — 균등 간격 유지
   ctx.globalAlpha=ghost?0.55:G.opacity;
   symXf().forEach(T=>{for(const p of pts){const q=T(p);const rot=G.radial?radialRotFor(q.x,q.y)+(G.rot||0):G.rot;drawSVGStitch(ctx,q.x,q.y,G.stitch,col,G.stampSz||48,rot);if(!ghost)recPlace(G.stitch,q.x,q.y);}});
   ctx.globalAlpha=1;
