@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,viewport-fit=cover">
-<title>CONY · 코니</title>
+<title data-i18n="x.1jggb1x">CONY · 코니</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#13131f">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -693,12 +693,12 @@ body.ui-hidden #row-counter{display:none!important}
     <div style="display:flex;gap:6px;align-items:center">
       <span id="plan-chip" class="plan-chip chip-free">FREE</span>
       <select id="lang-sel" title="Language" aria-label="Language" style="background:var(--panel2);color:var(--text2);border:1px solid var(--border);border-radius:7px;padding:4px 6px;font-size:11px;cursor:pointer">
-        <option value="ko">한국어</option><option value="en">English</option><option value="ja">日本語</option>
+        <option value="ko" data-i18n="x.2smslc">한국어</option><option value="en">English</option><option value="ja">日本語</option>
       </select>
       <button class="hb" id="btn-np" data-i18n="dash.new">＋ 새 도안</button>
-      <button class="hb" id="btn-samples" data-i18n="dash.samples" title="검증된 샘플 도안 4종(고양이·발바닥 필레, 꽃 코스터, 가디건)을 설치">📦 샘플 도안</button>
-      <button class="hb" id="btn-backup" data-i18n="dash.backup" title="모든 도안·설정·진행 기록을 파일로 저장 — 실험 전에 백업해두고 언제든 복원">💾 백업</button>
-      <button class="hb" id="btn-restore" data-i18n="dash.restore" title="백업 파일(.json)에서 전체 복원">↩️ 복원</button>
+      <button class="hb" id="btn-samples" data-i18n="dash.samples" title="검증된 샘플 도안 4종(고양이·발바닥 필레, 꽃 코스터, 가디건)을 설치" data-i18n-t="x.96aoro">📦 샘플 도안</button>
+      <button class="hb" id="btn-backup" data-i18n="dash.backup" title="모든 도안·설정·진행 기록을 파일로 저장 — 실험 전에 백업해두고 언제든 복원" data-i18n-t="x.1x0v89c">💾 백업</button>
+      <button class="hb" id="btn-restore" data-i18n="dash.restore" title="백업 파일(.json)에서 전체 복원" data-i18n-t="x.1gykui7">↩️ 복원</button>
       <input type="file" id="backup-file" accept=".json,application/json" style="display:none">
       <button class="hb p" id="btn-upgrade-dash" data-i18n="dash.upgrade">👑 업그레이드</button>
     </div>
@@ -708,8 +708,8 @@ body.ui-hidden #row-counter{display:none!important}
       <h2 data-i18n="dash.banner.h">멈춰도 돼, 포기만 안 하면 🧶</h2>
       <p data-i18n="dash.banner.p">똥손도 손가락으로 슥슥. 코바늘·대바늘 기호를 캔버스에 올려 나만의 도안을 완성하세요. 막혀도 괜찮아요 — 같이 가요,</p>
     </div>
-    <div class="ad-strip" id="ad1">📢 [광고] 뜨개질 실 & 도구 최저가 쇼핑 — 코니 추천 상품 보러가기 →</div>
-    <div class="sec"><h3 data-i18n="dash.mine">내 도안방</h3><span class="badge" id="pc-badge">0개</span></div>
+    <div class="ad-strip" id="ad1" data-i18n="x.1h2pa6x">📢 [광고] 뜨개질 실 & 도구 최저가 쇼핑 — 코니 추천 상품 보러가기 →</div>
+    <div class="sec"><h3 data-i18n="dash.mine">내 도안방</h3><span class="badge" id="pc-badge" data-i18n="x.3i3ah">0개</span></div>
     <div id="cat-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px"></div>
     <div class="pgrid" id="pgrid"></div>
   </div>
@@ -753,61 +753,61 @@ body.ui-hidden #row-counter{display:none!important}
       <button class="mtab" data-mtab="settings"><span class="mti">⚙</span><span data-i18n="more.settings">설정</span></button>
     </div>
     <div class="mtab-panel" data-mpanel="add">
-      <button class="mrow" id="btn-img"><span class="mi">🖼</span><span>이미지 가져오기 (따라 그리기)</span></button>
-      <button class="mrow" id="btn-refov"><span class="mi">📌</span><span>레퍼런스 오버레이 (투명)</span></button>
+      <button class="mrow" id="btn-img"><span class="mi">🖼</span><span data-i18n="x.p8y2mk">이미지 가져오기 (따라 그리기)</span></button>
+      <button class="mrow" id="btn-refov"><span class="mi">📌</span><span data-i18n="x.3ffpo1">레퍼런스 오버레이 (투명)</span></button>
     </div>
     <div class="mtab-panel" data-mpanel="canvas" style="display:none">
-      <button class="mrow" id="btn-frames"><span class="mi">□</span><span>프레임 배치 (원형·반원·사각·격자)</span></button>
-      <button class="mrow" id="btn-resize"><span class="mi">⤢</span><span>캔버스 크기 조정</span></button>
-      <button class="mrow" id="btn-fliph"><span class="mi">⇋</span><span>좌우 반전</span></button>
-      <button class="mrow" id="btn-flipv"><span class="mi">⤲</span><span>상하 반전</span></button>
-      <button class="mrow" id="btn-rotcw"><span class="mi">↻</span><span>캔버스 90° 시계방향 회전</span></button>
-      <button class="mrow" id="btn-rotccw"><span class="mi">↺</span><span>캔버스 90° 반시계방향 회전</span></button>
-      <button class="mrow" id="btn-tile-prev"><span class="mi">⊞</span><span>패턴 반복 미리보기</span></button>
-      <button class="mrow" id="btn-clrlayer"><span class="mi">🧽</span><span>활성 레이어 지우기</span></button>
-      <button class="mrow d" id="btn-clr"><span class="mi">🗑</span><span>전체 초기화</span></button>
+      <button class="mrow" id="btn-frames"><span class="mi">□</span><span data-i18n="x.qdei8a">프레임 배치 (원형·반원·사각·격자)</span></button>
+      <button class="mrow" id="btn-resize"><span class="mi">⤢</span><span data-i18n="x.4kb0fc">캔버스 크기 조정</span></button>
+      <button class="mrow" id="btn-fliph"><span class="mi">⇋</span><span data-i18n="x.wdufl1">좌우 반전</span></button>
+      <button class="mrow" id="btn-flipv"><span class="mi">⤲</span><span data-i18n="x.1uv1lvk">상하 반전</span></button>
+      <button class="mrow" id="btn-rotcw"><span class="mi">↻</span><span data-i18n="x.qo73sk">캔버스 90° 시계방향 회전</span></button>
+      <button class="mrow" id="btn-rotccw"><span class="mi">↺</span><span data-i18n="x.1jnnoj0">캔버스 90° 반시계방향 회전</span></button>
+      <button class="mrow" id="btn-tile-prev"><span class="mi">⊞</span><span data-i18n="x.1bjp5ac">패턴 반복 미리보기</span></button>
+      <button class="mrow" id="btn-clrlayer"><span class="mi">🧽</span><span data-i18n="x.80vqcg">활성 레이어 지우기</span></button>
+      <button class="mrow d" id="btn-clr"><span class="mi">🗑</span><span data-i18n="x.1j9pnll">전체 초기화</span></button>
     </div>
     <div class="mtab-panel" data-mpanel="share" style="display:none">
-      <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span>내보내기 (PDF·PNG)</span></button>
-      <button class="mrow" id="btn-save-cony"><span class="mi">💾</span><span>도안 파일(.cony) 저장</span></button>
-      <button class="mrow" id="btn-load-cony"><span class="mi">📂</span><span>도안 파일(.cony) 불러오기</span></button>
+      <button class="mrow" id="btn-exp2"><span class="mi">📦</span><span data-i18n="x.y7wyik">내보내기 (PDF·PNG)</span></button>
+      <button class="mrow" id="btn-save-cony"><span class="mi">💾</span><span data-i18n="x.z2nb7s">도안 파일(.cony) 저장</span></button>
+      <button class="mrow" id="btn-load-cony"><span class="mi">📂</span><span data-i18n="x.1wd7vfh">도안 파일(.cony) 불러오기</span></button>
       <input type="file" id="cony-input" accept=".cony,application/json" style="display:none">
     </div>
     <div class="mtab-panel" data-mpanel="settings" style="display:none">
-      <button class="mrow" id="btn-theme"><span class="mi">🌙</span><span>라이트 / 다크 모드</span></button>
-      <button class="mrow" id="btn-quickshape"><span class="mi">📐</span><span>길게 눌러 도형 고정: 켜짐</span></button>
-      <button class="mrow" id="btn-autostraight"><span class="mi">📏</span><span>기호 줄 자동 직선: 켜짐</span></button>
-      <button class="mrow" id="btn-legend"><span class="mi">📋</span><span>기호 범례 보기</span></button>
-      <button class="mrow" id="btn-col-stat"><span class="mi">📊</span><span>색상 사용 통계</span></button>
-      <button class="mrow" id="btn-recolor"><span class="mi">🎨</span><span>색상 교체 (Recolor)</span></button>
+      <button class="mrow" id="btn-theme"><span class="mi">🌙</span><span data-i18n="x.d52xnq">라이트 / 다크 모드</span></button>
+      <button class="mrow" id="btn-quickshape"><span class="mi">📐</span><span data-i18n="x.clpygz">길게 눌러 도형 고정: 켜짐</span></button>
+      <button class="mrow" id="btn-autostraight"><span class="mi">📏</span><span data-i18n="x.188ec0n">기호 줄 자동 직선: 켜짐</span></button>
+      <button class="mrow" id="btn-legend"><span class="mi">📋</span><span data-i18n="x.nrjen1">기호 범례 보기</span></button>
+      <button class="mrow" id="btn-col-stat"><span class="mi">📊</span><span data-i18n="x.qsa195">색상 사용 통계</span></button>
+      <button class="mrow" id="btn-recolor"><span class="mi">🎨</span><span data-i18n="x.t6ghvm">색상 교체 (Recolor)</span></button>
     </div>
   </div>
 
   <div id="colpop">
-    <div class="cph"><span>색상</span><button id="colpop-x" title="닫기">✕</button></div>
+    <div class="cph"><span data-i18n="x.370od">색상</span><button id="colpop-x" title="닫기" data-i18n-t="x.2l8am">✕</button></div>
     <div id="cw-wrap"><canvas id="cwheel" width="180" height="180"></canvas></div>
-    <div class="rr" style="margin:6px 0 8px"><span style="font-size:11px">명도</span><input type="range" id="cw-val" min="0" max="100" value="100"><span class="rv" id="cw-val-v">100</span></div>
+    <div class="rr" style="margin:6px 0 8px"><span style="font-size:11px" data-i18n="x.2mgv8">명도</span><input type="range" id="cw-val" min="0" max="100" value="100"><span class="rv" id="cw-val-v">100</span></div>
     <div style="display:flex;align-items:center;gap:6px;margin:4px 0 8px">
       <span style="font-size:10px;color:var(--text3);flex-shrink:0">HEX</span>
       <input id="col-hex" type="text" maxlength="7" placeholder="#rrggbb" style="flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:11px;font-family:monospace;border-radius:5px;padding:3px 6px;outline:none">
-      <button id="col-hex-ok" style="font-size:10px;padding:3px 7px;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);cursor:pointer">적용</button>
+      <button id="col-hex-ok" style="font-size:10px;padding:3px 7px;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);cursor:pointer" data-i18n="x.38ivh">적용</button>
     </div>
     <div id="colpop-hist" class="cpal" style="margin-bottom:8px"></div>
     <div class="cph" style="margin-bottom:5px">
-      <span style="font-size:10px;color:var(--text3)">팔레트</span>
-      <button id="btn-extract-pal" style="font-size:9px;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);cursor:pointer" title="이미지에서 색상 추출">🎨 이미지 추출</button>
+      <span style="font-size:10px;color:var(--text3)" data-i18n="x.2ueypt">팔레트</span>
+      <button id="btn-extract-pal" style="font-size:9px;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);cursor:pointer" title="이미지에서 색상 추출" data-i18n-t="x.39pts5" data-i18n="x.azoid1">🎨 이미지 추출</button>
     </div>
     <div class="cpal" id="colpop-pal"></div>
     <input type="file" id="pal-img-input" accept="image/*" style="display:none">
     <div style="display:none"><!-- 색상 조화(보색·분할보색 등) — 일반 배색 이론 도구, 도안 제작 핵심 아님 -->
       <div class="cph" style="margin-top:8px;margin-bottom:5px">
-        <span style="font-size:10px;color:var(--text3)">색상 조화</span>
+        <span style="font-size:10px;color:var(--text3)" data-i18n="x.1s1kv61">색상 조화</span>
         <select id="harmony-mode" style="font-size:9px;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:2px 4px">
-          <option value="comp">보색</option>
-          <option value="split">분할 보색</option>
-          <option value="analog">유사색</option>
-          <option value="triad">삼각</option>
-          <option value="tetra">사각</option>
+          <option value="comp" data-i18n="x.2ng6w">보색</option>
+          <option value="split" data-i18n="x.ej5rdo">분할 보색</option>
+          <option value="analog" data-i18n="x.2v1aw0">유사색</option>
+          <option value="triad" data-i18n="x.36rlk">삼각</option>
+          <option value="tetra" data-i18n="x.36srs">사각</option>
         </select>
       </div>
       <div class="cpal" id="harmony-pal"></div>
@@ -827,9 +827,9 @@ body.ui-hidden #row-counter{display:none!important}
 <!-- QuickMenu 슬롯 커스터마이즈 피커 -->
   <div id="qm-picker">
     <div class="qmp-box">
-      <div class="qmp-title" id="qmp-title">슬롯 변경 — 길게 눌러 편집</div>
+      <div class="qmp-title" id="qmp-title" data-i18n="x.1t1k0k2">슬롯 변경 — 길게 눌러 편집</div>
       <div class="qmp-grid" id="qmp-grid"></div>
-      <button class="qmp-cancel" id="qmp-cancel">취소</button>
+      <button class="qmp-cancel" id="qmp-cancel" data-i18n="x.364pt">취소</button>
     </div>
   </div>
 
@@ -837,9 +837,9 @@ body.ui-hidden #row-counter{display:none!important}
     <!-- LEFT: 기호 팔레트 -->
     <aside id="sl">
       <div class="sh">
-        <span id="stl-title">코바늘</span>
+        <span id="stl-title" data-i18n="x.2wtxkt">코바늘</span>
         <span style="display:flex;gap:4px;align-items:center">
-          <button id="btn-mgr" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px" title="기호 편집">⚙</button>
+          <button id="btn-mgr" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px" title="기호 편집" data-i18n-t="x.1rxqec">⚙</button>
           <button class="pcol" id="sl-col" title="닫기">✕</button>
         </span>
       </div>
@@ -854,8 +854,8 @@ body.ui-hidden #row-counter{display:none!important}
       <div class="stl" id="stitch-list"></div>
       <div class="drag-hint" data-i18n="pal.dragHint">2초 누르기 → 순서변경</div>
       <div class="sl-footer">
-        <button id="btn-new-sym">＋ 내 기호 만들기</button>
-        <button id="btn-stitch-mgr" style="margin-top:4px">기호 편집/정렬</button>
+        <button id="btn-new-sym" data-i18n="x.8chrvu">＋ 내 기호 만들기</button>
+        <button id="btn-stitch-mgr" style="margin-top:4px" data-i18n="x.13d3adu">기호 편집/정렬</button>
       </div>
     </aside>
 
@@ -866,13 +866,13 @@ body.ui-hidden #row-counter{display:none!important}
       <canvas id="prev-c"></canvas>
       <canvas id="ghost-c" style="pointer-events:none;opacity:0.48;z-index:14"></canvas>
       <div id="brush-cursor"></div>
-      <div id="sz-handle" title="드래그하여 크기 조절 (도구별)"></div>
-      <div id="op-handle" title="드래그하여 불투명도 조절"></div>
+      <div id="sz-handle" title="드래그하여 크기 조절 (도구별)" data-i18n-t="x.1ros75w"></div>
+      <div id="op-handle" title="드래그하여 불투명도 조절" data-i18n-t="x.1q3ulv4"></div>
       <div id="live-path-hud">
-        <span class="lph-info" id="lph-info">코 수: 0</span>
-        <span class="lph-hint">← 핀치로 자간 조절 →</span>
+        <span class="lph-info" id="lph-info" data-i18n="x.1d0is3n">코 수: 0</span>
+        <span class="lph-hint" data-i18n="x.1ojnkb3">← 핀치로 자간 조절 →</span>
         <button class="lph-cancel" onclick="cancelLivePath()">✕</button>
-        <button class="lph-ok" onclick="commitLivePath()">✓ 확정</button>
+        <button class="lph-ok" onclick="commitLivePath()" data-i18n="x.t7rs8m">✓ 확정</button>
       </div>
       <div id="zoom-hud">100%</div>
       <div id="rot-hud">0°</div>
@@ -884,11 +884,11 @@ body.ui-hidden #row-counter{display:none!important}
       <!-- 레퍼런스 이미지 패널 -->
       <div id="ref-panel">
         <div id="ref-hdr">
-          <span style="font-size:9px;color:var(--text2)">참조 이미지</span>
+          <span style="font-size:9px;color:var(--text2)" data-i18n="x.1s1x1r5">참조 이미지</span>
           <div id="ref-hdr-btns">
-            <input type="range" id="ref-opa" min="10" max="100" value="60" style="width:44px;height:14px;cursor:pointer" title="불투명도">
-            <button class="ref-hbtn" id="ref-min" title="최소화">_</button>
-            <button class="ref-hbtn" id="ref-close-btn" title="닫기">✕</button>
+            <input type="range" id="ref-opa" min="10" max="100" value="60" style="width:44px;height:14px;cursor:pointer" title="불투명도" data-i18n-t="x.92dc5c">
+            <button class="ref-hbtn" id="ref-min" title="최소화" data-i18n-t="x.2wqm3l">_</button>
+            <button class="ref-hbtn" id="ref-close-btn" title="닫기" data-i18n-t="x.2l8am">✕</button>
           </div>
         </div>
         <img id="ref-img" alt="참조 이미지" style="opacity:.6">
@@ -925,15 +925,15 @@ body.ui-hidden #row-counter{display:none!important}
         <span id="op-rail-v" style="display:none">100</span>
         <button id="btn-modify" style="display:none"></button>
       </aside>
-      <div id="snap-badge">📐 직선 고정 ON</div>
+      <div id="snap-badge" data-i18n="x.1v9ro0t">📐 직선 고정 ON</div>
       <canvas id="minimap" width="280" height="280"></canvas>
       <!-- Drawing Assist 배지 (Procreate-style) -->
       <div id="da-badge" style="position:absolute;bottom:64px;right:10px;z-index:12;display:none;flex-direction:column;gap:3px;align-items:flex-end;pointer-events:none"></div>
       <div id="cpm" style="display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.45);flex-direction:row;gap:6px">
-        <button class="selb" id="cpm-copy">📋 복사</button>
-        <button class="selb" id="cpm-cut">✂ 자르기</button>
-        <button class="selb" id="cpm-paste">📌 붙이기</button>
-        <button class="selb" id="cpm-clrl">🧽 레이어 지우기</button>
+        <button class="selb" id="cpm-copy" data-i18n="x.t29k6i">📋 복사</button>
+        <button class="selb" id="cpm-cut" data-i18n="x.12r7xzn">✂ 자르기</button>
+        <button class="selb" id="cpm-paste" data-i18n="x.zl5yjt">📌 붙이기</button>
+        <button class="selb" id="cpm-clrl" data-i18n="x.abn15a">🧽 레이어 지우기</button>
         <button class="selb" id="cpm-x" style="background:var(--panel2)">✕</button>
       </div>
       <!-- 모티브 보관함: 복사한 선택 영역을 저장해두고 도안 꾸미기에 재사용 -->
@@ -941,52 +941,52 @@ body.ui-hidden #row-counter{display:none!important}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <b style="font-size:12px">🗂 모티브 보관함 <span id="mtf-cnt" style="color:var(--text3);font-weight:400"></span></b><button class="pcol" id="mtf-x">✕</button>
         </div>
-        <button class="ib" id="mtf-save" style="width:100%;margin-bottom:6px;font-size:11px">＋ 복사한 영역을 모티브로 저장</button>
+        <button class="ib" id="mtf-save" style="width:100%;margin-bottom:6px;font-size:11px" data-i18n="x.1shvspa">＋ 복사한 영역을 모티브로 저장</button>
         <div id="mtf-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:190px;overflow:auto"></div>
-        <div style="font-size:10px;color:var(--text3);margin-top:6px">모티브를 탭하면 캔버스에 붙여넣기 · ✕로 삭제 · 기기에 저장되어 다른 도안에서도 사용</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px" data-i18n="x.1ker2eq">모티브를 탭하면 캔버스에 붙여넣기 · ✕로 삭제 · 기기에 저장되어 다른 도안에서도 사용</div>
       </div>
-      <div id="gesture-hint">✌️ 두 손가락=이동·확대 · 두 손가락 탭=실행취소 · 세 손가락 탭=다시실행 · 세 손가락 아래=복사/붙이기 메뉴 · 선 긋고 2초=도형 고정 · 네 손가락 탭=UI 숨기기</div>
+      <div id="gesture-hint" data-i18n="x.3wygts">✌️ 두 손가락=이동·확대 · 두 손가락 탭=실행취소 · 세 손가락 탭=다시실행 · 세 손가락 아래=복사/붙이기 메뉴 · 선 긋고 2초=도형 고정 · 네 손가락 탭=UI 숨기기</div>
       <div id="sel-shape">
-        <button class="ssb act" data-sm="rect" title="사각 선택">▭</button>
-        <button class="ssb" data-sm="ellipse" title="타원 선택">⬭</button>
-        <button class="ssb" data-sm="lasso" title="올가미 선택">✎</button>
+        <button class="ssb act" data-sm="rect" title="사각 선택" data-i18n-t="x.1lwdz3p">▭</button>
+        <button class="ssb" data-sm="ellipse" title="타원 선택" data-i18n-t="x.1j4gcko">⬭</button>
+        <button class="ssb" data-sm="lasso" title="올가미 선택" data-i18n-t="x.648t1o">✎</button>
       </div>
       <!-- 플로팅(이동·붙여넣기 중) 정렬 바: 프레임 안이면 프레임, 아니면 캔버스 기준 -->
       <div id="float-tb">
-        <span style="font-size:10px;color:var(--text3)" id="fa-target">캔버스 기준</span>
-        <button class="selb" id="fa-l" title="왼쪽 정렬">⇤</button>
-        <button class="selb" id="fa-c" title="가로 가운데">↔</button>
-        <button class="selb" id="fa-r" title="오른쪽 정렬">⇥</button>
+        <span style="font-size:10px;color:var(--text3)" id="fa-target" data-i18n="x.1kyn36p">캔버스 기준</span>
+        <button class="selb" id="fa-l" title="왼쪽 정렬" data-i18n-t="x.1v7jc8t">⇤</button>
+        <button class="selb" id="fa-c" title="가로 가운데" data-i18n-t="x.1yjlvct">↔</button>
+        <button class="selb" id="fa-r" title="오른쪽 정렬" data-i18n-t="x.1wcae9p">⇥</button>
         <div class="fa-sep"></div>
-        <button class="selb" id="fa-t" title="위 정렬">⤒</button>
-        <button class="selb" id="fa-m" title="세로 가운데">↕</button>
-        <button class="selb" id="fa-b" title="아래 정렬">⤓</button>
+        <button class="selb" id="fa-t" title="위 정렬" data-i18n-t="x.oaw0qg">⤒</button>
+        <button class="selb" id="fa-m" title="세로 가운데" data-i18n-t="x.ghfslh">↕</button>
+        <button class="selb" id="fa-b" title="아래 정렬" data-i18n-t="x.1ylwg00">⤓</button>
         <div class="fa-sep"></div>
-        <button class="selb" id="fa-ok" style="background:var(--accent);color:#fff">✓ 완료</button>
-        <button class="selb d" id="fa-x">✕ 취소</button>
+        <button class="selb" id="fa-ok" style="background:var(--accent);color:#fff" data-i18n="x.t7ufdq">✓ 완료</button>
+        <button class="selb d" id="fa-x" data-i18n="x.t5scms">✕ 취소</button>
       </div>
       <div id="sel-tb" style="flex-direction:column;align-items:center;gap:4px">
         <span id="sel-count" style="font-size:10px;color:var(--primary);font-weight:700;min-width:60px;text-align:center"></span>
         <div style="display:flex;gap:5px">
-          <button class="selb" id="sel-cp">📋 복사</button>
-          <button class="selb d" id="sel-ct">✂ 자르기</button>
-          <button class="selb" id="sel-pa">📌 붙이기</button>
-          <button class="selb" id="sel-mtf">🗂 보관함</button>
-          <button class="selb" id="sel-fl">🎨 채우기</button>
-          <button class="selb" id="sel-pat">✦ 기호채우기</button>
-          <button class="selb" id="sel-gd">↕ 그라디언트</button>
-          <button class="selb d" id="sel-dl">🗑 지우기</button>
-          <button class="selb" id="sel-mv">✥ 이동</button>
-          <button class="selb" id="sel-inv">⊘ 반전</button>
-          <button class="selb" id="sel-grow">⊕ 확장</button>
-          <button class="selb" id="sel-shrink">⊖ 축소</button>
-          <button class="selb" id="sel-tile">⊞ 패턴 반복</button>
-          <button class="selb" id="sel-frame" title="선택 영역을 레이아웃 프레임으로 저장 (Pro)">□ 프레임↑</button>
+          <button class="selb" id="sel-cp" data-i18n="x.t29k6i">📋 복사</button>
+          <button class="selb d" id="sel-ct" data-i18n="x.12r7xzn">✂ 자르기</button>
+          <button class="selb" id="sel-pa" data-i18n="x.zl5yjt">📌 붙이기</button>
+          <button class="selb" id="sel-mtf" data-i18n="x.13d561y">🗂 보관함</button>
+          <button class="selb" id="sel-fl" data-i18n="x.1dq3d6d">🎨 채우기</button>
+          <button class="selb" id="sel-pat" data-i18n="x.1goga7">✦ 기호채우기</button>
+          <button class="selb" id="sel-gd" data-i18n="x.72vg1s">↕ 그라디언트</button>
+          <button class="selb d" id="sel-dl" data-i18n="x.1443oh5">🗑 지우기</button>
+          <button class="selb" id="sel-mv" data-i18n="x.t6pnyl">✥ 이동</button>
+          <button class="selb" id="sel-inv" data-i18n="x.twefq9">⊘ 반전</button>
+          <button class="selb" id="sel-grow" data-i18n="x.tw7qkg">⊕ 확장</button>
+          <button class="selb" id="sel-shrink" data-i18n="x.twikei">⊖ 축소</button>
+          <button class="selb" id="sel-tile" data-i18n="x.1qkheoa">⊞ 패턴 반복</button>
+          <button class="selb" id="sel-frame" title="선택 영역을 레이아웃 프레임으로 저장 (Pro)" data-i18n-t="x.8f1rl6" data-i18n="x.b4ujel">□ 프레임↑</button>
         </div>
       </div>
       <div id="shape-bar">
-        <span class="sb-grip" id="sb-grip" title="드래그해서 옮기기 · 두 번 눌러 제자리로">⠿</span>
-        <button class="sb-name" id="shape-cycle" title="다른 모양으로"><span id="shape-type">직선</span><span class="sb-caret">⇄</span></button>
+        <span class="sb-grip" id="sb-grip" title="드래그해서 옮기기 · 두 번 눌러 제자리로" data-i18n-t="x.1xpuy24">⠿</span>
+        <button class="sb-name" id="shape-cycle" title="다른 모양으로" data-i18n-t="x.x26dvk"><span id="shape-type" data-i18n="x.38af8">직선</span><span class="sb-caret">⇄</span></button>
         <span class="sb-cnt" id="shape-count-wrap" style="display:none">
           <b class="sb-axis" id="sb-axis1"></b>
           <button class="sb-ic" id="shape-less">−</button>
@@ -994,33 +994,33 @@ body.ui-hidden #row-counter{display:none!important}
           <button class="sb-ic" id="shape-more">＋</button>
         </span>
         <span class="sb-cnt" id="shape-count-wrap2" style="display:none">
-          <b class="sb-axis">세로</b>
+          <b class="sb-axis" data-i18n="x.36qu9">세로</b>
           <button class="sb-ic" id="shape-less2">−</button>
           <input type="number" id="shape-count2" min="2" max="100" style="width:46px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;font-weight:700;font-size:12px;border-radius:6px;padding:2px 4px;text-align:center">
           <button class="sb-ic" id="shape-more2">＋</button>
         </span>
-        <button class="sb-ic" id="shape-center" title="캔버스 중앙 정렬">⊕</button>
-        <button class="sb-ic" id="shape-anchor" title="앵커(＋)에 중심 정렬">◎</button>
-        <button class="sb-ic" id="shape-rot-l" title="왼쪽 회전 15° (Q)">↺</button>
-        <button class="sb-ic" id="shape-rot-r" title="오른쪽 회전 15° (R)">↻</button>
-        <button class="sb-ic" id="shape-aim" title="앵커 방향으로 기울기 정렬">↝</button>
+        <button class="sb-ic" id="shape-center" title="캔버스 중앙 정렬" data-i18n-t="x.dxydnk">⊕</button>
+        <button class="sb-ic" id="shape-anchor" title="앵커(＋)에 중심 정렬" data-i18n-t="x.m65d62">◎</button>
+        <button class="sb-ic" id="shape-rot-l" title="왼쪽 회전 15° (Q)" data-i18n-t="x.1ke9few">↺</button>
+        <button class="sb-ic" id="shape-rot-r" title="오른쪽 회전 15° (R)" data-i18n-t="x.fa8ckr">↻</button>
+        <button class="sb-ic" id="shape-aim" title="앵커 방향으로 기울기 정렬" data-i18n-t="x.mjlreh">↝</button>
         <span class="sb-sep"></span>
-        <button class="sb-ic ok" id="shape-done" title="완료">✓</button>
-        <button class="sb-ic no" id="shape-cancel" title="취소">✕</button>
+        <button class="sb-ic ok" id="shape-done" title="완료" data-i18n-t="x.34rt9">✓</button>
+        <button class="sb-ic no" id="shape-cancel" title="취소" data-i18n-t="x.364pt">✕</button>
       </div>
       <div class="fb">
-        <button class="fbb" id="btn-ctr" title="화면 중앙">⊕</button>
-        <button class="fbb wide" id="btn-narr" title="서술도안 보기 — 그린 도안을 뜨는 순서 문장으로">📝 서술도안</button>
+        <button class="fbb" id="btn-ctr" title="화면 중앙" data-i18n-t="x.1waef4d">⊕</button>
+        <button class="fbb wide" id="btn-narr" title="서술도안 보기 — 그린 도안을 뜨는 순서 문장으로" data-i18n-t="x.csed9g" data-i18n="x.13lr20l">📝 서술도안</button>
       </div>
       <!-- 텍스트 도구 인라인 에디터 -->
       <div id="text-wrap" style="display:none;position:absolute;z-index:50;pointer-events:auto">
-        <textarea id="text-inp" rows="2" placeholder="텍스트 입력…" style="background:rgba(20,20,36,.94);color:#fff;border:2px solid var(--primary);border-radius:10px;padding:8px 12px;font-size:18px;resize:none;outline:none;min-width:140px;max-width:280px;box-shadow:0 6px 24px rgba(0,0,0,.55);line-height:1.4;font-family:sans-serif"></textarea>
+        <textarea id="text-inp" rows="2" placeholder="텍스트 입력…" data-i18n-p="x.1td7ywi" style="background:rgba(20,20,36,.94);color:#fff;border:2px solid var(--primary);border-radius:10px;padding:8px 12px;font-size:18px;resize:none;outline:none;min-width:140px;max-width:280px;box-shadow:0 6px 24px rgba(0,0,0,.55);line-height:1.4;font-family:sans-serif"></textarea>
         <div style="display:flex;gap:5px;margin-top:5px;align-items:center">
           <select id="text-font" style="flex:1;background:rgba(20,20,36,.94);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:4px 6px;font-size:11px">
-            <option value="sans-serif">고딕</option>
-            <option value="serif">명조</option>
-            <option value="monospace">고정폭</option>
-            <option value="'Apple SD Gothic Neo',sans-serif">애플 고딕</option>
+            <option value="sans-serif" data-i18n="x.2q9kg">고딕</option>
+            <option value="serif" data-i18n="x.2mfrk">명조</option>
+            <option value="monospace" data-i18n="x.2hieql">고정폭</option>
+            <option value="'Apple SD Gothic Neo',sans-serif" data-i18n="x.4qej4s">애플 고딕</option>
           </select>
           <button id="text-ok" style="padding:5px 12px;border-radius:7px;border:none;background:var(--primary);color:#fff;font-size:12px;font-weight:700;cursor:pointer">✓</button>
           <button id="text-x" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:rgba(60,60,80,.8);color:var(--text2);font-size:12px;cursor:pointer">✕</button>
@@ -1029,23 +1029,23 @@ body.ui-hidden #row-counter{display:none!important}
       <!-- 레퍼런스 이미지 -->
       <img id="ref-overlay" alt="reference">
       <div id="ref-ctrl">
-        <span>투명도</span>
+        <span data-i18n="x.2uviaw">투명도</span>
         <input type="range" id="ref-op" min="5" max="100" value="40">
         <span id="ref-opv">40%</span>
-        <button id="ref-close" title="레퍼런스 제거">✕</button>
+        <button id="ref-close" title="레퍼런스 제거" data-i18n-t="x.1nsrh55">✕</button>
       </div>
       <input type="file" id="ref-input" accept="image/*" style="display:none">
       <!-- 복제 도장 소스 표시기 -->
       <div id="clone-src-ind"><div class="csi-h"></div><div class="csi-v"></div><div class="csi-ring"></div></div>
       <!-- 단/코 카운터 위젯 -->
       <div id="row-counter">
-        <button id="rc-dec" title="단/코 줄이기">−</button>
-        <div id="rc-val"><span id="rc-num">1</span><span id="rc-lbl">단</span></div>
-        <button id="rc-inc" title="단/코 늘리기">＋</button>
+        <button id="rc-dec" title="단/코 줄이기" data-i18n-t="x.wjrvw6">−</button>
+        <div id="rc-val"><span id="rc-num">1</span><span id="rc-lbl" data-i18n="x.2ukt">단</span></div>
+        <button id="rc-inc" title="단/코 늘리기" data-i18n-t="x.vyhuya">＋</button>
       </div>
       <!-- 하단 컬러 히스토리 바 -->
       <div id="col-hist-bar">
-        <div id="chb-cur" title="현재 색상 (탭 → 색상 패널 열기)"></div>
+        <div id="chb-cur" title="현재 색상 (탭 → 색상 패널 열기)" data-i18n-t="x.1hcikxb"></div>
         <div class="chb-sep"></div>
         <div id="chb-list" style="display:flex;gap:5px"></div>
       </div>
@@ -1056,38 +1056,38 @@ body.ui-hidden #row-counter{display:none!important}
       <div class="tabs">
         <button class="tb act" data-tab="tools" data-i18n="tab.tools">도구·가이드</button>
         <button class="tb" data-tab="layers" data-i18n="tab.layers">레이어</button>
-        <button class="pcol" id="sr-col" title="닫기" style="margin-left:auto">✕</button>
+        <button class="pcol" id="sr-col" title="닫기" data-i18n-t="x.2l8am" style="margin-left:auto">✕</button>
       </div>
 
       <!-- TOOLS TAB -->
       <div class="tp act" id="tab-tools">
 
         <div class="cg" id="brush-cg" style="display:none">
-          <div class="cgl">브러시 프리셋</div>
+          <div class="cgl" data-i18n="x.1a9rc9m">브러시 프리셋</div>
           <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px" id="brush-presets">
-            <button class="ib bpreset act" data-p="symbol" style="flex:1;min-width:60px;font-size:10px">🧶 기호</button>
-            <button class="ib bpreset" data-p="ink" style="flex:1;min-width:60px;font-size:10px">✒ 잉크</button>
-            <button class="ib bpreset" data-p="pencil" style="flex:1;min-width:60px;font-size:10px">✏ 연필</button>
-            <button class="ib bpreset" data-p="airbrush" style="display:none">💨 에어</button>
-            <button class="ib bpreset" data-p="marker" style="flex:1;min-width:60px;font-size:10px">🖊 마커</button>
-            <button class="ib bpreset" data-p="brush" style="display:none">🖌 붓</button>
+            <button class="ib bpreset act" data-p="symbol" style="flex:1;min-width:60px;font-size:10px" data-i18n="x.t62yyt">🧶 기호</button>
+            <button class="ib bpreset" data-p="ink" style="flex:1;min-width:60px;font-size:10px" data-i18n="x.t7whbm">✒ 잉크</button>
+            <button class="ib bpreset" data-p="pencil" style="flex:1;min-width:60px;font-size:10px" data-i18n="x.t5myke">✏ 연필</button>
+            <button class="ib bpreset" data-p="airbrush" style="display:none" data-i18n="x.szuyd0">💨 에어</button>
+            <button class="ib bpreset" data-p="marker" style="flex:1;min-width:60px;font-size:10px" data-i18n="x.t57hi6">🖊 마커</button>
+            <button class="ib bpreset" data-p="brush" style="display:none" data-i18n="x.ok5x9j">🖌 붓</button>
           </div>
-          <div class="cgl">크기</div>
+          <div class="cgl" data-i18n="x.33xsp">크기</div>
           <div class="rr"><input type="range" id="bsz" min="1" max="30" value="3"><span class="rv" id="bszv">3px</span></div>
-          <button class="ib" id="btn-clr-layer3" style="width:100%;margin-top:6px;font-size:10px;color:#f87171">🧽 현재 레이어 전체 지우기</button>
-          <div class="cgl" style="display:none">부드러움</div>
+          <button class="ib" id="btn-clr-layer3" style="width:100%;margin-top:6px;font-size:10px;color:#f87171" data-i18n="x.17krdzq">🧽 현재 레이어 전체 지우기</button>
+          <div class="cgl" style="display:none" data-i18n="x.8vgiph">부드러움</div>
           <div class="rr" style="display:none"><input type="range" id="bsft" min="0" max="100" value="0" step="5"><span class="rv" id="bsftv">0%</span></div>
-          <div class="cgl" style="display:none">StreamLine (획 안정화)</div>
+          <div class="cgl" style="display:none" data-i18n="x.at4lwy">StreamLine (획 안정화)</div>
           <div class="rr" style="display:none"><input type="range" id="bstl" min="0" max="95" value="38" step="5"><span class="rv" id="bstlv">38%</span></div>
         </div>
 
         <div class="cg" id="stamp-cg">
-          <div class="cgl">기호 회전</div>
+          <div class="cgl" data-i18n="x.1rzft1">기호 회전</div>
           <div style="display:flex;gap:3px;margin-bottom:4px">
             <button class="ib" id="rl" style="flex:1;font-size:10px">↺-45°</button>
             <button class="ib" id="rr2" style="flex:1;font-size:10px">↻+45°</button>
             <button class="ib" id="r0" style="flex:1;font-size:10px">0°</button>
-            <button class="ib" id="rot-lock" style="flex:1;font-size:11px" title="회전 고정 — ON이면 기호 바꿔도 각도 유지">🔓</button>
+            <button class="ib" id="rot-lock" style="flex:1;font-size:11px" title="회전 고정 — ON이면 기호 바꿔도 각도 유지" data-i18n-t="x.13iqvr8">🔓</button>
           </div>
           <div style="display:flex;gap:3px;margin-bottom:4px">
             <button class="ib rot-pre" data-deg="45" style="flex:1;font-size:10px">45°</button>
@@ -1097,27 +1097,27 @@ body.ui-hidden #row-counter{display:none!important}
           </div>
           <div class="rr"><input type="range" id="rsl" min="-180" max="180" value="0"><span class="rv" id="rv">0°</span></div>
           <div class="sw-wrap" style="margin-top:5px">
-            <div class="sw on" id="sw-snap"></div><span>격자 스냅 (기호를 칸 중앙에 고정)</span>
+            <div class="sw on" id="sw-snap"></div><span data-i18n="x.sk1k65">격자 스냅 (기호를 칸 중앙에 고정)</span>
           </div>
           <div class="sw-wrap" style="margin-top:5px">
-            <div class="sw on" id="sw-seq"></div><span>연속 배치 (프레임 안 탭마다 다음 코)</span>
+            <div class="sw on" id="sw-seq"></div><span data-i18n="x.1oeojl8">연속 배치 (프레임 안 탭마다 다음 코)</span>
           </div>
           <div id="annnum-cg" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-            <div class="cgl">번호 마커 값</div>
+            <div class="cgl" data-i18n="x.1fv7mcr">번호 마커 값</div>
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
               <button class="ib" id="annnum-m" style="width:26px;font-size:13px">−</button>
               <input type="number" id="annnum-val" value="1" min="1" max="999" style="flex:1;text-align:center;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px">
               <button class="ib" id="annnum-p" style="width:26px;font-size:13px">＋</button>
             </div>
-            <div class="sw-wrap"><div class="sw on" id="sw-annnum-auto"></div><span>찍을 때마다 +1 (반복 구간 번호 매기기)</span></div>
+            <div class="sw-wrap"><div class="sw on" id="sw-annnum-auto"></div><span data-i18n="x.1k2ti12">찍을 때마다 +1 (반복 구간 번호 매기기)</span></div>
           </div>
         </div>
 
         <!-- 방안뜨기 전용 패널 (graph 모드일 때만 표시) -->
         <div class="cg" id="graph-cg" style="display:none">
-          <div class="cgl">방안뜨기 설정</div>
+          <div class="cgl" data-i18n="x.qp2w5p">방안뜨기 설정</div>
           <div class="sr2" style="margin-bottom:5px">
-            <span>열 수(코)</span>
+            <span data-i18n="x.1rov47w">열 수(코)</span>
             <div style="display:flex;align-items:center;gap:3px">
               <button class="ib" id="graph-col-m" style="width:24px;padding:2px 0;font-size:13px">−</button>
               <input type="number" id="graph-cols" value="50" min="10" max="200" style="width:50px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:11px;border-radius:5px;padding:2px 5px;text-align:center">
@@ -1125,34 +1125,34 @@ body.ui-hidden #row-counter{display:none!important}
             </div>
           </div>
           <div class="sr2" style="margin-bottom:6px">
-            <span>칸 크기</span>
+            <span data-i18n="x.potksh">칸 크기</span>
             <span id="graph-cellsz-v" style="font-size:11px;color:var(--accent);font-weight:600">24px</span>
           </div>
           <div class="sr2" style="margin-bottom:5px">
-            <span>뜨기 방식</span>
+            <span data-i18n="x.1fmm0cp">뜨기 방식</span>
             <select id="graph-stitch" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:11px;border-radius:5px;padding:3px 5px">
-              <option value="sc">짧은뜨기 (칸=1코)</option>
-              <option value="hdc">긴뜨기 (칸=2코)</option>
-              <option value="dc" selected>한길긴뜨기 (칸=3코)</option>
-              <option value="tr">두길긴뜨기 (칸=3코)</option>
+              <option value="sc" data-i18n="x.jbos6z">짧은뜨기 (칸=1코)</option>
+              <option value="hdc" data-i18n="x.168p097">긴뜨기 (칸=2코)</option>
+              <option value="dc" selected data-i18n="x.1v8iucu">한길긴뜨기 (칸=3코)</option>
+              <option value="tr" data-i18n="x.kdtdia">두길긴뜨기 (칸=3코)</option>
             </select>
           </div>
           <div class="sr2" style="margin-bottom:5px">
-            <span>도구</span>
+            <span data-i18n="x.2ler1">도구</span>
             <div style="display:flex;gap:3px">
-              <button class="ib g-tl" data-gt="paint" title="그리기" style="width:30px;padding:3px 0;background:var(--accent);color:#fff">✏️</button>
-              <button class="ib g-tl" data-gt="erase" title="지우개" style="width:30px;padding:3px 0">⌫</button>
-              <button class="ib g-tl" data-gt="fill" title="채우기(같은 색 영역)" style="width:30px;padding:3px 0">🪣</button>
-              <button class="ib g-tl" data-gt="pick" title="스포이드" style="width:30px;padding:3px 0">💧</button>
+              <button class="ib g-tl" data-gt="paint" title="그리기" data-i18n-t="x.2hlikh" style="width:30px;padding:3px 0;background:var(--accent);color:#fff">✏️</button>
+              <button class="ib g-tl" data-gt="erase" title="지우개" data-i18n-t="x.2ym4i1" style="width:30px;padding:3px 0">⌫</button>
+              <button class="ib g-tl" data-gt="fill" title="채우기(같은 색 영역)" data-i18n-t="x.2vza7w" style="width:30px;padding:3px 0">🪣</button>
+              <button class="ib g-tl" data-gt="pick" title="스포이드" data-i18n-t="x.p7macl" style="width:30px;padding:3px 0">💧</button>
             </div>
           </div>
           <div class="sr2" style="margin-bottom:5px">
             <label style="display:flex;align-items:center;gap:4px;font-size:11px"><input type="checkbox" id="g-mir-h">좌우 대칭</label>
             <label style="display:flex;align-items:center;gap:4px;font-size:11px"><input type="checkbox" id="g-mir-v">상하 대칭</label>
           </div>
-          <div class="cgl" style="margin-top:6px">배치된 격자 프레임</div>
+          <div class="cgl" style="margin-top:6px" data-i18n="x.1hxud28">배치된 격자 프레임</div>
           <div class="sr2" style="margin-bottom:5px">
-            <span>가로 칸</span>
+            <span data-i18n="x.bjl6bl">가로 칸</span>
             <div style="display:flex;align-items:center;gap:3px">
               <button class="ib" id="gf-col-m" style="width:24px;padding:2px 0;font-size:13px">−</button>
               <b id="gf-col-v" style="min-width:30px;text-align:center;font-size:12px;color:var(--accent)">—</b>
@@ -1160,124 +1160,124 @@ body.ui-hidden #row-counter{display:none!important}
             </div>
           </div>
           <div class="sr2" style="margin-bottom:5px">
-            <span>세로 칸</span>
+            <span data-i18n="x.pdybax">세로 칸</span>
             <div style="display:flex;align-items:center;gap:3px">
               <button class="ib" id="gf-row-m" style="width:24px;padding:2px 0;font-size:13px">−</button>
               <b id="gf-row-v" style="min-width:30px;text-align:center;font-size:12px;color:var(--accent)">—</b>
               <button class="ib" id="gf-row-p" style="width:24px;padding:2px 0;font-size:13px">+</button>
             </div>
           </div>
-          <button class="ib" id="gf-edit" style="width:100%;font-size:11px;padding:6px;margin-bottom:6px">◫ 프레임 크기·위치 편집</button>
-          <button class="ib" id="btn-sym-convert" style="width:100%;padding:8px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;border-radius:10px;margin-bottom:4px">▦ → ⊙  기호 변환 (Symbol Convert)</button>
-          <button class="ib" id="btn-progress" style="width:100%;padding:8px;background:var(--gold);color:#1a1208;font-size:12px;font-weight:700;border-radius:10px;margin-bottom:4px">🧶 뜨면서 체크 (진행 트래커)</button>
-          <button class="ib" id="btn-img2px" style="width:100%;padding:8px;font-size:12px;font-weight:700;border-radius:10px;margin-bottom:4px">🖼 이미지 → 방안 변환</button>
-          <button class="ib" id="btn-graph-clear" style="width:100%;font-size:10px;padding:5px">↺ 방안 초기화</button>
+          <button class="ib" id="gf-edit" style="width:100%;font-size:11px;padding:6px;margin-bottom:6px" data-i18n="x.159sb2w">◫ 프레임 크기·위치 편집</button>
+          <button class="ib" id="btn-sym-convert" style="width:100%;padding:8px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;border-radius:10px;margin-bottom:4px" data-i18n="x.1xkv76w">▦ → ⊙  기호 변환 (Symbol Convert)</button>
+          <button class="ib" id="btn-progress" style="width:100%;padding:8px;background:var(--gold);color:#1a1208;font-size:12px;font-weight:700;border-radius:10px;margin-bottom:4px" data-i18n="x.1out1h9">🧶 뜨면서 체크 (진행 트래커)</button>
+          <button class="ib" id="btn-img2px" style="width:100%;padding:8px;font-size:12px;font-weight:700;border-radius:10px;margin-bottom:4px" data-i18n="x.1jcb2mb">🖼 이미지 → 방안 변환</button>
+          <button class="ib" id="btn-graph-clear" style="width:100%;font-size:10px;padding:5px" data-i18n="x.2sh9oy">↺ 방안 초기화</button>
         </div>
 
         <div class="cg">
-          <div class="cgl">기호 색상</div>
+          <div class="cgl" data-i18n="x.1ru2sl">기호 색상</div>
           <div class="cpal" id="cpal"></div>
         </div>
 
         <div class="cg" id="bg-cg">
-          <div class="cgl" style="color:var(--gold)">👑 배경색 (Pro)</div>
+          <div class="cgl" style="color:var(--gold)" data-i18n="x.1supda9">👑 배경색 (Pro)</div>
           <div class="cpal" id="bgpal"></div>
         </div>
 
         <div class="cg">
-          <div class="cgl">가이드 프레임</div>
+          <div class="cgl" data-i18n="x.129cup1">가이드 프레임</div>
           <div class="sw-wrap" style="margin-bottom:5px">
-            <div class="sw on" id="sw-grid"></div><span>격자(Grid)</span>
+            <div class="sw on" id="sw-grid"></div><span data-i18n="x.nsmkbp">격자(Grid)</span>
           </div>
-          <div class="cgl" style="margin-top:4px">안내선 (가이드라인)</div>
+          <div class="cgl" style="margin-top:4px" data-i18n="x.o9tks4">안내선 (가이드라인)</div>
           <div style="display:flex;gap:3px;margin-bottom:5px">
-            <button class="ib" id="gd-add-h" style="flex:1;font-size:10px" title="가로 안내선 추가">＋가로</button>
-            <button class="ib" id="gd-add-v" style="flex:1;font-size:10px" title="세로 안내선 추가">＋세로</button>
-            <button class="ib" id="gd-edit" style="flex:1;font-size:10px" title="안내선 드래그 이동 모드">✋이동</button>
-            <button class="ib" id="gd-clear" style="flex:1;font-size:10px;color:#f87171">지움</button>
+            <button class="ib" id="gd-add-h" style="flex:1;font-size:10px" title="가로 안내선 추가" data-i18n-t="x.1fr159t" data-i18n="x.2om4xe">＋가로</button>
+            <button class="ib" id="gd-add-v" style="flex:1;font-size:10px" title="세로 안내선 추가" data-i18n-t="x.wuvbrd" data-i18n="x.2p1op6">＋세로</button>
+            <button class="ib" id="gd-edit" style="flex:1;font-size:10px" title="안내선 드래그 이동 모드" data-i18n-t="x.1m7kxwc" data-i18n="x.30f1j7">✋이동</button>
+            <button class="ib" id="gd-clear" style="flex:1;font-size:10px;color:#f87171" data-i18n="x.38blx">지움</button>
           </div>
           <div class="sw-wrap" style="margin-bottom:5px;display:none">
-            <div class="sw" id="sw-iso"></div><span>등각(Isometric) 그리드</span>
+            <div class="sw" id="sw-iso"></div><span data-i18n="x.ko7jwt">등각(Isometric) 그리드</span>
           </div>
           <div class="sw-wrap" style="margin-bottom:5px;display:none">
-            <div class="sw" id="sw-persp"></div><span>원근 격자(Perspective Grid)</span>
+            <div class="sw" id="sw-persp"></div><span data-i18n="x.92hmkl">원근 격자(Perspective Grid)</span>
           </div>
           <div class="sw-wrap" style="margin-bottom:5px">
-            <div class="sw" id="sw-nums"></div><span>코·단 번호 (좌하단=1)</span>
+            <div class="sw" id="sw-nums"></div><span data-i18n="x.od44fj">코·단 번호 (좌하단=1)</span>
           </div>
           <div class="sw-wrap" style="margin-bottom:5px">
-            <div class="sw on" id="sw-rowctr"></div><span>단 계산기 표시 (우측 상단, 드래그로 이동)</span>
+            <div class="sw on" id="sw-rowctr"></div><span data-i18n="x.1jfc41d">단 계산기 표시 (우측 상단, 드래그로 이동)</span>
           </div>
-          <button class="ib" id="btn-clr-frames" style="font-size:10px;padding:3px 7px;margin-top:3px" title="자유배치 프레임 모두 삭제">□ 프레임 초기화</button>
+          <button class="ib" id="btn-clr-frames" style="font-size:10px;padding:3px 7px;margin-top:3px" title="자유배치 프레임 모두 삭제" data-i18n-t="x.qcuzq4" data-i18n="x.xen0f4">□ 프레임 초기화</button>
           <div class="sw-wrap" style="margin-bottom:5px">
-            <div class="sw" id="sw-radial"></div><span>방사 정렬 (앵커 향해 회전)</span>
+            <div class="sw" id="sw-radial"></div><span data-i18n="x.15tf5yo">방사 정렬 (앵커 향해 회전)</span>
           </div>
-          <button class="ib" id="btn-anchor" style="width:100%;margin-bottom:6px;font-size:10px">◎ 기준점 잡기</button>
-          <div class="sr2" style="margin-bottom:4px"><span>원형 개수</span><input type="number" id="ring-n" value="12" min="2" max="120" style="width:54px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
-          <div class="sr2" style="margin-bottom:4px"><span>원형 반지름</span><input type="number" id="ring-r" value="200" min="20" max="580" step="10" style="width:54px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
-          <button class="ib" id="btn-ring" style="width:100%;margin-bottom:4px;font-size:10px">⊙ 원형 한 바퀴 배치</button>
+          <button class="ib" id="btn-anchor" style="width:100%;margin-bottom:6px;font-size:10px" data-i18n="x.gpefh6">◎ 기준점 잡기</button>
+          <div class="sr2" style="margin-bottom:4px"><span data-i18n="x.1xlybvo">원형 개수</span><input type="number" id="ring-n" value="12" min="2" max="120" style="width:54px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
+          <div class="sr2" style="margin-bottom:4px"><span data-i18n="x.o26yyk">원형 반지름</span><input type="number" id="ring-r" value="200" min="20" max="580" step="10" style="width:54px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
+          <button class="ib" id="btn-ring" style="width:100%;margin-bottom:4px;font-size:10px" data-i18n="x.180ilbh">⊙ 원형 한 바퀴 배치</button>
           <div style="border-top:1px solid var(--border);margin:5px 0 5px;opacity:.5"></div>
-          <div style="font-size:10px;color:var(--accent);font-weight:600;margin-bottom:4px">다중 링 (원형 가방 도안)</div>
-          <div class="sr2" style="margin-bottom:3px"><span>링 수 (단)</span><input type="number" id="mring-n" value="5" min="1" max="20" style="width:46px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
-          <div class="sr2" style="margin-bottom:3px"><span>1단 코 수</span><input type="number" id="mring-start" value="6" min="2" max="60" style="width:46px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
-          <div class="sr2" style="margin-bottom:3px"><span>단마다 증가</span><input type="number" id="mring-inc" value="6" min="0" max="30" style="width:46px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
-          <div class="sr2" style="margin-bottom:3px"><span>첫 반지름</span><input type="number" id="mring-r0" value="80" min="20" max="400" step="5" style="width:46px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
-          <div class="sr2" style="margin-bottom:4px"><span>링 간격</span><input type="number" id="mring-dr" value="55" min="10" max="200" step="5" style="width:46px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
-          <div class="sw-wrap" style="margin-bottom:4px"><div class="sw on" id="sw-ring-preview"></div><span>배치 미리보기</span></div>
-          <button class="ib" id="btn-mring" style="width:100%;margin-bottom:6px;font-size:10px;background:var(--accent);color:#fff">⊙⊙ 다중 링 배치</button>
-          <button class="ib" id="btn-circgen" style="width:100%;margin-bottom:6px;font-size:10px;background:var(--gold);color:#1a1208;font-weight:700">⊚ 원형 도안 생성 (단별 설정)</button>
-          <div class="sr2" style="margin-bottom:4px"><span>대칭 그리기</span>
+          <div style="font-size:10px;color:var(--accent);font-weight:600;margin-bottom:4px" data-i18n="x.15z8tao">다중 링 (원형 가방 도안)</div>
+          <div class="sr2" style="margin-bottom:3px"><span data-i18n="x.172q9p1">링 수 (단)</span><input type="number" id="mring-n" value="5" min="1" max="20" style="width:46px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
+          <div class="sr2" style="margin-bottom:3px"><span data-i18n="x.1ylvzjk">1단 코 수</span><input type="number" id="mring-start" value="6" min="2" max="60" style="width:46px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
+          <div class="sr2" style="margin-bottom:3px"><span data-i18n="x.1fx0u58">단마다 증가</span><input type="number" id="mring-inc" value="6" min="0" max="30" style="width:46px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
+          <div class="sr2" style="margin-bottom:3px"><span data-i18n="x.1gbg9v6">첫 반지름</span><input type="number" id="mring-r0" value="80" min="20" max="400" step="5" style="width:46px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
+          <div class="sr2" style="margin-bottom:4px"><span data-i18n="x.8qdyi1">링 간격</span><input type="number" id="mring-dr" value="55" min="10" max="200" step="5" style="width:46px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
+          <div class="sw-wrap" style="margin-bottom:4px"><div class="sw on" id="sw-ring-preview"></div><span data-i18n="x.11gyb0d">배치 미리보기</span></div>
+          <button class="ib" id="btn-mring" style="width:100%;margin-bottom:6px;font-size:10px;background:var(--accent);color:#fff" data-i18n="x.x7emvt">⊙⊙ 다중 링 배치</button>
+          <button class="ib" id="btn-circgen" style="width:100%;margin-bottom:6px;font-size:10px;background:var(--gold);color:#1a1208;font-weight:700" data-i18n="x.1rxtnnq">⊚ 원형 도안 생성 (단별 설정)</button>
+          <div class="sr2" style="margin-bottom:4px"><span data-i18n="x.1kz578s">대칭 그리기</span>
             <select id="sym-sel">
-              <option value="">없음</option>
-              <option value="v">수직 ⇄</option>
-              <option value="h">수평 ⇅</option>
-              <option value="quad">사분 ✛</option>
-              <option value="radial">방사 ✻</option>
+              <option value="" data-i18n="x.35ehb">없음</option>
+              <option value="v" data-i18n="x.pcbofs">수직 ⇄</option>
+              <option value="h" data-i18n="x.pfylip">수평 ⇅</option>
+              <option value="quad" data-i18n="x.pd5x5i">사분 ✛</option>
+              <option value="radial" data-i18n="x.97k3az">방사 ✻</option>
             </select>
           </div>
-          <div class="sr2" id="symn-row" style="margin-bottom:4px;display:none"><span>방사 분할</span><input type="number" id="sym-n" value="6" min="2" max="16" style="width:54px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
-          <div class="sr2"><span>프레임</span>
+          <div class="sr2" id="symn-row" style="margin-bottom:4px;display:none"><span data-i18n="x.jtj1lw">방사 분할</span><input type="number" id="sym-n" value="6" min="2" max="16" style="width:54px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:10px;border-radius:5px;padding:2px 4px"></div>
+          <div class="sr2"><span data-i18n="x.2th0ml">프레임</span>
             <select id="frame-sel">
-              <option value="none">없음</option>
-              <option value="circle" selected>원형</option>
-              <option value="square">사각형</option>
-              <option value="hexagon">육각형</option>
-              <option value="oval">타원형</option>
-              <option value="triangle">삼각형</option>
-              <option value="stripe">줄무늬</option>
+              <option value="none" data-i18n="x.35ehb">없음</option>
+              <option value="circle" selected data-i18n="x.34npc">원형</option>
+              <option value="square" data-i18n="x.2x777h">사각형</option>
+              <option value="hexagon" data-i18n="x.2vktkg">육각형</option>
+              <option value="oval" data-i18n="x.2uswgw">타원형</option>
+              <option value="triangle" data-i18n="x.2x89wt">삼각형</option>
+              <option value="stripe" data-i18n="x.2ygrax">줄무늬</option>
             </select>
           </div>
           <div class="rr" style="margin-top:5px">
-            <span style="font-size:9px;color:var(--text3);min-width:28px">겹수</span>
+            <span style="font-size:9px;color:var(--text3);min-width:28px" data-i18n="x.2qbgk">겹수</span>
             <input type="range" id="frounds" min="2" max="15" value="6">
             <span class="rv" id="frv">6</span>
           </div>
         </div>
 
         <div class="cg" id="tool-colors-cg" style="display:none">
-          <div class="cgl" style="color:var(--gold)">👑 도구별 색상 (Pro)</div>
+          <div class="cgl" style="color:var(--gold)" data-i18n="x.1t61obl">👑 도구별 색상 (Pro)</div>
           <div id="tc-list"></div>
         </div>
 
 
         <div class="cg" id="brush-opts-cg">
-          <div class="cgl">펜 브러시 옵션</div>
+          <div class="cgl" data-i18n="x.293enc">펜 브러시 옵션</div>
           <div class="sw-wrap">
-            <div class="sw on" id="sw-symbrush"></div><span>기호 브러시 (드래그로 기호 잇기)</span>
+            <div class="sw on" id="sw-symbrush"></div><span data-i18n="x.dmzjnz">기호 브러시 (드래그로 기호 잇기)</span>
           </div>
           <div class="sw-wrap">
-            <div class="sw on" id="sw-monoline"></div><span>모노라인 (균일 선폭)</span>
+            <div class="sw on" id="sw-monoline"></div><span data-i18n="x.1aacsdd">모노라인 (균일 선폭)</span>
           </div>
           <div class="sw-wrap" style="display:none">
-            <div class="sw" id="sw-spray"></div><span>스프레이 (분무기)</span>
+            <div class="sw" id="sw-spray"></div><span data-i18n="x.1gz0bug">스프레이 (분무기)</span>
           </div>
-          <div class="rr" style="margin-top:4px"><span style="font-size:9px;min-width:50px">채우기 허용값</span><input type="range" id="fill-thr" min="0" max="200" value="40"><span class="rv" id="fill-thrv">40</span></div>
+          <div class="rr" style="margin-top:4px"><span style="font-size:9px;min-width:50px" data-i18n="x.583klu">채우기 허용값</span><input type="range" id="fill-thr" min="0" max="200" value="40"><span class="rv" id="fill-thrv">40</span></div>
         </div>
 
 
         <div class="cg">
-          <div class="cgl">도안 내보내기</div>
-          <button class="fb2" id="btn-exp">📦 PDF / PNG / JPG 내보내기</button>
+          <div class="cgl" data-i18n="x.cxtc0d">도안 내보내기</div>
+          <button class="fb2" id="btn-exp" data-i18n="x.1ypmjl8">📦 PDF / PNG / JPG 내보내기</button>
         </div>
       </div>
 
@@ -1286,9 +1286,9 @@ body.ui-hidden #row-counter{display:none!important}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
           <span style="font-size:11px;color:var(--text2)">레이어 <span id="lc">1</span>/50</span>
           <div style="display:flex;gap:4px">
-            <button class="ib" id="btn-merge-vis" style="font-size:10px;padding:3px 7px" title="보이는 레이어 모두 합치기">⬇ 합치기</button>
-            <button class="ib" id="btn-addl" style="font-size:10px;padding:3px 7px">＋ 추가</button>
-            <button class="ib" id="btn-clr-all" style="font-size:10px;padding:3px 7px;color:#f87171" title="모든 레이어 + 방안 칠 기록 전체 지우기">🗑 전체</button>
+            <button class="ib" id="btn-merge-vis" style="font-size:10px;padding:3px 7px" title="보이는 레이어 모두 합치기" data-i18n-t="x.8fy0e8" data-i18n="x.rwbb9f">⬇ 합치기</button>
+            <button class="ib" id="btn-addl" style="font-size:10px;padding:3px 7px" data-i18n="x.i80kbe">＋ 추가</button>
+            <button class="ib" id="btn-clr-all" style="font-size:10px;padding:3px 7px;color:#f87171" title="모든 레이어 + 방안 칠 기록 전체 지우기" data-i18n-t="x.1v9dogi" data-i18n="x.t73buh">🗑 전체</button>
           </div>
         </div>
         <div id="layer-list"></div>
@@ -1297,18 +1297,18 @@ body.ui-hidden #row-counter{display:none!important}
       <!-- YARN TAB -->
     </aside>
   </div>
-  <footer id="ea">📢 [광고] 실시간 뜨개 코칭 커뮤니티 "포근실방" 지금 가입하기 →</footer>
+  <footer id="ea" data-i18n="x.1abwetq">📢 [광고] 실시간 뜨개 코칭 커뮤니티 "포근실방" 지금 가입하기 →</footer>
 </div>
 
 <!-- ===== MODAL: Recolor ===== -->
 <div class="mo" id="m-recolor">
   <div class="mc" style="max-width:340px">
     <div class="mh"><h2 data-i18n="m.recolor">색상 교체 (Recolor)</h2><button class="mhx" onclick="closeM('m-recolor')">✕</button></div>
-    <div class="fg"><label>교체할 색 (기존)</label><div style="display:flex;gap:8px;align-items:center"><input type="color" id="rc-from" value="#ff0000" style="width:44px;height:36px;border:none;padding:0;background:none;cursor:pointer;border-radius:6px"><input id="rc-from-hex" type="text" maxlength="7" placeholder="#rrggbb" style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></div></div>
-    <div class="fg"><label>새 색</label><div style="display:flex;gap:8px;align-items:center"><input type="color" id="rc-to" value="#0000ff" style="width:44px;height:36px;border:none;padding:0;background:none;cursor:pointer;border-radius:6px"><input id="rc-to-hex" type="text" maxlength="7" placeholder="#rrggbb" style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></div></div>
-    <div class="fg"><label>허용 오차 (색 유사도)</label><div class="rr"><input type="range" id="rc-thr" min="0" max="120" value="30"><span class="rv" id="rc-thrv">30</span></div></div>
-    <div class="fg" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3)">현재 레이어의 선택된 색과 유사한 픽셀을 모두 새 색으로 교체합니다.</div>
-    <div class="mf"><button class="mb" onclick="closeM('m-recolor')">취소</button><button class="mb p" id="btn-recolor-ok">교체</button></div>
+    <div class="fg"><label data-i18n="x.1ntawml">교체할 색 (기존)</label><div style="display:flex;gap:8px;align-items:center"><input type="color" id="rc-from" value="#ff0000" style="width:44px;height:36px;border:none;padding:0;background:none;cursor:pointer;border-radius:6px"><input id="rc-from-hex" type="text" maxlength="7" placeholder="#rrggbb" style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></div></div>
+    <div class="fg"><label data-i18n="x.2wgohw">새 색</label><div style="display:flex;gap:8px;align-items:center"><input type="color" id="rc-to" value="#0000ff" style="width:44px;height:36px;border:none;padding:0;background:none;cursor:pointer;border-radius:6px"><input id="rc-to-hex" type="text" maxlength="7" placeholder="#rrggbb" style="flex:1;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></div></div>
+    <div class="fg"><label data-i18n="x.spk8o8">허용 오차 (색 유사도)</label><div class="rr"><input type="range" id="rc-thr" min="0" max="120" value="30"><span class="rv" id="rc-thrv">30</span></div></div>
+    <div class="fg" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3)" data-i18n="x.s5skly">현재 레이어의 선택된 색과 유사한 픽셀을 모두 새 색으로 교체합니다.</div>
+    <div class="mf"><button class="mb" onclick="closeM('m-recolor')" data-i18n="x.364pt">취소</button><button class="mb p" id="btn-recolor-ok" data-i18n="x.2qash">교체</button></div>
   </div>
 </div>
 
@@ -1316,7 +1316,7 @@ body.ui-hidden #row-counter{display:none!important}
 <div class="mo" id="m-colstat">
   <div class="mc" style="max-width:380px">
     <div class="mh"><h2 data-i18n="m.colstat">색상 사용 통계</h2><button class="mhx" onclick="closeM('m-colstat')">✕</button></div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">모든 레이어 합산 / 격자 크기 40px 기준</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px" data-i18n="x.j7x30q">모든 레이어 합산 / 격자 크기 40px 기준</div>
     <div id="colstat-list" style="max-height:60vh;overflow-y:auto"></div>
   </div>
 </div>
@@ -1326,14 +1326,14 @@ body.ui-hidden #row-counter{display:none!important}
   <div class="mc" style="max-width:90vw;max-height:90vh">
     <div class="mh"><h2 data-i18n="m.tile">패턴 반복 미리보기</h2><button class="mhx" onclick="closeM('m-tile')">✕</button></div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-      <label style="font-size:11px;color:var(--text2)">반복:</label>
+      <label style="font-size:11px;color:var(--text2)" data-i18n="x.2fjn2q">반복:</label>
       <select id="tile-n" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);font-size:11px;border-radius:5px;padding:3px 6px">
         <option value="2">2×2</option>
         <option value="3" selected>3×3</option>
         <option value="4">4×4</option>
         <option value="5">5×5</option>
       </select>
-      <button class="ib" id="btn-tile-refresh" style="font-size:10px;padding:3px 10px">↺ 갱신</button>
+      <button class="ib" id="btn-tile-refresh" style="font-size:10px;padding:3px 10px" data-i18n="x.tfg2i6">↺ 갱신</button>
     </div>
     <canvas id="tile-canvas" style="max-width:100%;max-height:70vh;border:1px solid var(--border);border-radius:6px;display:block"></canvas>
   </div>
@@ -1343,12 +1343,12 @@ body.ui-hidden #row-counter{display:none!important}
 <div class="mo" id="m-resize">
   <div class="mc" style="max-width:320px">
     <div class="mh"><h2 data-i18n="m.resize">캔버스 크기 조정</h2><button class="mhx" onclick="closeM('m-resize')">✕</button></div>
-    <div class="fg"><label>너비 (픽셀)</label><input id="rz-w" type="number" min="200" max="4000" value="1200" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text)"></div>
-    <div class="fg"><label>높이 (픽셀)</label><input id="rz-h" type="number" min="200" max="4000" value="1200" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text)"></div>
-    <div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="rz-anchor" checked><span>현재 콘텐츠 유지 (가운데 정렬)</span></label></div>
+    <div class="fg"><label data-i18n="x.1245qwl">너비 (픽셀)</label><input id="rz-w" type="number" min="200" max="4000" value="1200" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text)"></div>
+    <div class="fg"><label data-i18n="x.1b7sdjz">높이 (픽셀)</label><input id="rz-h" type="number" min="200" max="4000" value="1200" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text)"></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="rz-anchor" checked><span data-i18n="x.1mpsdeh">현재 콘텐츠 유지 (가운데 정렬)</span></label></div>
     <div class="fg" id="rz-size-guide" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3);line-height:1.6"></div>
-    <div class="fg" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3)">⚠ 크기를 줄이면 캔버스 밖 영역이 잘립니다. 실행 취소 가능합니다.</div>
-    <div class="mf"><button class="mb" onclick="closeM('m-resize')">취소</button><button class="mb p" id="btn-resize-ok">적용</button></div>
+    <div class="fg" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3)" data-i18n="x.5hza7v">⚠ 크기를 줄이면 캔버스 밖 영역이 잘립니다. 실행 취소 가능합니다.</div>
+    <div class="mf"><button class="mb" onclick="closeM('m-resize')" data-i18n="x.364pt">취소</button><button class="mb p" id="btn-resize-ok" data-i18n="x.38ivh">적용</button></div>
   </div>
 </div>
 
@@ -1357,13 +1357,13 @@ body.ui-hidden #row-counter{display:none!important}
   <div class="mc" style="max-width:340px">
     <div class="mh"><h2 data-i18n="m.i2p">🖼 이미지 → 방안 변환</h2><button class="mhx" onclick="closeM('m-i2p')">✕</button></div>
     <div class="fg" id="i2p-info" style="font-size:11px;color:var(--text3)"></div>
-    <div class="fg"><button class="ib" id="i2p-pick" style="width:100%;padding:8px;font-size:12px">📂 이미지 선택 (사진·그림)</button><input type="file" id="i2p-file" accept="image/*" style="display:none"></div>
+    <div class="fg"><button class="ib" id="i2p-pick" style="width:100%;padding:8px;font-size:12px" data-i18n="x.1su4wz5">📂 이미지 선택 (사진·그림)</button><input type="file" id="i2p-file" accept="image/*" style="display:none"></div>
     <div class="fg"><label>색상 수 <span id="i2p-n-v" style="color:var(--accent);font-weight:700">6</span></label>
       <input type="range" id="i2p-n" min="2" max="16" value="6" style="width:100%"></div>
-    <div class="fg"><label style="display:flex;align-items:center;gap:8px;font-size:12px"><input type="checkbox" id="i2p-bg" checked><span>밝은 배경 제거 (흰 배경 → 빈 칸)</span></label></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px;font-size:12px"><input type="checkbox" id="i2p-bg" checked><span data-i18n="x.wowdhj">밝은 배경 제거 (흰 배경 → 빈 칸)</span></label></div>
     <div class="fg" style="text-align:center;background:var(--panel2);border-radius:8px;padding:8px;min-height:80px"><canvas id="i2p-cv" style="max-width:100%;image-rendering:pixelated;border:1px solid var(--border)"></canvas></div>
-    <div class="fg" style="font-size:10px;color:var(--text3)">⚠ 적용하면 현재 방안 칠 기록을 대체합니다</div>
-    <div class="mf"><button class="mb" onclick="closeM('m-i2p')">취소</button><button class="mb p" id="i2p-apply">방안에 적용</button></div>
+    <div class="fg" style="font-size:10px;color:var(--text3)" data-i18n="x.8njnzk">⚠ 적용하면 현재 방안 칠 기록을 대체합니다</div>
+    <div class="mf"><button class="mb" onclick="closeM('m-i2p')" data-i18n="x.364pt">취소</button><button class="mb p" id="i2p-apply" data-i18n="x.1wpwrjw">방안에 적용</button></div>
   </div>
 </div>
 
@@ -1371,28 +1371,28 @@ body.ui-hidden #row-counter{display:none!important}
 <div class="mo" id="m-new">
   <div class="mc">
     <div class="mh"><h2 data-i18n="m.new">새 뜨개 도안 만들기</h2><button class="mhx" onclick="closeM('m-new')">✕</button></div>
-    <div class="fg"><label>프로젝트 이름</label><input id="np-nm" value="봄날의 꽃잎 티코스터"></div>
-    <div class="fg"><label>공예 종류</label>
-      <select id="np-tp"><option value="crochet">코바늘 (Crochet)</option><option value="knitting">대바늘 (Knitting)</option></select>
+    <div class="fg"><label data-i18n="x.1ah6pqg">프로젝트 이름</label><input id="np-nm" value="봄날의 꽃잎 티코스터"></div>
+    <div class="fg"><label data-i18n="x.8p7o3p">공예 종류</label>
+      <select id="np-tp"><option value="crochet" data-i18n="x.t9u788">코바늘 (Crochet)</option><option value="knitting" data-i18n="x.5gsd50">대바늘 (Knitting)</option></select>
     </div>
-    <div class="fg"><label>카테고리</label>
+    <div class="fg"><label data-i18n="x.opwyy9">카테고리</label>
       <select id="np-cat">
-        <option value="basic">기본</option>
-        <option value="motif">모티브 (도일리·코스터)</option>
-        <option value="bag">가방</option>
-        <option value="clothing">의류</option>
-        <option value="accessory">소품</option>
+        <option value="basic" data-i18n="x.2p77x">기본</option>
+        <option value="motif" data-i18n="x.3ejxmb">모티브 (도일리·코스터)</option>
+        <option value="bag" data-i18n="x.2q92k">가방</option>
+        <option value="clothing" data-i18n="x.34ypx">의류</option>
+        <option value="accessory" data-i18n="x.34mgx">소품</option>
       </select>
     </div>
-    <div class="fg" style="display:none"><label>시작 템플릿</label><!-- 프레임 배치로 대체 — 선택 불필요 -->
+    <div class="fg" style="display:none"><label data-i18n="x.amccp3">시작 템플릿</label><!-- 프레임 배치로 대체 — 선택 불필요 -->
       <select id="np-tpl">
-        <option value="">빈 캔버스</option>
-        <option value="motif">○ 원형 모티브 (도일리·코스터)</option>
-        <option value="graphgrid">⊞ 방안뜨기 (격자)</option>
-        <option value="bag">◗ 가방 (반원 바닥 + 격자 몸판)</option>
+        <option value="" data-i18n="x.233tfd">빈 캔버스</option>
+        <option value="motif" data-i18n="x.7eh2kd">○ 원형 모티브 (도일리·코스터)</option>
+        <option value="graphgrid" data-i18n="x.ul0e2i">⊞ 방안뜨기 (격자)</option>
+        <option value="bag" data-i18n="x.2kgkzd">◗ 가방 (반원 바닥 + 격자 몸판)</option>
       </select>
     </div>
-    <div class="fg"><label>캔버스 크기</label>
+    <div class="fg"><label data-i18n="x.1ky9z4d">캔버스 크기</label>
       <div style="display:flex;gap:8px;align-items:center">
         <input id="np-w" type="number" value="1200" min="200" max="4000" step="100" style="width:80px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:13px;text-align:center">
         <span style="color:var(--text3);font-size:13px">×</span>
@@ -1403,7 +1403,7 @@ body.ui-hidden #row-counter{display:none!important}
       </div>
     </div>
     <div class="fg" id="np-size-guide" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3);line-height:1.6"></div>
-    <div class="mf"><button class="mb" onclick="closeM('m-new')">취소</button><button class="mb p" id="btn-create">생성</button></div>
+    <div class="mf"><button class="mb" onclick="closeM('m-new')" data-i18n="x.364pt">취소</button><button class="mb p" id="btn-create" data-i18n="x.371ah">생성</button></div>
   </div>
 </div>
 
@@ -1412,29 +1412,29 @@ body.ui-hidden #row-counter{display:none!important}
   <div class="mc" style="max-width:420px">
     <div class="mh"><h2 data-i18n="m.keys">⌨ 키보드 단축키</h2><button class="mhx" onclick="closeM('m-keys')">✕</button></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12px;padding:4px 0 8px">
-      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin-bottom:4px">도구</div>
+      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin-bottom:4px" data-i18n="x.2ler1">도구</div>
       <div><kbd>B</kbd> 브러시</div><div><kbd>S</kbd> 기호 도장</div>
       <div><kbd>E</kbd> 지우개</div><div><kbd>P</kbd> 색상 추출</div>
       <div><kbd>G</kbd> 방안뜨기</div><div><kbd>F</kbd> 화면 맞춤</div>
       <div><kbd>T</kbd> 손가락 잠금</div><div><kbd>Tab</kbd> UI 숨기기</div>
-      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">크기</div>
+      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px" data-i18n="x.33xsp">크기</div>
       <div><kbd>[</kbd> 크기 줄이기</div><div><kbd>]</kbd> 크기 늘리기</div>
-      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">편집</div>
+      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px" data-i18n="x.34770">편집</div>
       <div><kbd>Ctrl+Z</kbd> 되돌리기</div><div><kbd>Ctrl+Y</kbd> 다시 실행</div>
       <div><kbd>Ctrl+A</kbd> 전체 선택</div><div><kbd>Ctrl+D</kbd> 선택 해제</div>
       <div><kbd>Ctrl+S</kbd> .cony 저장</div><div><kbd>Ctrl+E</kbd> 내보내기</div>
       <div><kbd>Ctrl++</kbd> 줌 인</div><div><kbd>Ctrl+-</kbd> 줌 아웃</div>
       <div><kbd>Ctrl+0</kbd> 화면 맞춤</div><div><kbd>Space</kbd> 이동(팬)</div>
       <div><kbd>Shift</kbd> 직선 고정</div><div></div>
-      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">레이어</div>
+      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px" data-i18n="x.2ea57x">레이어</div>
       <div><kbd>Alt+N</kbd> 새 레이어</div><div><kbd>Alt+]</kbd> 레이어 위로</div>
       <div><kbd>Alt+[</kbd> 레이어 아래로</div><div></div>
-      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px">도형·자유변형 중</div>
+      <div style="color:var(--text2);font-weight:600;grid-column:1/-1;margin:8px 0 4px" data-i18n="x.ev67lj">도형·자유변형 중</div>
       <div><kbd>T</kbd> 도형 종류 변경</div><div><kbd>Enter</kbd> 확정/적용</div>
       <div><kbd>Esc</kbd> 취소/삭제</div><div><kbd>Del</kbd> 변형 삭제</div>
       <div><kbd>←→↑↓</kbd> 1px 이동</div><div><kbd>Shift+←→↑↓</kbd> 10px 이동</div>
     </div>
-    <div class="mf"><button class="mb" onclick="closeM('m-keys')">닫기</button></div>
+    <div class="mf"><button class="mb" onclick="closeM('m-keys')" data-i18n="x.2l8am">닫기</button></div>
   </div>
 </div>
 <!-- ===== MODAL: SYMBOL CHART (방안→기호 변환) ===== -->
@@ -1442,15 +1442,15 @@ body.ui-hidden #row-counter{display:none!important}
 <div class="mo" id="m-sym-chart">
   <div class="mc" style="max-width:96vw;width:auto;max-height:92vh;display:flex;flex-direction:column">
     <div class="mh">
-      <h2 style="font-size:14px">⊙ 기호 도안 (Symbol Chart)</h2>
+      <h2 style="font-size:14px" data-i18n="x.1841epf">⊙ 기호 도안 (Symbol Chart)</h2>
       <button class="mhx" onclick="closeM('m-sym-chart')">✕</button>
     </div>
     <!-- 기법 탭 -->
     <div style="display:flex;gap:4px;padding:6px 12px;flex-shrink:0">
-      <button class="sc-tab act" data-sc-stitch="sc" style="flex:1;padding:5px 4px;font-size:11px;border-radius:8px;border:1px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-weight:600">짧은뜨기</button>
-      <button class="sc-tab" data-sc-stitch="hdc" style="flex:1;padding:5px 4px;font-size:11px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);cursor:pointer">긴뜨기</button>
-      <button class="sc-tab" data-sc-stitch="dc" style="flex:1;padding:5px 4px;font-size:11px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);cursor:pointer">한길긴뜨기</button>
-      <button class="sc-tab" data-sc-stitch="tr" style="flex:1;padding:5px 4px;font-size:11px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);cursor:pointer">두길긴뜨기</button>
+      <button class="sc-tab act" data-sc-stitch="sc" style="flex:1;padding:5px 4px;font-size:11px;border-radius:8px;border:1px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-weight:600" data-i18n="x.qo0va2">짧은뜨기</button>
+      <button class="sc-tab" data-sc-stitch="hdc" style="flex:1;padding:5px 4px;font-size:11px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);cursor:pointer" data-i18n="x.2h4g3t">긴뜨기</button>
+      <button class="sc-tab" data-sc-stitch="dc" style="flex:1;padding:5px 4px;font-size:11px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);cursor:pointer" data-i18n="x.1p4dn1p">한길긴뜨기</button>
+      <button class="sc-tab" data-sc-stitch="tr" style="flex:1;padding:5px 4px;font-size:11px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);cursor:pointer" data-i18n="x.1dh1p7l">두길긴뜨기</button>
     </div>
     <!-- 차트 캔버스 (스크롤) -->
     <div style="overflow:auto;flex:1;padding:0 12px">
@@ -1459,10 +1459,10 @@ body.ui-hidden #row-counter{display:none!important}
     <!-- 통계 -->
     <div id="sym-chart-stats" style="padding:8px 14px;font-size:11px;flex-shrink:0;border-top:1px solid var(--border)"></div>
     <div class="mf" style="gap:6px">
-      <button class="mb" id="btn-sym-fit">⤢ 실제 크기</button>
-      <button class="mb" id="btn-sym-dl" style="background:var(--accent);color:#fff">↓ 이미지 다운로드</button>
-      <button class="mb" id="btn-sym-svg">↓ SVG (벡터)</button>
-      <button class="mb" onclick="closeM('m-sym-chart')">닫기</button>
+      <button class="mb" id="btn-sym-fit" data-i18n="x.vb6z1f">⤢ 실제 크기</button>
+      <button class="mb" id="btn-sym-dl" style="background:var(--accent);color:#fff" data-i18n="x.dazai2">↓ 이미지 다운로드</button>
+      <button class="mb" id="btn-sym-svg" data-i18n="x.y6j49w">↓ SVG (벡터)</button>
+      <button class="mb" onclick="closeM('m-sym-chart')" data-i18n="x.2l8am">닫기</button>
     </div>
   </div>
 </div>
@@ -1470,19 +1470,19 @@ body.ui-hidden #row-counter{display:none!important}
 <div class="mo" id="m-circgen">
   <div class="mc" style="max-width:min(96vw,860px);width:auto;max-height:94vh;display:flex;flex-direction:column">
     <div class="mh">
-      <h2 style="font-size:14px">⊚ 원형 도안 생성</h2>
+      <h2 style="font-size:14px" data-i18n="x.g3mkai">⊚ 원형 도안 생성</h2>
       <button class="mhx" onclick="closeM('m-circgen')">✕</button>
     </div>
     <div style="display:flex;gap:12px;padding:8px 12px;overflow:auto;flex:1;flex-wrap:wrap">
       <canvas id="cg-prev" width="320" height="320" style="border:1px solid var(--border);border-radius:8px;background:#fff;flex-shrink:0;max-width:100%"></canvas>
       <div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:6px">
         <div id="cg-rows" style="display:flex;flex-direction:column;gap:6px;overflow:auto;max-height:52vh"></div>
-        <button class="ib" id="cg-add" style="width:100%;font-size:11px;padding:6px">+ 단 추가</button>
+        <button class="ib" id="cg-add" style="width:100%;font-size:11px;padding:6px" data-i18n="x.a7cvua">+ 단 추가</button>
       </div>
     </div>
     <div class="mf" style="gap:6px">
-      <button class="mb" id="cg-place" style="background:var(--accent);color:#fff">도안 생성</button>
-      <button class="mb" onclick="closeM('m-circgen')">취소</button>
+      <button class="mb" id="cg-place" style="background:var(--accent);color:#fff" data-i18n="x.h8rxj9">도안 생성</button>
+      <button class="mb" onclick="closeM('m-circgen')" data-i18n="x.364pt">취소</button>
     </div>
   </div>
 </div>
@@ -1490,7 +1490,7 @@ body.ui-hidden #row-counter{display:none!important}
 <div class="mo" id="m-progress">
   <div class="mc" style="max-width:96vw;width:auto;max-height:94vh;display:flex;flex-direction:column">
     <div class="mh">
-      <h2 style="font-size:14px">🧶 뜨면서 체크</h2>
+      <h2 style="font-size:14px" data-i18n="x.qztwtx">🧶 뜨면서 체크</h2>
       <button class="mhx" onclick="closeM('m-progress')">✕</button>
     </div>
     <div style="overflow:auto;flex:1;padding:0 12px">
@@ -1499,19 +1499,19 @@ body.ui-hidden #row-counter{display:none!important}
     <div id="pg-narr" style="padding:6px 14px;font-size:12px;flex-shrink:0;border-top:1px solid var(--border);color:var(--text)"></div>
     <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;flex-shrink:0;border-top:1px solid var(--border);flex-wrap:wrap">
       <div style="display:flex;align-items:center;gap:4px">
-        <span style="font-size:11px;opacity:.7">단</span>
+        <span style="font-size:11px;opacity:.7" data-i18n="x.2ukt">단</span>
         <button class="ib" id="pg-row-m" style="width:34px;padding:6px 0;font-size:16px">−</button>
         <b id="pg-row-v" style="min-width:52px;text-align:center;font-size:14px;color:var(--accent)">1</b>
         <button class="ib" id="pg-row-p" style="width:34px;padding:6px 0;font-size:16px">+</button>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
-        <span style="font-size:11px;opacity:.7">코</span>
+        <span style="font-size:11px;opacity:.7" data-i18n="x.3hf5">코</span>
         <button class="ib" id="pg-st-m" style="width:34px;padding:6px 0;font-size:16px">−</button>
         <b id="pg-st-v" style="min-width:64px;text-align:center;font-size:14px;color:var(--accent)">0</b>
         <button class="ib" id="pg-st-p" style="width:34px;padding:6px 0;font-size:16px">+</button>
       </div>
       <b id="pg-pct" style="font-size:13px;color:var(--gold);margin-left:auto">0%</b>
-      <button class="ib" id="pg-reset" style="font-size:10px;padding:5px 8px">↺ 처음부터</button>
+      <button class="ib" id="pg-reset" style="font-size:10px;padding:5px 8px" data-i18n="x.hj392z">↺ 처음부터</button>
     </div>
   </div>
 </div>
@@ -1521,30 +1521,30 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="mh"><h2 data-i18n="m.pro">👑 코니 플랜 선택</h2><button class="mhx" onclick="closeM('m-pro')">✕</button></div>
     <div class="plans">
       <div class="plan" data-plan="free">
-        <div class="plan-badge" style="background:#334155;color:#94a3b8">무료</div>
+        <div class="plan-badge" style="background:#334155;color:#94a3b8" data-i18n="x.2mlj1">무료</div>
         <div class="plan-price" style="font-size:16px">₩0</div>
-        <div class="plan-sub">광고 있음</div>
+        <div class="plan-sub" data-i18n="x.8f1nsg">광고 있음</div>
       </div>
       <div class="plan act" data-plan="pro">
-        <div class="plan-badge" style="background:rgba(168,85,247,.3);color:#c084fc">추천 ★</div>
+        <div class="plan-badge" style="background:rgba(168,85,247,.3);color:#c084fc" data-i18n="x.pech60">추천 ★</div>
         <div class="plan-price" id="pro-price">₩4,900</div>
-        <div class="plan-sub" id="pro-sub">/월 구독</div>
+        <div class="plan-sub" id="pro-sub" data-i18n="x.afe2fr">/월 구독</div>
       </div>
     </div>
     <div id="billing-toggle" style="display:flex;gap:6px;margin:6px 0">
-      <button class="btg act" data-billing="month" style="flex:1;padding:6px 4px;border-radius:8px;border:1.5px solid var(--primary);background:rgba(168,85,247,.2);color:#c084fc;font-size:11px;font-weight:600;cursor:pointer">월정액 ₩4,900/월</button>
-      <button class="btg" data-billing="life" style="flex:1;padding:6px 4px;border-radius:8px;border:1.5px solid var(--border);background:var(--panel2);color:var(--text2);font-size:11px;cursor:pointer">평생 ₩29,900 ✨</button>
+      <button class="btg act" data-billing="month" style="flex:1;padding:6px 4px;border-radius:8px;border:1.5px solid var(--primary);background:rgba(168,85,247,.2);color:#c084fc;font-size:11px;font-weight:600;cursor:pointer" data-i18n="x.10rn93q">월정액 ₩4,900/월</button>
+      <button class="btg" data-billing="life" style="flex:1;padding:6px 4px;border-radius:8px;border:1.5px solid var(--border);background:var(--panel2);color:var(--text2);font-size:11px;cursor:pointer" data-i18n="x.lgy7e6">평생 ₩29,900 ✨</button>
     </div>
     <div id="plan-benefits"></div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:7px">결제 수단 (토스페이먼츠)</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:7px" data-i18n="x.1yxyk6k">결제 수단 (토스페이먼츠)</div>
     <div class="pmg">
-      <button class="pmb act" data-m="toss">토스페이</button>
-      <button class="pmb" data-m="kakao">카카오페이</button>
-      <button class="pmb" data-m="card">신용카드</button>
+      <button class="pmb act" data-m="toss" data-i18n="x.l6kzot">토스페이</button>
+      <button class="pmb" data-m="kakao" data-i18n="x.12chnzh">카카오페이</button>
+      <button class="pmb" data-m="card" data-i18n="x.p967ac">신용카드</button>
     </div>
     <div class="mf">
-      <button class="mb" onclick="closeM('m-pro')">취소</button>
-      <button class="mb g" id="btn-pay">결제하기</button>
+      <button class="mb" onclick="closeM('m-pro')" data-i18n="x.364pt">취소</button>
+      <button class="mb g" id="btn-pay" data-i18n="x.bjnji9">결제하기</button>
     </div>
   </div>
 </div>
@@ -1555,9 +1555,9 @@ body.ui-hidden #row-counter{display:none!important}
     <div class="co-body">
       <div class="spin" id="co-spin" style="margin:0 auto 14px"></div>
       <div class="co-check" id="co-chk">✅</div>
-      <h2 id="co-t" style="font-size:16px;margin-bottom:8px;text-align:center">결제 처리 중...</h2>
-      <p id="co-d" style="font-size:12px;color:var(--text2);line-height:1.6;text-align:center">토스페이먼츠 결제 모듈을 준비하고 있습니다.</p>
-      <button id="co-done" class="mb p" style="display:none;margin-top:14px;width:100%">플랜 활성화 완료! 시작하기</button>
+      <h2 id="co-t" style="font-size:16px;margin-bottom:8px;text-align:center" data-i18n="x.1r05ooy">결제 처리 중...</h2>
+      <p id="co-d" style="font-size:12px;color:var(--text2);line-height:1.6;text-align:center" data-i18n="x.13d2nve">토스페이먼츠 결제 모듈을 준비하고 있습니다.</p>
+      <button id="co-done" class="mb p" style="display:none;margin-top:14px;width:100%" data-i18n="x.1f0t08w">플랜 활성화 완료! 시작하기</button>
     </div>
   </div>
 </div>
@@ -1567,14 +1567,14 @@ body.ui-hidden #row-counter{display:none!important}
 <div class="mo" id="m-exp">
   <div class="mc">
     <div class="mh"><h2 data-i18n="m.exp">도안 패키지 내보내기</h2><button class="mhx" onclick="closeM('m-exp')">✕</button></div>
-    <div class="fg"><label>파일명</label><input id="exp-nm" value="cony_pattern"></div>
+    <div class="fg"><label data-i18n="x.2uz4y8">파일명</label><input id="exp-nm" value="cony_pattern"></div>
     <div class="fmt-g">
-      <div class="fmc act" data-fmt="pdf"><div class="fmic">📄</div><div class="fmn">PDF</div><div class="fms">범례 포함</div></div>
-      <div class="fmc" data-fmt="png"><div class="fmic">🖼</div><div class="fmn">PNG</div><div class="fms">투명 배경</div></div>
-      <div class="fmc" data-fmt="jpg"><div class="fmic">📸</div><div class="fmn">JPG</div><div class="fms">흰 배경</div></div>
+      <div class="fmc act" data-fmt="pdf"><div class="fmic">📄</div><div class="fmn">PDF</div><div class="fms" data-i18n="x.4hn385">범례 포함</div></div>
+      <div class="fmc" data-fmt="png"><div class="fmic">🖼</div><div class="fmn">PNG</div><div class="fms" data-i18n="x.1l5y0ht">투명 배경</div></div>
+      <div class="fmc" data-fmt="jpg"><div class="fmic">📸</div><div class="fmn">JPG</div><div class="fms" data-i18n="x.lx83iw">흰 배경</div></div>
     </div>
     <div class="fg" id="exp-size-guide" style="background:var(--panel2);border-radius:6px;padding:8px;font-size:11px;color:var(--text3);line-height:1.6"></div>
-    <div class="mf"><button class="mb" onclick="closeM('m-exp')">취소</button><button class="mb p" id="btn-expc">내보내기</button></div>
+    <div class="mf"><button class="mb" onclick="closeM('m-exp')" data-i18n="x.364pt">취소</button><button class="mb p" id="btn-expc" data-i18n="x.6zbj5t">내보내기</button></div>
   </div>
 </div>
 
@@ -1583,10 +1583,10 @@ body.ui-hidden #row-counter{display:none!important}
   <div class="mc lg">
     <div class="mh"><h2 data-i18n="narr.title">📝 서술도안 변환</h2><button class="mhx" onclick="closeM('m-narr')">✕</button></div>
     <div class="narr-tabs">
-      <button class="ntb act" data-nt="ko">한국어</button>
+      <button class="ntb act" data-nt="ko" data-i18n="x.2smslc">한국어</button>
       <button class="ntb" data-nt="en">English</button>
       <button class="ntb" data-nt="ja">日本語</button>
-      <button class="ntb" data-nt="abbr">한글 약어</button>
+      <button class="ntb" data-nt="abbr" data-i18n="x.1pupoxc">한글 약어</button>
     </div>
     <div class="narr-out" id="narr-out"></div>
     <div id="narr-upsell" style="display:none;margin-top:10px;padding:12px 14px;border:1px solid var(--primary);border-radius:10px;background:rgba(168,85,247,.10)">
@@ -1605,9 +1605,9 @@ body.ui-hidden #row-counter{display:none!important}
 <div class="mo" id="m-mgr">
   <div class="mc">
     <div class="mh"><h2 data-i18n="m.mgr">기호 편집 및 순서 변경</h2><button class="mhx" onclick="closeM('m-mgr')">✕</button></div>
-    <p style="font-size:11px;color:var(--text2);margin-bottom:10px">드래그하여 순서 변경 · 체크박스로 표시 여부 설정</p>
+    <p style="font-size:11px;color:var(--text2);margin-bottom:10px" data-i18n="x.1nfymlr">드래그하여 순서 변경 · 체크박스로 표시 여부 설정</p>
     <div id="mgr-list"></div>
-    <div class="mf"><button class="mb" onclick="closeM('m-mgr')">취소</button><button class="mb p" id="btn-mgr-save">저장</button></div>
+    <div class="mf"><button class="mb" onclick="closeM('m-mgr')" data-i18n="x.364pt">취소</button><button class="mb p" id="btn-mgr-save" data-i18n="x.38j4w">저장</button></div>
   </div>
 </div>
 
@@ -1615,9 +1615,9 @@ body.ui-hidden #row-counter{display:none!important}
 <div class="mo" id="m-legend">
   <div class="mc" style="max-width:340px">
     <div class="mh"><h2 data-i18n="m.legend">📋 기호 범례</h2><button class="mhx" onclick="closeM('m-legend')">✕</button></div>
-    <p style="font-size:11px;color:var(--text2);margin-bottom:8px">이 도안에 사용한 기호를 자동으로 모았어요.</p>
+    <p style="font-size:11px;color:var(--text2);margin-bottom:8px" data-i18n="x.1lk20af">이 도안에 사용한 기호를 자동으로 모았어요.</p>
     <div id="legend-list"></div>
-    <div class="mf"><button class="mb p" onclick="closeM('m-legend')">닫기</button></div>
+    <div class="mf"><button class="mb p" onclick="closeM('m-legend')" data-i18n="x.2l8am">닫기</button></div>
   </div>
 </div>
 
@@ -1630,21 +1630,21 @@ body.ui-hidden #row-counter{display:none!important}
       <canvas id="sym-canvas" width="280" height="280" style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;touch-action:none;cursor:crosshair"></canvas>
     </div>
     <div class="sym-tools">
-      <button class="symt act" data-tool="line">／ 선</button>
-      <button class="symt" data-tool="dot">● 점</button>
-      <button class="symt" data-tool="circ">○ 원</button>
-      <button class="symt" data-tool="sym">🧶 기호</button>
+      <button class="symt act" data-tool="line" data-i18n="x.2pd4bu">／ 선</button>
+      <button class="symt" data-tool="dot" data-i18n="x.30yk7u">● 점</button>
+      <button class="symt" data-tool="circ" data-i18n="x.30yntq">○ 원</button>
+      <button class="symt" data-tool="sym" data-i18n="x.t62yyt">🧶 기호</button>
     </div>
     <div id="sym-embed-row" style="display:none;margin-top:6px">
       <select id="sym-embed-sel" style="width:100%;padding:6px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px"></select>
     </div>
     <div class="sym-tools" style="margin-top:6px">
-      <button class="symt" id="sym-finishline" title="그리던 선 마무리">✓ 선 완료</button>
-      <button class="symt" id="sym-undo">↩ 되돌리기</button>
-      <button class="symt d" id="sym-clear">🗑 비우기</button>
+      <button class="symt" id="sym-finishline" title="그리던 선 마무리" data-i18n="x.1vadom6">✓ 선 완료</button>
+      <button class="symt" id="sym-undo" data-i18n="x.10dyx5w">↩ 되돌리기</button>
+      <button class="symt d" id="sym-clear" data-i18n="x.149uejx">🗑 비우기</button>
     </div>
-    <p style="font-size:10px;color:var(--text3);margin-top:8px">‘선’은 점을 여러 번 찍어 잇고 <b>✓ 선 완료</b>로 마무리 · ‘기호’는 기존 기호를 셀 안에 넣어 <b>조합</b>합니다. 무엇이든 한 칸 크기로 정규화됩니다.</p>
-    <div class="mf"><button class="mb" onclick="closeM('m-sym')">취소</button><button class="mb p" id="sym-save">저장</button></div>
+    <p style="font-size:10px;color:var(--text3);margin-top:8px">‘선’은 점을 여러 번 찍어 잇고 <b data-i18n="x.1vadom6">✓ 선 완료</b>로 마무리 · ‘기호’는 기존 기호를 셀 안에 넣어 <b data-i18n="x.38hek">조합</b>합니다. 무엇이든 한 칸 크기로 정규화됩니다.</p>
+    <div class="mf"><button class="mb" onclick="closeM('m-sym')" data-i18n="x.364pt">취소</button><button class="mb p" id="sym-save" data-i18n="x.38j4w">저장</button></div>
   </div>
 </div>
 
@@ -1653,11 +1653,11 @@ body.ui-hidden #row-counter{display:none!important}
   <div class="mc" style="max-width:300px">
     <div class="mh"><h2 data-i18n="m.pos">⇄ 기호 패널 위치</h2><button class="mhx" onclick="closeM('m-pos')">✕</button></div>
     <div class="pos-sel">
-      <button class="posb act" data-pos="left">← 왼쪽</button>
-      <button class="posb" data-pos="right">오른쪽 →</button>
-      <button class="posb" data-pos="bottom">↓ 하단</button>
+      <button class="posb act" data-pos="left" data-i18n="x.tfg3as">← 왼쪽</button>
+      <button class="posb" data-pos="right" data-i18n="x.480yd2">오른쪽 →</button>
+      <button class="posb" data-pos="bottom" data-i18n="x.tf9v1i">↓ 하단</button>
     </div>
-    <div class="mf"><button class="mb p" onclick="closeM('m-pos')">확인</button></div>
+    <div class="mf"><button class="mb p" onclick="closeM('m-pos')" data-i18n="x.31rwo">확인</button></div>
   </div>
 </div>
 
@@ -1855,6 +1855,126 @@ const PLAN_BENEFITS={
    서술도안 '출력물'의 언어는 이것과 별개다(모달 안 탭에서 고름). */
 const I18N={
   en:{
+    /* tools/i18n-tag.js 가 붙인 x.* 키. 원문 해시라서 같은 문장은 한 번만 쓰면 된다.
+       사전에 없는 키는 T()가 한국어로 떨어뜨리므로, 남은 건 채워 넣기만 하면 된다.
+       뜨개 용어는 미국식 표기 기준(짧은뜨기=single crochet). */
+    'x.364pt':'Cancel','x.2l8am':'Close','x.38j4w':'Save','x.38ivh':'Apply','x.31rwo':'OK',
+    'x.34rt9':'Done','x.34770':'Edit','x.38blx':'Clear','x.35ehb':'None','x.371ah':'Create',
+    'x.2qash':'Replace','x.i80kbe':'＋ Add','x.33xsp':'Size','x.370od':'Color','x.2ler1':'Tools',
+    'x.2ukt':'Row','x.3hf5':'St','x.2th0ml':'Frame','x.2ea57x':'Layers','x.2ueypt':'Palette',
+    'x.2mlj1':'Free','x.2smslc':'한국어','x.1jggb1x':'CONY',
+    // 도구
+    'x.t5myke':'✏ Pencil','x.t7whbm':'✒ Ink','x.t57hi6':'🖊 Marker','x.ok5x9j':'🖌 Brush',
+    'x.szuyd0':'💨 Air','x.1gz0bug':'Spray','x.2ym4i1':'Eraser','x.p7macl':'Eyedropper',
+    'x.1dq3d6d':'🎨 Fill','x.2vza7w':'Fill (same color)','x.t62yyt':'🧶 Symbols','x.38af8':'Line',
+    'x.30yntq':'○ Circle','x.30yk7u':'● Dot','x.2x777h':'Rectangle','x.2x89wt':'Triangle',
+    'x.2uswgw':'Ellipse','x.2vktkg':'Hexagon','x.36srs':'Rect','x.36rlk':'Triangle','x.36qu9':'Vertical',
+    'x.1lwdz3p':'Rect select','x.1j4gcko':'Ellipse select','x.648t1o':'Lasso select',
+    'x.t6pnyl':'✥ Move','x.30f1j7':'✋ Move','x.12r7xzn':'✂ Cut','x.t29k6i':'📋 Copy','x.zl5yjt':'📌 Paste',
+    'x.1443oh5':'🗑 Delete','x.t73buh':'🗑 All','x.149uejx':'🗑 Empty','x.10dyx5w':'↩ Undo',
+    // 뜨기 방식
+    'x.2wtxkt':'Crochet','x.t9u788':'Crochet','x.5gsd50':'Knitting','x.8p7o3p':'Craft type',
+    'x.qo0va2':'Single crochet','x.jbos6z':'Single crochet (1 st/cell)',
+    'x.2h4g3t':'Half double','x.168p097':'Half double (2 st/cell)',
+    'x.1p4dn1p':'Double crochet','x.1v8iucu':'Double crochet (3 st/cell)',
+    'x.1dh1p7l':'Treble crochet','x.kdtdia':'Treble crochet (3 st/cell)',
+    'x.1fmm0cp':'Stitch type','x.1ylvzjk':'Stitches in row 1','x.1d0is3n':'Stitches: 0','x.3i3ah':'0',
+    // 프레임·격자
+    'x.ul0e2i':'⊞ Filet grid','x.nsmkbp':'Grid','x.qp2w5p':'Filet settings','x.1wpwrjw':'Apply to grid',
+    'x.2sh9oy':'↺ Reset grid','x.potksh':'Cell size','x.bjl6bl':'Columns','x.pdybax':'Rows',
+    'x.1rov47w':'Columns (sts)','x.qdei8a':'Place frame (circle · half · rect · grid)',
+    'x.xen0f4':'□ Reset frames','x.129cup1':'Guide frame','x.1hxud28':'Placed grid frames',
+    'x.159sb2w':'◫ Edit frame size · position','x.qcuzq4':'Delete all free frames',
+    'x.34npc':'Circle','x.2q92k':'Bag','x.34ypx':'Garment','x.34mgx':'Accessory','x.2p77x':'Basic',
+    'x.3ejxmb':'Motif (doily · coaster)','x.7eh2kd':'○ Round motif (doily · coaster)',
+    'x.2kgkzd':'◗ Bag (half-round base + grid body)','x.233tfd':'Blank canvas','x.amccp3':'Start template',
+    // 정렬·변형
+    'x.1v7jc8t':'Align left','x.1wcae9p':'Align right','x.1yjlvct':'Center horizontally',
+    'x.ghfslh':'Center vertically','x.oaw0qg':'Align top','x.1ylwg00':'Align bottom',
+    'x.dxydnk':'Center on canvas','x.1waef4d':'Screen center','x.1kyn36p':'Canvas',
+    'x.wdufl1':'Flip horizontal','x.1uv1lvk':'Flip vertical','x.1ke9few':'Rotate left 15° (Q)',
+    'x.fa8ckr':'Rotate right 15° (R)','x.qo73sk':'Rotate canvas 90° CW','x.1jnnoj0':'Rotate canvas 90° CCW',
+    'x.1rzft1':'Rotate symbol','x.1rxqec':'Edit symbol','x.13d3adu':'Edit / arrange symbols',
+    // 안내선·보기
+    'x.o9tks4':'Guides','x.1fr159t':'Add horizontal guide','x.wuvbrd':'Add vertical guide',
+    'x.2om4xe':'＋ Horizontal','x.2p1op6':'＋ Vertical','x.1m7kxwc':'Drag-to-move guides',
+    'x.sk1k65':'Snap to grid (center symbols in cells)','x.ko7jwt':'Isometric grid',
+    'x.92hmkl':'Perspective grid','x.od44fj':'Stitch · row numbers (bottom-left = 1)',
+    'x.vb6z1f':'⤢ Actual size','x.d52xnq':'Light / dark mode','x.2wqm3l':'Minimize',
+    // 색
+    'x.1ru2sl':'Symbol color','x.2wgohw':'New color','x.1ntawml':'Color to replace','x.t6ghvm':'Recolor',
+    'x.1s1kv61':'Color harmony','x.2ng6w':'Complementary','x.ej5rdo':'Split complementary',
+    'x.2v1aw0':'Analogous','x.38hek':'Combination','x.2mgv8':'Brightness','x.92dc5c':'Opacity',
+    'x.2uviaw':'Opacity','x.1l5y0ht':'Transparent background','x.lx83iw':'White background',
+    'x.qsa195':'Color usage stats','x.39pts5':'Extract colors from image','x.2ygrax':'Stripes',
+    'x.1hcikxb':'Current color (tap to open palette)','x.1supda9':'👑 Background color (Pro)',
+    'x.1t61obl':'👑 Per-tool colors (Pro)',
+    // 이미지·내보내기
+    'x.1jcb2mb':'🖼 Image → filet grid','x.1su4wz5':'📂 Choose image','x.p8y2mk':'Import image (trace)',
+    'x.azoid1':'🎨 Extract image','x.1s1x1r5':'Reference image','x.1nsrh55':'Remove reference',
+    'x.3ffpo1':'Reference overlay (transparent)','x.wowdhj':'Drop light background (white → empty)',
+    'x.6zbj5t':'Export','x.y7wyik':'Export (PDF · PNG)','x.cxtc0d':'Export pattern',
+    'x.1ypmjl8':'📦 Export PDF / PNG / JPG','x.dazai2':'↓ Download image','x.y6j49w':'↓ SVG (vector)',
+    'x.4hn385':'Include legend','x.2uz4y8':'File name','x.1245qwl':'Width (px)','x.1b7sdjz':'Height (px)',
+    'x.1ky9z4d':'Canvas size','x.4kb0fc':'Resize canvas','x.1mpsdeh':'Keep content (centered)',
+    'x.z2nb7s':'Save pattern file (.cony)','x.1wd7vfh':'Open pattern file (.cony)',
+    'x.1gykui7':'Restore everything from backup (.json)',
+    // 도안·트래커
+    'x.13lr20l':'📝 Written pattern','x.csed9g':'View written pattern — your chart as row-by-row text',
+    'x.1841epf':'⊙ Symbol chart','x.1xkv76w':'▦ → ⊙ Symbol convert','x.nrjen1':'View symbol legend',
+    'x.1lk20af':'Symbols used in this pattern, collected automatically.',
+    'x.qztwtx':'🧶 Track while knitting','x.1out1h9':'🧶 Track while knitting (progress)',
+    'x.g3mkai':'⊚ Round pattern generator','x.1rxtnnq':'⊚ Round pattern generator (per round)',
+    'x.180ilbh':'⊙ Place one full round','x.x7emvt':'⊙⊙ Place multiple rings',
+    'x.15z8tao':'Multi-ring (round bag chart)','x.172q9p1':'Rings (rounds)','x.8qdyi1':'Ring spacing',
+    'x.1gbg9v6':'First radius','x.o26yyk':'Circle radius','x.1xlybvo':'Circle count','x.a7cvua':'+ Add round',
+    'x.1oeojl8':'Sequential placement (next stitch on each tap)','x.1fx0u58':'Increase each round',
+    'x.h8rxj9':'Generate pattern','x.11gyb0d':'Placement preview','x.1qkheoa':'⊞ Repeat pattern',
+    'x.1bjp5ac':'Pattern repeat preview','x.2fjn2q':'Repeat:',
+    // 브러시·입력
+    'x.at4lwy':'StreamLine (stroke smoothing)','x.8vgiph':'Smoothing','x.1a9rc9m':'Brush presets',
+    'x.293enc':'Pen brush options','x.1aacsdd':'Monoline (uniform width)','x.1kz578s':'Symmetry',
+    'x.dmzjnz':'Symbol brush (drag to chain symbols)','x.1goga7':'✦ Symbol fill',
+    'x.188ec0n':'Auto-straighten symbol rows: ON','x.1v9ro0t':'📐 Line lock ON',
+    'x.clpygz':'Hold to lock shape: ON','x.13iqvr8':'Rotation lock — keep angle when switching symbols',
+    'x.97k3az':'Radial ✻','x.jtj1lw':'Radial divisions','x.15tf5yo':'Radial align (rotate toward anchor)',
+    'x.mjlreh':'Tilt toward anchor','x.m65d62':'Center on anchor (＋)','x.gpefh6':'◎ Set anchor',
+    'x.pcbofs':'Vertical ⇄','x.pfylip':'Horizontal ⇅','x.pd5x5i':'Quad ✛',
+    // 레이어
+    'x.rwbb9f':'⬇ Merge down','x.8fy0e8':'Merge all visible layers','x.abn15a':'🧽 Clear layer',
+    'x.17krdzq':'🧽 Clear entire current layer','x.80vqcg':'Clear active layer','x.1j9pnll':'Reset all',
+    'x.1v9dogi':'Clear all layers and grid fills','x.1q3ulv4':'Drag to change opacity',
+    'x.1nfymlr':'Drag to reorder · checkbox toggles visibility','x.1ros75w':'Drag to resize (per tool)',
+    // 결제
+    'x.bjnji9':'Pay','x.1yxyk6k':'Payment method (Toss Payments)','x.1r05ooy':'Processing payment…',
+    'x.p967ac':'Credit card','x.l6kzot':'TossPay','x.12chnzh':'KakaoPay','x.10rn93q':'₩4,900/month',
+    'x.afe2fr':'/month','x.lgy7e6':'Lifetime ₩29,900 ✨','x.1f0t08w':'Plan activated! Get started',
+    'x.8f1nsg':'Contains ads','x.13d2nve':'Preparing the Toss Payments module.',
+    // 그 외
+    'x.1ah6pqg':'Project name','x.opwyy9':'Category','x.13d561y':'🗂 Library','x.pech60':'Recommended ★',
+    'x.1td7ywi':'Enter text…','x.2q9kg':'Gothic','x.2mfrk':'Serif','x.2hieql':'Monospace','x.4qej4s':'Apple Gothic',
+    'x.x26dvk':'Change shape','x.1xpuy24':'Drag to move · double-tap to reset',
+    'x.tfg3as':'← Left','x.480yd2':'Right →','x.tf9v1i':'↓ Bottom','x.b4ujel':'□ Frame ↑',
+    'x.tw7qkg':'⊕ Expand','x.twikei':'⊖ Shrink','x.twefq9':'⊘ Invert','x.72vg1s':'↕ Gradient',
+    'x.tfg2i6':'↺ Refresh','x.hj392z':'↺ Start over','x.t7ufdq':'✓ Done','x.t7rs8m':'✓ Confirm',
+    'x.t5scms':'✕ Cancel','x.1vadom6':'✓ Finish line','x.2pd4bu':'／ Line','x.2qbgk':'Layers',
+    'x.8chrvu':'＋ Create my symbol','x.1shvspa':'＋ Save selection as motif',
+    'x.8f1rl6':'Save selection as layout frame (Pro)','x.1ker2eq':'Tap a motif to paste · ✕ to delete · saved on your device',
+    'x.583klu':'Fill tolerance','x.spk8o8':'Tolerance (color similarity)','x.1t1k0k2':'Change slot — hold to edit',
+    'x.1fv7mcr':'Number marker value','x.1k2ti12':'+1 each stamp (numbering repeats)',
+    'x.1pupoxc':'Korean abbreviations','x.1jfc41d':'Show row counter (top right, draggable)',
+    'x.vyhuya':'Increase rows/sts','x.wjrvw6':'Decrease rows/sts','x.ev67lj':'Transforming shape',
+    'x.1ojnkb3':'← Pinch to adjust letter spacing →',
+    'x.8njnzk':'⚠ Applying replaces your current grid fills',
+    'x.5hza7v':'⚠ Shrinking crops content outside the canvas. Undo is available.',
+    'x.s5skly':'Replaces every pixel close to the selected color on this layer.',
+    'x.1x0v89c':'Save every pattern, setting and progress record to a file — back up before experimenting, restore anytime',
+    'x.96aoro':'Installs 4 verified sample patterns (cat & paw filet, flower coaster, cardigan)',
+    'x.j7x30q':'All layers combined / based on 40px grid','x.2hlikh':'Draw',
+    // 광고 배너는 한국 제휴처라 해외 언어에서는 상품명을 옮기지 않고 일반 문구로 바꾼다.
+    'x.1h2pa6x':'📢 [Ad] Yarn & hook deals — see CONY picks →',
+    'x.1abwetq':'📢 [Ad] Join a live crochet coaching community →',
+    'x.3wygts':'✌️ Two fingers = pan · zoom · Two-finger tap = undo · Three-finger tap = redo · Three fingers down = copy/paste menu · Draw then hold 2s = lock shape · Four-finger tap = hide UI',
     'app.tagline':'Your knitting mate', 'dash.new':'＋ New pattern', 'dash.samples':'📦 Samples',
     'dash.backup':'💾 Backup', 'dash.restore':'↩️ Restore', 'dash.upgrade':'👑 Upgrade',
     'dash.banner.h':'It\'s okay to pause, just don\'t quit 🧶',
@@ -1886,6 +2006,125 @@ const I18N={
     'pal.search':'🔍 Search symbol name…', 'pal.dragHint':'Hold 2s → reorder'
   },
   ja:{
+    /* 뜨개 용어는 일본 업계 표기를 따른다 — 짧은뜨기=細編み, 긴뜨기=中長編み,
+       한길긴뜨기=長編み, 두길긴뜨기=長々編み, 방안뜨기=方眼編み, 도안=編み図.
+       여기가 어긋나면 일본 사용자가 바로 알아본다. */
+    'x.364pt':'キャンセル','x.2l8am':'閉じる','x.38j4w':'保存','x.38ivh':'適用','x.31rwo':'OK',
+    'x.34rt9':'完了','x.34770':'編集','x.38blx':'消去','x.35ehb':'なし','x.371ah':'作成',
+    'x.2qash':'置き換え','x.i80kbe':'＋ 追加','x.33xsp':'サイズ','x.370od':'色','x.2ler1':'ツール',
+    'x.2ukt':'段','x.3hf5':'目','x.2th0ml':'フレーム','x.2ea57x':'レイヤー','x.2ueypt':'パレット',
+    'x.2mlj1':'無料','x.2smslc':'한국어','x.1jggb1x':'CONY',
+    // 도구
+    'x.t5myke':'✏ 鉛筆','x.t7whbm':'✒ インク','x.t57hi6':'🖊 マーカー','x.ok5x9j':'🖌 ブラシ',
+    'x.szuyd0':'💨 エア','x.1gz0bug':'スプレー','x.2ym4i1':'消しゴム','x.p7macl':'スポイト',
+    'x.1dq3d6d':'🎨 塗りつぶし','x.2vza7w':'塗りつぶし（同じ色）','x.t62yyt':'🧶 記号','x.38af8':'直線',
+    'x.30yntq':'○ 円','x.30yk7u':'● 点','x.2x777h':'長方形','x.2x89wt':'三角形',
+    'x.2uswgw':'楕円','x.2vktkg':'六角形','x.36srs':'四角','x.36rlk':'三角','x.36qu9':'縦',
+    'x.1lwdz3p':'長方形選択','x.1j4gcko':'楕円選択','x.648t1o':'なげなわ選択',
+    'x.t6pnyl':'✥ 移動','x.30f1j7':'✋ 移動','x.12r7xzn':'✂ 切り取り','x.t29k6i':'📋 コピー','x.zl5yjt':'📌 貼り付け',
+    'x.1443oh5':'🗑 削除','x.t73buh':'🗑 すべて','x.149uejx':'🗑 空にする','x.10dyx5w':'↩ 元に戻す',
+    // 뜨기 방식
+    'x.2wtxkt':'かぎ針','x.t9u788':'かぎ針編み','x.5gsd50':'棒針編み','x.8p7o3p':'手芸の種類',
+    'x.qo0va2':'細編み','x.jbos6z':'細編み（1マス=1目）',
+    'x.2h4g3t':'中長編み','x.168p097':'中長編み（1マス=2目）',
+    'x.1p4dn1p':'長編み','x.1v8iucu':'長編み（1マス=3目）',
+    'x.1dh1p7l':'長々編み','x.kdtdia':'長々編み（1マス=3目）',
+    'x.1fmm0cp':'編み方','x.1ylvzjk':'1段目の目数','x.1d0is3n':'目数: 0','x.3i3ah':'0',
+    // 프레임·격자
+    'x.ul0e2i':'⊞ 方眼編み','x.nsmkbp':'グリッド','x.qp2w5p':'方眼編み設定','x.1wpwrjw':'方眼に適用',
+    'x.2sh9oy':'↺ 方眼をリセット','x.potksh':'マスのサイズ','x.bjl6bl':'横マス','x.pdybax':'縦マス',
+    'x.1rov47w':'列数（目）','x.qdei8a':'フレーム配置（円・半円・四角・方眼）',
+    'x.xen0f4':'□ フレームをリセット','x.129cup1':'ガイドフレーム','x.1hxud28':'配置済みの方眼フレーム',
+    'x.159sb2w':'◫ フレームのサイズ・位置を編集','x.qcuzq4':'自由配置フレームをすべて削除',
+    'x.34npc':'円形','x.2q92k':'バッグ','x.34ypx':'ウェア','x.34mgx':'小物','x.2p77x':'基本',
+    'x.3ejxmb':'モチーフ（ドイリー・コースター）','x.7eh2kd':'○ 円形モチーフ（ドイリー・コースター）',
+    'x.2kgkzd':'◗ バッグ（半円の底＋方眼の本体）','x.233tfd':'空のキャンバス','x.amccp3':'開始テンプレート',
+    // 정렬·변형
+    'x.1v7jc8t':'左揃え','x.1wcae9p':'右揃え','x.1yjlvct':'左右中央',
+    'x.ghfslh':'上下中央','x.oaw0qg':'上揃え','x.1ylwg00':'下揃え',
+    'x.dxydnk':'キャンバス中央へ','x.1waef4d':'画面の中央','x.1kyn36p':'キャンバス基準',
+    'x.wdufl1':'左右反転','x.1uv1lvk':'上下反転','x.1ke9few':'左に15°回転 (Q)',
+    'x.fa8ckr':'右に15°回転 (R)','x.qo73sk':'キャンバスを90°右回転','x.1jnnoj0':'キャンバスを90°左回転',
+    'x.1rzft1':'記号を回転','x.1rxqec':'記号を編集','x.13d3adu':'記号の編集・並べ替え',
+    // 안내선·보기
+    'x.o9tks4':'ガイド線','x.1fr159t':'横のガイド線を追加','x.wuvbrd':'縦のガイド線を追加',
+    'x.2om4xe':'＋ 横','x.2p1op6':'＋ 縦','x.1m7kxwc':'ガイド線をドラッグで移動',
+    'x.sk1k65':'マスに吸着（記号をマスの中央へ）','x.ko7jwt':'アイソメトリック グリッド',
+    'x.92hmkl':'パース グリッド','x.od44fj':'目・段番号（左下＝1）',
+    'x.vb6z1f':'⤢ 実物大','x.d52xnq':'ライト / ダークモード','x.2wqm3l':'最小化',
+    // 색
+    'x.1ru2sl':'記号の色','x.2wgohw':'新しい色','x.1ntawml':'置き換える色','x.t6ghvm':'色の置き換え',
+    'x.1s1kv61':'配色','x.2ng6w':'補色','x.ej5rdo':'分裂補色',
+    'x.2v1aw0':'類似色','x.38hek':'組み合わせ','x.2mgv8':'明度','x.92dc5c':'不透明度',
+    'x.2uviaw':'不透明度','x.1l5y0ht':'背景を透明に','x.lx83iw':'白い背景',
+    'x.qsa195':'色の使用状況','x.39pts5':'画像から色を抽出','x.2ygrax':'ストライプ',
+    'x.1hcikxb':'現在の色（タップでパレットを開く）','x.1supda9':'👑 背景色（Pro）',
+    'x.1t61obl':'👑 ツールごとの色（Pro）',
+    // 이미지·내보내기
+    'x.1jcb2mb':'🖼 画像 → 方眼編みに変換','x.1su4wz5':'📂 画像を選ぶ','x.p8y2mk':'画像を読み込む（なぞり描き）',
+    'x.azoid1':'🎨 画像を抽出','x.1s1x1r5':'参考画像','x.1nsrh55':'参考画像を削除',
+    'x.3ffpo1':'参考画像のオーバーレイ（半透明）','x.wowdhj':'明るい背景を除く（白 → 空きマス）',
+    'x.6zbj5t':'書き出し','x.y7wyik':'書き出し（PDF・PNG）','x.cxtc0d':'編み図を書き出す',
+    'x.1ypmjl8':'📦 PDF / PNG / JPG で書き出す','x.dazai2':'↓ 画像をダウンロード','x.y6j49w':'↓ SVG（ベクター）',
+    'x.4hn385':'凡例を含める','x.2uz4y8':'ファイル名','x.1245qwl':'幅（ピクセル）','x.1b7sdjz':'高さ（ピクセル）',
+    'x.1ky9z4d':'キャンバスのサイズ','x.4kb0fc':'キャンバスのサイズ変更','x.1mpsdeh':'内容を保つ（中央揃え）',
+    'x.z2nb7s':'編み図ファイル(.cony)を保存','x.1wd7vfh':'編み図ファイル(.cony)を開く',
+    'x.1gykui7':'バックアップ(.json)からすべて復元',
+    // 도안·트래커
+    'x.13lr20l':'📝 文章の編み方','x.csed9g':'文章の編み方を見る — 編み図を段ごとの文章に',
+    'x.1841epf':'⊙ 記号図（Symbol Chart）','x.1xkv76w':'▦ → ⊙ 記号に変換','x.nrjen1':'記号の凡例を見る',
+    'x.1lk20af':'この編み図で使った記号を自動でまとめました。',
+    'x.qztwtx':'🧶 編みながらチェック','x.1out1h9':'🧶 編みながらチェック（進行管理）',
+    'x.g3mkai':'⊚ 円形の編み図を作る','x.1rxtnnq':'⊚ 円形の編み図を作る（段ごと設定）',
+    'x.180ilbh':'⊙ 一周ぶん配置','x.x7emvt':'⊙⊙ 複数の輪に配置',
+    'x.15z8tao':'複数の輪（円形バッグの編み図）','x.172q9p1':'輪の数（段）','x.8qdyi1':'輪の間隔',
+    'x.1gbg9v6':'最初の半径','x.o26yyk':'円の半径','x.1xlybvo':'円の数','x.a7cvua':'+ 段を追加',
+    'x.1oeojl8':'連続配置（タップごとに次の目へ）','x.1fx0u58':'段ごとに増やす',
+    'x.h8rxj9':'編み図を作成','x.11gyb0d':'配置プレビュー','x.1qkheoa':'⊞ パターンを繰り返す',
+    'x.1bjp5ac':'繰り返しのプレビュー','x.2fjn2q':'繰り返し:',
+    // 브러시·입력
+    'x.at4lwy':'StreamLine（線の補正）','x.8vgiph':'なめらかさ','x.1a9rc9m':'ブラシのプリセット',
+    'x.293enc':'ペンブラシの設定','x.1aacsdd':'モノライン（均一な線幅）','x.1kz578s':'左右対称に描く',
+    'x.dmzjnz':'記号ブラシ（ドラッグで記号をつなげる）','x.1goga7':'✦ 記号で塗る',
+    'x.188ec0n':'記号の列を自動でまっすぐに: ON','x.1v9ro0t':'📐 直線ロック ON',
+    'x.clpygz':'長押しで図形を固定: ON','x.13iqvr8':'回転ロック — 記号を変えても角度を保つ',
+    'x.97k3az':'放射 ✻','x.jtj1lw':'放射の分割数','x.15tf5yo':'放射に揃える（アンカーへ回転）',
+    'x.mjlreh':'アンカーの向きに傾ける','x.m65d62':'アンカー（＋）に中心を合わせる','x.gpefh6':'◎ アンカーを置く',
+    'x.pcbofs':'左右 ⇄','x.pfylip':'上下 ⇅','x.pd5x5i':'四分割 ✛',
+    // 레이어
+    'x.rwbb9f':'⬇ 下と結合','x.8fy0e8':'表示中のレイヤーをすべて結合','x.abn15a':'🧽 レイヤーを消す',
+    'x.17krdzq':'🧽 現在のレイヤーをすべて消す','x.80vqcg':'作業中のレイヤーを消す','x.1j9pnll':'すべてリセット',
+    'x.1v9dogi':'すべてのレイヤーと方眼の塗りを消す','x.1q3ulv4':'ドラッグで不透明度を調整',
+    'x.1nfymlr':'ドラッグで並べ替え・チェックで表示を切り替え','x.1ros75w':'ドラッグでサイズ調整（ツールごと）',
+    // 결제
+    'x.bjnji9':'支払う','x.1yxyk6k':'支払い方法（Toss Payments）','x.1r05ooy':'決済を処理しています…',
+    'x.p967ac':'クレジットカード','x.l6kzot':'TossPay','x.12chnzh':'KakaoPay','x.10rn93q':'月額 ₩4,900',
+    'x.afe2fr':'／月','x.lgy7e6':'買い切り ₩29,900 ✨','x.1f0t08w':'プランを有効にしました！はじめる',
+    'x.8f1nsg':'広告あり','x.13d2nve':'Toss Payments の決済モジュールを準備しています。',
+    // 그 외
+    'x.1ah6pqg':'プロジェクト名','x.opwyy9':'カテゴリー','x.13d561y':'🗂 ライブラリ','x.pech60':'おすすめ ★',
+    'x.1td7ywi':'文字を入力…','x.2q9kg':'ゴシック','x.2mfrk':'明朝','x.2hieql':'等幅','x.4qej4s':'ヒラギノ',
+    'x.x26dvk':'別の形に','x.1xpuy24':'ドラッグで移動・ダブルタップで元の位置へ',
+    'x.tfg3as':'← 左','x.480yd2':'右 →','x.tf9v1i':'↓ 下','x.b4ujel':'□ フレーム ↑',
+    'x.tw7qkg':'⊕ 拡大','x.twikei':'⊖ 縮小','x.twefq9':'⊘ 反転','x.72vg1s':'↕ グラデーション',
+    'x.tfg2i6':'↺ 更新','x.hj392z':'↺ 最初から','x.t7ufdq':'✓ 完了','x.t7rs8m':'✓ 確定',
+    'x.t5scms':'✕ キャンセル','x.1vadom6':'✓ 線を確定','x.2pd4bu':'／ 線','x.2qbgk':'重ね数',
+    'x.8chrvu':'＋ 自分の記号を作る','x.1shvspa':'＋ コピーした範囲をモチーフとして保存',
+    'x.8f1rl6':'選択範囲をレイアウトフレームとして保存（Pro）','x.1ker2eq':'モチーフをタップで貼り付け・✕ で削除・端末に保存され他の編み図でも使えます',
+    'x.583klu':'塗りつぶしの許容値','x.spk8o8':'許容誤差（色の近さ）','x.1t1k0k2':'スロット変更 — 長押しで編集',
+    'x.1fv7mcr':'番号マーカーの値','x.1k2ti12':'押すたびに +1（繰り返しに番号を振る）',
+    'x.1pupoxc':'韓国語の略記','x.1jfc41d':'段カウンターを表示（右上・ドラッグで移動）',
+    'x.vyhuya':'段・目を増やす','x.wjrvw6':'段・目を減らす','x.ev67lj':'図形を変形中',
+    'x.1ojnkb3':'← ピンチで字間を調整 →',
+    'x.8njnzk':'⚠ 適用すると今の方眼の塗りが置き換わります',
+    'x.5hza7v':'⚠ 小さくするとキャンバスの外がカットされます。元に戻せます。',
+    'x.s5skly':'このレイヤーで選んだ色に近いピクセルをすべて新しい色に置き換えます。',
+    'x.1x0v89c':'すべての編み図・設定・進行記録をファイルに保存 — 試す前にバックアップ、いつでも復元',
+    'x.96aoro':'確認済みのサンプル編み図4点（ねこ・肉球の方眼、花のコースター、カーディガン）を追加',
+    'x.j7x30q':'全レイヤーの合計 / 方眼40pxを基準','x.2hlikh':'描く',
+    'x.1h2pa6x':'📢 [PR] 毛糸・かぎ針をお得に — CONY のおすすめを見る →',
+    'x.1abwetq':'📢 [PR] 編み物コーチングのコミュニティに参加する →',
+    'x.3wygts':'✌️ 2本指＝移動・拡大 ・ 2本指タップ＝取り消し ・ 3本指タップ＝やり直し ・ 3本指下げ＝コピー/貼り付け ・ 線を引いて2秒＝図形を固定 ・ 4本指タップ＝UIを隠す',
     'app.tagline':'編み物メイト', 'dash.new':'＋ 新しい編み図', 'dash.samples':'📦 サンプル',
     'dash.backup':'💾 バックアップ', 'dash.restore':'↩️ 復元', 'dash.upgrade':'👑 アップグレード',
     'dash.banner.h':'休んでもいい、やめさえしなければ 🧶',
