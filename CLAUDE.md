@@ -25,6 +25,12 @@ npx serve . -l 3942   # 프리뷰 검증용 (launch.json name: cony-verify)
 ## 2026-07-29 추가
 - **아이콘 완료**: 대바늘(뾰족 팁+둥근 마개)×코바늘(갈고리) 교차 마크. `icons/gen-icons.html`이 원본, PNG 5종 + `icon.svg` 동기(IoU 0.997 대조 확인).
 - **대바늘 20→33종**: 코없음·되돌아뜨기·k3tog/sssk/p3tog·m1l/m1r·실앞뒤걸러뜨기 + 교차뜨기 파라메트릭(c2~c6, f/b). 상세·미검증 항목은 docs/WADIZ-SYMBOLS.md 6차.
+## 2026-08-12 실기기(아이패드) 피드백 대응
+- ★**등간격 + 격자 스냅 = 에일리어싱**: `stampPolyCtx`가 획을 `stampGap`(38px) 등간격으로 뽑은 뒤 24px 격자에 붙여, 실제 간격이 24/48로 튀었다("ㅇ ㅇㅇ ㅇ ㅇ"). 스냅을 쓸 땐 **간격 자체를 격자 눈금의 배수로** 잡는다. 눈금은 획 방향에 따라 다르다 — `cell/max(|ux|,|uy|)` (축 정렬=cell, 45°=cell√2). 임의 각도는 원리상 완전 균등 불가(편차 2.0→1.12배).
+- ★**프레임 회전은 좌표 변환으로 감싼다**: `G.canvasFrames[]`에 `rot` 추가. 기하 함수를 고치지 않고 `frameSpin(f,x,y,inv)`으로 **출력은 돌리고 입력은 역회전**한다(`frameSlotPos`·`ovalSlotPos` 출력, `frameSnapInfo`·`frameHitTest` 입력, `drawFrameGuide`는 캔버스 회전). 회전 중심은 반원만 밑변 중앙. 프레임 목록 ↻ 버튼이 90°씩.
+- 손가락 잠금은 버튼 색(주황)+화면 배지로 표시(`syncLockUI`). 배지는 헤더 높이를 실측해 붙이고 리사이즈마다 다시 잰다.
+- 모양 툴바(`#shape-bar`)는 손잡이(`#sb-grip`)로 이동, 위치는 `localStorage cony_shapebar_pos`. 부모가 0×0으로 나올 때 가두면 좌상단에 처박히므로 못 재면 가두지 않는다.
+- 도크에서 도장 버튼 숨김(`DOCK_HIDDEN`). **모드는 살아 있다** — 팔레트 기호 탭이 stamp로 들어가고 `seqNextPos`가 `G.mode==='stamp'`를 본다.
 - ★**기호 폴백 규칙**: `drawSVGStitch`는 **id로만** 분기한다. 팔레트의 `svg` 필드는 렌더에 쓰이지 않으므로, 새 기호를 추가할 땐 반드시 해당 **id로 case를 걸어야** 한다. 안 걸면 default 폴백(점선 "?" 박스)이 그려진다 — 예전엔 폴백이 원이라 안뜨기와 구별되지 않아 sl1/k-tbl/mb 버그가 오래 숨어 있었다.
 
 ## 검증 (매 변경마다, 커밋 전 필수)

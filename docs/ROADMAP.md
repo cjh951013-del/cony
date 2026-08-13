@@ -33,7 +33,15 @@
 ## 코드 작업 (남음)
 - Toss 실키 교체: `TOSS_CLIENT_KEY` (index.html 1363줄) + `TOSS_SECRET_KEY` (Netlify env var) 둘 다 실제 키로 교체
 - Netlify 배포: `netlify deploy --prod` 또는 GitHub 연동 후 자동 배포
-- Chrome Extension `WEB_URL` 교체: `chrome-ext/popup.js` 1번째 줄 → 실제 Netlify URL로 교체
+- ~~Chrome Extension `WEB_URL` 교체~~ — 불필요. 이미 번들 방식(`chrome.runtime.getURL('app/index.html')`)이라 `npm run ext:build`만 돌리면 제출 가능 (2026-08-12 확인)
+
+## 실기기(아이패드) 피드백 — 2026-08-12
+✅ 손가락 잠금 상태 표시 / ✅ 기호 간격 격자 에일리어싱 / ✅ 모양 툴바 이동 / ✅ 도장 버튼 숨김 / ✅ 프레임 회전(반원 방향)
+
+남음:
+- **펜 판별 확인 필요** — 잠금 ON에서 애플펜슬로 그려지는지. 안 되면 `isStylusEvent`(touchType==='stylus') 재설계
+- 기호 회전이 롱프레스 메뉴에서 안 먹음 / 중복으로 보이는 기호 2종(이름 미확인 — 사용자 확인 대기)
+- 도구 스와이프 메뉴(복제·색변경), 롱프레스 이동 칸의 프레임 정렬
 
 ## 사용자가 직접 해야 할 것
 
