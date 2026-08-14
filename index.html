@@ -1971,6 +1971,11 @@ const I18N={
     'x.1x0v89c':'Save every pattern, setting and progress record to a file — back up before experimenting, restore anytime',
     'x.96aoro':'Installs 4 verified sample patterns (cat & paw filet, flower coaster, cardigan)',
     'x.j7x30q':'All layers combined / based on 40px grid','x.2hlikh':'Draw',
+    'fp.title':'Place a frame','fp.sub':'Make a guide area, then draw your chart on it',
+    'fp.circle':'○ Circle · ellipse — doily, bag base (drag handles to stretch)',
+    'fp.oval':'⬭ Oval — bag base, basket (grows both ways from a centre chain)',
+    'fp.semi':'◗ Half circle — bag, fan, umbrella','fp.rect':'▭ Rectangle — divide areas',
+    'fp.grid':'⊞ Grid — filet crochet, patterns','fp.clear':'🗑 Clear all frames','fp.close':'Close',
     // 광고 배너는 한국 제휴처라 해외 언어에서는 상품명을 옮기지 않고 일반 문구로 바꾼다.
     'x.1h2pa6x':'📢 [Ad] Yarn & hook deals — see CONY picks →',
     'x.1abwetq':'📢 [Ad] Join a live crochet coaching community →',
@@ -2122,6 +2127,11 @@ const I18N={
     'x.1x0v89c':'すべての編み図・設定・進行記録をファイルに保存 — 試す前にバックアップ、いつでも復元',
     'x.96aoro':'確認済みのサンプル編み図4点（ねこ・肉球の方眼、花のコースター、カーディガン）を追加',
     'x.j7x30q':'全レイヤーの合計 / 方眼40pxを基準','x.2hlikh':'描く',
+    'fp.title':'フレームを置く','fp.sub':'ガイドの範囲を作って、その上に編み図を描きます',
+    'fp.circle':'○ 円・楕円 — ドイリー、バッグの底（ハンドルで伸ばすと楕円）',
+    'fp.oval':'⬭ 楕円（長方）— バッグの底・かご（中央の鎖から両側へ）',
+    'fp.semi':'◗ 半円 — バッグ・扇・傘','fp.rect':'▭ 四角 — 範囲を分ける',
+    'fp.grid':'⊞ 方眼 — 方眼編み・模様','fp.clear':'🗑 フレームをすべて消す','fp.close':'閉じる',
     'x.1h2pa6x':'📢 [PR] 毛糸・かぎ針をお得に — CONY のおすすめを見る →',
     'x.1abwetq':'📢 [PR] 編み物コーチングのコミュニティに参加する →',
     'x.3wygts':'✌️ 2本指＝移動・拡大 ・ 2本指タップ＝取り消し ・ 3本指タップ＝やり直し ・ 3本指下げ＝コピー/貼り付け ・ 線を引いて2秒＝図形を固定 ・ 4本指タップ＝UIを隠す',
@@ -2181,6 +2191,9 @@ function applyI18n(){
 function setLang(l){
   G.lang=(l==='en'||l==='ja')?l:'ko';
   try{localStorage.setItem('cony_lang',G.lang);}catch(e){}
+  // JS로 한 번만 만들어 캐시해 두는 패널들은 applyI18n이 못 건드린다(이미 문자열이 박혀 있다).
+  // 지워두면 다음에 열 때 새 언어로 다시 만들어진다.
+  {const fp=$('frame-pick');if(fp)fp.remove();}
   applyI18n();
 }
 
@@ -6657,6 +6670,42 @@ function catmull(pts,seg){
   }
   out.push(pts[pts.length-1]);return out;
 }
+// 격자에 붙일 때 쓰는 리샘플. 걸음 폭은 '그 방향의 격자 눈금'의 배수여야 하는데,
+// 방향은 획을 따라 바뀐다 — 꺾이는 획을 전체 방향 하나로 계산하면 꺾인 뒤부터 다시
+// 어긋난다(실기기 재보고). 그래서 구간마다 다시 잰다.
+function resampleGridAware(poly,baseGap,cell){
+  if(!poly||poly.length<2)return (poly||[]).slice();
+  const stepFor=(a,b)=>{
+    const L=Math.hypot(b.x-a.x,b.y-a.y);
+    if(!(cell>0.5)||L<1e-6)return baseGap;
+    const ux=Math.abs(b.x-a.x)/L, uy=Math.abs(b.y-a.y)/L;
+    const pitch=cell/Math.max(ux,uy);      // 축 정렬=cell, 45°=cell√2
+    return Math.max(1,Math.round(baseGap/pitch))*pitch;
+  };
+  const out=[poly[0]];let acc=0;
+  for(let i=1;i<poly.length;i++){
+    let a=poly[i-1];const b=poly[i];
+    let d=dist2(a,b);
+    const step=stepFor(a,b);               // 구간 안에서는 방향이 안 변한다
+    while(acc+d>=step&&d>1e-9){
+      const t=(step-acc)/d,np={x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};
+      out.push(np);a=np;d=dist2(a,b);acc=0;
+    }
+    acc+=d;
+  }
+  return out;
+}
+// 격자에 붙이고 나면 서로 너무 가까워진 점이 생긴다(눈금이 안 맞아떨어지는 각도).
+// 기호가 겹쳐 보이는 원인이라, 의도한 간격의 60%보다 가까우면 버린다.
+function dropCrowded(pts,minGap){
+  if(!pts||pts.length<2)return pts;
+  const out=[pts[0]];
+  for(let i=1;i<pts.length;i++){
+    const p=pts[i],q=out[out.length-1];
+    if(Math.hypot(p.x-q.x,p.y-q.y)>=minGap)out.push(p);
+  }
+  return out;
+}
 function resampleAlong(poly,gap){
   if(poly.length<2)return poly.slice();
   const out=[poly[0]];let acc=0;
@@ -7057,17 +7106,19 @@ function openFramePicker(){
   let p=$('frame-pick');
   if(!p){
     p=document.createElement('div');p.id='frame-pick';
-    p.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1300;background:rgba(28,28,44,.96);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 20px 60px rgba(0,0,0,.6);min-width:230px';
-    p.innerHTML='<div style="font-size:13px;font-weight:700;color:#fff">프레임 배치</div>'
-      +'<div style="font-size:10px;color:rgba(255,255,255,.45);margin-bottom:2px">가이드 구역을 만들고 그 위에 도안을 그리세요</div>'
-      +'<button class="fpb" data-k="circle">○ 원형·타원 — 도일리·가방 바닥 (핸들로 늘리면 타원)</button>'
-      +'<button class="fpb" data-k="oval">⬭ 타원(장방) — 가방 바닥·바스켓 (가운데 사슬에서 양쪽으로)</button>'
-      +'<button class="fpb" data-k="semi">◗ 반원 — 가방·부채·우산</button>'
-      +'<button class="fpb" data-k="rect">▭ 사각 — 구역 나누기</button>'
-      +'<button class="fpb" data-k="grid">⊞ 격자 — 방안뜨기·패턴</button>'
+    // 화면 한가운데 고정이라 캔버스를 정통으로 가렸다(실기기 보고). 연 버튼 옆에 붙는
+    // 팝오버로 바꾼다 — 도구를 누른 자리에서 바로 고르는 게 손이 덜 간다.
+    p.style.cssText='position:fixed;left:0;top:0;z-index:1300;background:rgba(28,28,44,.96);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 20px 60px rgba(0,0,0,.6);min-width:230px;max-width:min(300px,92vw)';
+    p.innerHTML='<div style="font-size:13px;font-weight:700;color:#fff">'+T('fp.title','프레임 배치')+'</div>'
+      +'<div style="font-size:10px;color:rgba(255,255,255,.45);margin-bottom:2px">'+T('fp.sub','가이드 구역을 만들고 그 위에 도안을 그리세요')+'</div>'
+      +'<button class="fpb" data-k="circle">'+T('fp.circle','○ 원형·타원 — 도일리·가방 바닥 (핸들로 늘리면 타원)')+'</button>'
+      +'<button class="fpb" data-k="oval">'+T('fp.oval','⬭ 타원(장방) — 가방 바닥·바스켓 (가운데 사슬에서 양쪽으로)')+'</button>'
+      +'<button class="fpb" data-k="semi">'+T('fp.semi','◗ 반원 — 가방·부채·우산')+'</button>'
+      +'<button class="fpb" data-k="rect">'+T('fp.rect','▭ 사각 — 구역 나누기')+'</button>'
+      +'<button class="fpb" data-k="grid">'+T('fp.grid','⊞ 격자 — 방안뜨기·패턴')+'</button>'
       +'<div id="fp-list" style="display:flex;flex-direction:column;gap:4px;max-height:150px;overflow-y:auto"></div>'
-      +'<button class="fpb d" data-k="_clear">🗑 프레임 모두 지우기</button>'
-      +'<button class="fpb" data-k="_close">닫기</button>';
+      +'<button class="fpb d" data-k="_clear">'+T('fp.clear','🗑 프레임 모두 지우기')+'</button>'
+      +'<button class="fpb" data-k="_close">'+T('fp.close','닫기')+'</button>';
     document.body.appendChild(p);
     p.addEventListener('click',e=>{
       // 프레임 회전: 탭마다 90°. 반원이 아래로만 향하던 문제를 이걸로 푼다(위·좌·우 전부 가능).
@@ -7098,6 +7149,23 @@ function openFramePicker(){
   }
   renderFrameList(p);
   p.style.display='flex';
+  placeFramePicker(p);
+}
+// 연 버튼 옆에 붙인다. 도크는 왼쪽이므로 오른쪽으로 펼치고, 화면을 넘으면 반대편으로
+// 접는다. 버튼을 못 찾으면(단축키로 연 경우) 왼쪽 위 여백에 둔다 — 가운데는 캔버스를 가린다.
+function placeFramePicker(p){
+  const btn=$('btn-frames2')||$('btn-frames');
+  const pw=p.offsetWidth||240, ph=p.offsetHeight||320;
+  const vw=window.innerWidth, vh=window.innerHeight, M=8;
+  let x=M, y=M+56;
+  if(btn){
+    const r=btn.getBoundingClientRect();
+    x=r.right+10;                       // 기본은 버튼 오른쪽
+    if(x+pw>vw-M)x=r.left-pw-10;        // 넘치면 왼쪽으로
+    y=r.top;
+  }
+  p.style.left=Math.max(M,Math.min(vw-pw-M,x))+'px';
+  p.style.top =Math.max(M,Math.min(Math.max(M,vh-ph-M),y))+'px';
 }
 function renderFrameList(p){
   const list=p.querySelector('#fp-list');if(!list)return;
@@ -7537,21 +7605,20 @@ function stampPolyCtx(ctx,poly,ghost){
   //  스냅 후 24,48,24,48,48,... 로 튀어 "ㅇ ㅇㅇ ㅇ ㅇ" 처럼 들쭉날쭉해진다(실기기 보고).
   //  나누어떨어지지 않아 생기는 에일리어싱이므로, 스냅을 쓸 때는 간격 자체를 칸의 배수로
   //  맞춰서 뽑는다. 그러면 모든 점이 N칸마다 정확히 떨어져 스냅해도 등간격이 유지된다.
-  //  간격의 기준이 되는 '격자 눈금'은 획의 방향에 따라 다르다. 가로·세로로 그으면 한 칸(24px)
-  //  마다지만, 45°로 그으면 대각선 한 칸은 24√2≈33.9px 다. 방향을 보고 그 눈금의 배수로 맞춘다.
-  let gap=G.stampGap||38;
+  //  간격의 기준이 되는 '격자 눈금'은 획의 방향에 따라 다르다(축 정렬=한 칸, 45°=대각 한 칸).
+  //  꺾이는 획은 방향이 도중에 바뀌므로 구간마다 다시 잰다 — resampleGridAware 가 그 일을 한다.
+  const gap=G.stampGap||38;
   const useSnap=!G._lineLock&&G.gridOn;
-  if(useSnap&&typeof graphCellSz==='function'&&poly.length>=2){
-    const cell=graphCellSz();
-    const a=poly[0],b=poly[poly.length-1],L=Math.hypot(b.x-a.x,b.y-a.y);
-    if(cell>0.5&&L>0.5){
-      const ux=Math.abs(b.x-a.x)/L, uy=Math.abs(b.y-a.y)/L;
-      const pitch=cell/Math.max(ux,uy); // 축 정렬이면 cell, 45°면 cell*√2
-      gap=Math.max(1,Math.round(gap/pitch))*pitch;
-    }
+  const cell=(useSnap&&typeof graphCellSz==='function')?graphCellSz():0;
+  let pts;
+  if(poly.length<2)pts=[poly[0]];
+  else pts=useSnap?resampleGridAware(poly,gap,cell):resampleAlong(poly,gap);
+  if(useSnap){
+    pts=snapPts(pts);            // 직선 잠금 중엔 스냅 생략 — 균등 간격 유지
+    // 꺾이는 지점에서 한 칸(24px)만 남는 자리가 생긴다. 기호가 48px 이라 절반이 겹쳐
+    // 뭉쳐 보인다 — 겹치느니 살짝 벌어지는 편이 낫다는 판단으로 버린다(간격 24→72).
+    pts=dropCrowded(pts,gap*0.7);
   }
-  let pts=poly.length<2?[poly[0]]:resampleAlong(poly,gap);
-  if(useSnap)pts=snapPts(pts); // 직선 잠금 중엔 스냅 생략 — 균등 간격 유지
   ctx.globalAlpha=ghost?0.55:G.opacity;
   symXf().forEach(T=>{for(const p of pts){const q=T(p);const rot=G.radial?radialRotFor(q.x,q.y)+(G.rot||0):G.rot;drawSVGStitch(ctx,q.x,q.y,G.stitch,col,G.stampSz||48,rot);if(!ghost)recPlace(G.stitch,q.x,q.y);}});
   ctx.globalAlpha=1;
