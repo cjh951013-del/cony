@@ -986,7 +986,7 @@ body.ui-hidden #row-counter{display:none!important}
       </div>
       <div id="shape-bar">
         <span class="sb-grip" id="sb-grip" title="드래그해서 옮기기 · 두 번 눌러 제자리로" data-i18n-t="x.1xpuy24">⠿</span>
-        <button class="sb-name" id="shape-cycle" title="다른 모양으로" data-i18n-t="x.x26dvk"><span id="shape-type" data-i18n="x.38af8">직선</span><span class="sb-caret">⇄</span></button>
+        <button class="sb-name" id="shape-cycle" title="다른 모양으로" data-i18n-t="x.x26dvk"><span id="shape-type">직선</span><span class="sb-caret">⇄</span></button>
         <span class="sb-cnt" id="shape-count-wrap" style="display:none">
           <b class="sb-axis" id="sb-axis1"></b>
           <button class="sb-ic" id="shape-less">−</button>
@@ -1976,6 +1976,11 @@ const I18N={
     'fp.oval':'⬭ Oval — bag base, basket (grows both ways from a centre chain)',
     'fp.semi':'◗ Half circle — bag, fan, umbrella','fp.rect':'▭ Rectangle — divide areas',
     'fp.grid':'⊞ Grid — filet crochet, patterns','fp.clear':'🗑 Clear all frames','fp.close':'Close',
+    'shape.line':'Line','shape.curve':'Curve','shape.ellipse':'Circle / ellipse',
+    'shape.rect':'Rectangle','shape.triangle':'Triangle','shape.frame':'Frame',
+    'aim.on':'Facing the anchor — every symbol now points at ⊕',
+    'aim.off':'Facing straight — symbols keep their own angle',
+    'aim.noanchor':'Set an anchor first (◎ Set anchor), then symbols will face it',
     // 광고 배너는 한국 제휴처라 해외 언어에서는 상품명을 옮기지 않고 일반 문구로 바꾼다.
     'x.1h2pa6x':'📢 [Ad] Yarn & hook deals — see CONY picks →',
     'x.1abwetq':'📢 [Ad] Join a live crochet coaching community →',
@@ -2132,6 +2137,11 @@ const I18N={
     'fp.oval':'⬭ 楕円（長方）— バッグの底・かご（中央の鎖から両側へ）',
     'fp.semi':'◗ 半円 — バッグ・扇・傘','fp.rect':'▭ 四角 — 範囲を分ける',
     'fp.grid':'⊞ 方眼 — 方眼編み・模様','fp.clear':'🗑 フレームをすべて消す','fp.close':'閉じる',
+    'shape.line':'直線','shape.curve':'曲線','shape.ellipse':'円 / 楕円',
+    'shape.rect':'四角形','shape.triangle':'三角形','shape.frame':'フレーム',
+    'aim.on':'アンカーを向く — すべての記号が ⊕ の方を向きます',
+    'aim.off':'まっすぐ — 記号は元の角度のまま',
+    'aim.noanchor':'先にアンカーを置いてください（◎ アンカーを置く）',
     'x.1h2pa6x':'📢 [PR] 毛糸・かぎ針をお得に — CONY のおすすめを見る →',
     'x.1abwetq':'📢 [PR] 編み物コーチングのコミュニティに参加する →',
     'x.3wygts':'✌️ 2本指＝移動・拡大 ・ 2本指タップ＝取り消し ・ 3本指タップ＝やり直し ・ 3本指下げ＝コピー/貼り付け ・ 線を引いて2秒＝図形を固定 ・ 4本指タップ＝UIを隠す',
@@ -6721,7 +6731,11 @@ function resampleAlong(poly,gap){
 }
 /* ----- shape detection + QuickShape edit ----- */
 const SHAPE_CYCLE=['line','curve','ellipse','rect','triangle'];
-const TYPE_LABEL={line:'직선',curve:'곡선',ellipse:'원/타원',rect:'사각형',triangle:'삼각형'};
+// 모양 이름은 showShapeBar 가 그때그때 넣는다. HTML 에 고정 키를 박아 두면 실제 모양과
+// 어긋나므로(#shape-type 에 '직선'이 박혀 있었다) 여기서 T()로 뽑는다.
+const TYPE_LABEL_KO={line:'직선',curve:'곡선',ellipse:'원/타원',rect:'사각형',triangle:'삼각형'};
+const shapeLabel=t=>T('shape.'+t,TYPE_LABEL_KO[t]||'모양');
+const TYPE_LABEL=new Proxy({},{get:(_,k)=>typeof k==='string'?shapeLabel(k):undefined});
 function bboxOf(p){let ax=1e9,ay=1e9,bx=-1e9,by=-1e9;for(const q of p){if(q.x<ax)ax=q.x;if(q.y<ay)ay=q.y;if(q.x>bx)bx=q.x;if(q.y>by)by=q.y;}return{x:ax,y:ay,w:bx-ax,h:by-ay,cx:(ax+bx)/2,cy:(ay+by)/2};}
 function projU(p,a){return p.x*Math.cos(a)+p.y*Math.sin(a);}
 function projV(p,a){return -p.x*Math.sin(a)+p.y*Math.cos(a);}
@@ -6882,7 +6896,7 @@ function initShapeBarDrag(){
   const end=()=>{if(!on)return;on=false;b.classList.remove('dragging');saveShapeBarPos();};
   g.addEventListener('pointerup',end);g.addEventListener('pointercancel',end);
 }
-function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';applyShapeBarPos();const t=$('shape-type');if(t)t.textContent=G.frameKind?'프레임':(TYPE_LABEL[G.shape.type]||'모양');const sym=G.mode==='stamp'||(G.mode==='draw'&&G.symBrush);const isGridF=G.frameKind==='grid';
+function showShapeBar(){const b=$('shape-bar');if(!b||!G.shape)return;b.style.display='flex';applyShapeBarPos();const t=$('shape-type');if(t)t.textContent=G.frameKind?T('shape.frame','프레임'):shapeLabel(G.shape.type);const sym=G.mode==='stamp'||(G.mode==='draw'&&G.symBrush);const isGridF=G.frameKind==='grid';
   const cw=$('shape-count-wrap');if(cw)cw.style.display=(isGridF||(sym&&!G.frameKind))?'inline-flex':'none';
   const ax1=$('sb-axis1');if(ax1)ax1.textContent=isGridF?'가로':'';
   const cc=$('shape-count');if(cc){if(isGridF)cc.value=G._frameCols||13;else if(sym&&!G.frameKind)cc.value=shapeStitchCount(G.shape);}
@@ -6963,11 +6977,21 @@ function anchorShape(){
   renderEdit();showToast('앵커에 중심 정렬');
 }
 // 도형 기울기를 앵커 방향으로 정렬 — 긴 축이 앵커를 향하게 (타원·사각)
+// ↝ = "기호가 앵커(⊕)를 바라보게". 원래는 도형만 기울였는데, 정작 필요한 건 기호 하나하나가
+// 중심을 향하는 것이었다(가방·도일리는 전부 이 방식이다). 그 동작은 G.radial 인데 다른 패널에
+// 숨어 있어 찾을 수가 없었다 — 그리는 자리에서 켜고, 켜졌는지 눈에 보이게 한다.
 function aimShapeAtAnchor(){
-  if(!G.shape||(G.shape.type!=='ellipse'&&G.shape.type!=='rect'))return;
-  const a=G.anchor||{x:CW/2,y:CH/2}, s=G.shape;
-  s.rot=Math.atan2(a.y-s.cy,a.x-s.cx);
-  renderEdit();showToast('앵커 방향으로 기울기 정렬');
+  G.radial=!G.radial;
+  const sw=$('sw-radial');if(sw)sw.classList.toggle('on',G.radial);
+  const b=$('shape-aim');if(b)b.classList.toggle('act',G.radial);
+  // 도형 편집 중이면 도형 기울기도 같이 맞춰 준다(기존 동작 유지).
+  if(G.shape&&(G.shape.type==='ellipse'||G.shape.type==='rect')){
+    const a=G.anchor||{x:CW/2,y:CH/2};
+    if(G.radial)G.shape.rot=Math.atan2(a.y-G.shape.cy,a.x-G.shape.cx);
+  }
+  if(G.editing)renderEdit(); else renderPreview();
+  showToast(G.radial?T('aim.on','앵커를 바라봅니다 — 모든 기호가 ⊕ 쪽을 향합니다')
+                    :T('aim.off','정방향 — 기호가 원래 각도를 유지합니다'));
 }
 // 터치용 회전 버튼(±15°) — 키보드 Q/R과 동일
 function rotShape(deg){
