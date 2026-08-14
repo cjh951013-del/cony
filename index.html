@@ -844,7 +844,10 @@ body.ui-hidden #row-counter{display:none!important}
         </span>
       </div>
       <div class="pc-modes">
-        <button class="tbtn act" data-mode="stamp" data-i18n-t="pal.stamp" title="기호 도장"><span class="ti">🔖</span><span data-i18n="pal.stampL">기호</span></button>
+        <!-- 도장 탭은 숨긴다. 기호를 고르면 펜(기호 브러시)으로 들어가므로 탭 자체가 중복이고,
+             기본이 도장이면 "뭘 골라도 도장"이 되어 버린다. 모드 자체는 남아 있어 필요하면
+             단축키 S 로 접근할 수 있다. -->
+        <button class="tbtn" data-mode="stamp" style="display:none" data-i18n-t="pal.stamp" title="기호 도장"><span class="ti">🔖</span><span data-i18n="pal.stampL">기호</span></button>
         <button class="tbtn" data-mode="draw" data-i18n-t="pal.pen" title="펜·손글씨"><span class="ti">✏️</span><span data-i18n="pal.penL">펜</span></button>
         <button class="tbtn" data-mode="graph" data-i18n-t="pal.graph" title="방안뜨기(칸 색칠)"><span class="ti">▦</span><span data-i18n="pal.graphL">방안</span></button>
         <button class="tbtn" data-mode="text" data-i18n-t="pal.text" title="텍스트"><span class="ti">T</span><span data-i18n="pal.textL">글자</span></button>
@@ -2268,10 +2271,10 @@ let G={
     {id:'p3',name:'가터뜨기 털목도리',type:'knitting',frame:'stripe',date:'2026-05-27',thumb:null},
   ],
   cur:null,
-  mode:'stamp',
+  mode:'draw',   // 기본은 무조건 펜. 도장은 숨긴 모드로만 남는다.
   stitch:'ch',
   annNum:1,annNumAuto:true,
-  prevMode:'stamp',
+  prevMode:'draw',
   usedSymbols:[],
   symPlace:[], // 찍은 기호의 좌표 기록 {i:기호id,x,y} — 서술도안이 실제 배치를 읽으려면 필요.
                // 레이어는 래스터라 픽셀에서 역산이 불가능해, 찍는 순간에 남겨두는 것 말고는 방법이 없다.
@@ -3292,6 +3295,7 @@ function frameHitTest(p,tol){
   return null;
 }
 function frameSnapInfo(p0){
+  if(!p0||!isFinite(p0.x)||!isFinite(p0.y))return null; // 좌표 없이 불리면 크래시 대신 '스냅 없음'
   for(const f of (G.canvasFrames||[])){
     const k=f.kind||'rect';
     // 링·슬롯 판정은 축 정렬 좌표계에서 한다. 결과 좌표는 frameSlotPos/ovalSlotPos 가
@@ -3340,7 +3344,7 @@ function frameSnapInfo(p0){
 function frameSnap(p){const i=frameSnapInfo(p);return i?{x:i.x,y:i.y}:null;}
 // 연속 배치: 프레임 안 도장 탭마다 다음 코 자리로 자동 진행, 단이 차면 다음 단 (뜨개 순서 그대로)
 function seqNextPos(p0){
-  if(G.seqOn===false||!G.gridOn||G.mode!=='stamp')return null;
+  if(G.seqOn===false||!G.gridOn||!symActive())return null;
   const info=frameSnapInfo(p0);
   if(!info){if(G.seq){G.seq=null;updateSeqHud();}return null;}
   let ring=info.ring,slot=info.slot,count=info.count;
@@ -4128,7 +4132,7 @@ function renderShelf(){
         document.querySelectorAll('.sc').forEach(x=>x.classList.remove('act'));
         el.classList.add('act');G.stitch=s.id;
         if(!G.rotLocked&&G.toolRots[s.id]!==undefined)applyRot(G.toolRots[s.id]);
-        setMode('stamp');
+        pickSymbolMode();
         document.querySelectorAll('.tbtn[data-mode]').forEach(b=>b.classList.remove('act'));
         document.querySelectorAll('.tbtn[data-shelf="annotation"]').forEach(b=>b.classList.add('act'));
       });
@@ -4203,7 +4207,7 @@ function renderShelf(){
       if(G.toolColors[s.id])setColor(G.toolColors[s.id]);
       if(!G.rotLocked&&G.toolRots[s.id]!==undefined)applyRot(G.toolRots[s.id]);
       G.mode='stamp';
-      setMode('stamp');
+      pickSymbolMode();
     });
     
     // Long press for reorder
@@ -4228,7 +4232,7 @@ function renderShelf(){
     el.appendChild(cvEl);el.appendChild(nm);
     el.addEventListener('click',()=>{
       document.querySelectorAll('.sc').forEach(x=>x.classList.remove('act'));
-      el.classList.add('act');G.stitch=s.id;if(G.toolColors[s.id])setColor(G.toolColors[s.id]);if(!G.rotLocked&&G.toolRots[s.id]!==undefined)applyRot(G.toolRots[s.id]);G.mode='stamp';setMode('stamp');
+      el.classList.add('act');G.stitch=s.id;if(G.toolColors[s.id])setColor(G.toolColors[s.id]);if(!G.rotLocked&&G.toolRots[s.id]!==undefined)applyRot(G.toolRots[s.id]);pickSymbolMode();
     });
     // 길게 누르기 = 삭제 확인
     let delT=null;
@@ -5607,7 +5611,7 @@ function showScreen(s){
       [bgC,mc,pc,...(gc?[gc]:[])].forEach(c=>{c.width=CW;c.height=CH;});
       ensureLayerCanvases();setActiveCtx();
       drawBg();fitToScreen();restoreCanvas();renderColHistBar();
-      setMode(G.mode||'stamp'); // 상단 도구 버튼 하이라이트 초기화
+      setMode(G.mode||'draw'); // 상단 도구 버튼 하이라이트 초기화
       if(!G.hintShown){G.hintShown=true;const h=$('gesture-hint');if(h){h.classList.add('show');setTimeout(()=>h.classList.remove('show'),5200);}}
     },50);
   }
@@ -5624,13 +5628,13 @@ function rotStep(d){
 // 번호 마커 옵션 패널: 도장 모드에서 '번호 마커' 기호를 골랐을 때만 노출
 function updateAnnNumUI(){
   const box=$('annnum-cg');if(!box)return;
-  const show=G.mode==='stamp'&&G.stitch==='ann-num';
+  const show=symActive()&&G.stitch==='ann-num';
   box.style.display=show?'block':'none';
   if(show){const v=$('annnum-val');if(v)v.value=G.annNum;}
 }
 // 번호 마커를 찍은 직후 호출 — '자동 증가'면 다음 번호로 넘어감
 function bumpAnnNumIfNeeded(){
-  if(G.mode!=='stamp'||G.stitch!=='ann-num'||G.annNumAuto===false)return;
+  if(!symActive()||G.stitch!=='ann-num'||G.annNumAuto===false)return;
   G.annNum=Math.min(999,G.annNum+1);
   const v=$('annnum-val');if(v)v.value=G.annNum;
 }
@@ -5640,7 +5644,7 @@ function setMode(m){
   if(G.mode==='dimline'&&m!=='dimline'){G._dimStart=null;if(prevCtx)prevCtx.clearRect(0,0,CW,CH);}
   if(m==='pick'&&G.mode!=='pick')G.prevMode=G.mode;
   if(['stamp','draw','graph','text'].includes(m)){G.prevPaint=m;G.prevDraw=m;}
-  else if(m==='eraser'||m==='smudge'){if(!G.prevDraw)G.prevDraw=G.prevPaint||'stamp';}
+  else if(m==='eraser'||m==='smudge'){if(!G.prevDraw)G.prevDraw=G.prevPaint||'draw';}
   G.mode=m;
   if(m!=='stamp'&&G.seq){G.seq=null;updateSeqHud();}
   updateAnnNumUI();
@@ -6118,9 +6122,9 @@ function bindAll(){
   $('sl-col').addEventListener('click',()=>$('sl').classList.remove('show'));
   $('sr-col').addEventListener('click',()=>$('sr').classList.remove('show'));
   const PAINT_MODES=['stamp','draw','graph','text'];
-  $('btn-paint').addEventListener('click',()=>{if(!PAINT_MODES.includes(G.mode))setMode(G.prevPaint||'stamp');const _sl=$('sl');if(_sl)_sl.classList.add('right');togglePanel('sl');});
-  $('btn-erase').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode(G.mode==='eraser'?(G.prevDraw||'stamp'):'eraser');});
-  $('btn-smudge').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode(G.mode==='smudge'?(G.prevDraw||'stamp'):'smudge');});
+  $('btn-paint').addEventListener('click',()=>{if(!PAINT_MODES.includes(G.mode))setMode(G.prevPaint||'draw');const _sl=$('sl');if(_sl)_sl.classList.add('right');togglePanel('sl');});
+  $('btn-erase').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode(G.mode==='eraser'?(G.prevDraw||'draw'):'eraser');});
+  $('btn-smudge').addEventListener('click',()=>{closePanels();$('colpop').classList.remove('open');$('morepop').classList.remove('open');setMode(G.mode==='smudge'?(G.prevDraw||'draw'):'smudge');});
   $('btn-modify').addEventListener('click',()=>{closePanels();setMode('pick');});
   $('btn-layers').addEventListener('click',()=>togglePanel('sr','layers'));
   $('btn-adjust').addEventListener('click',()=>togglePanel('sr','tools'));
@@ -8126,6 +8130,16 @@ function syncLockUI(){
 // 아니다 — 프레임 연속 배치(seqNextPos)가 G.mode==='stamp' 일 때만 동작하므로,
 // 모드를 없애면 탭마다 다음 코 자리로 넘어가는 기능이 죽는다. 버튼만 감춘다.
 const DOCK_HIDDEN=['stamp'];
+// 기호를 고르면 '펜'으로 들어간다. 기본은 무조건 펜이고, 도장 모드로는 새지 않는다.
+// (도장은 탭 한 번에 하나만 찍는 모드라 펜으로 점 찍는 것과 결과가 같아 중복이었다.)
+function pickSymbolMode(){
+  G.symBrush=true;
+  const sw=$('sw-symbrush');if(sw)sw.classList.add('on');
+  setMode('draw');
+}
+// 기호를 다루는 중인가 — 도장 모드를 걷어낸 뒤에도 기호 기능(연속 배치·번호 자동증가 등)이
+// 살아 있어야 하므로, 모드 이름 대신 이걸로 판정한다.
+function symActive(){return G.mode==='stamp'||(G.mode==='draw'&&G.symBrush&&!G.brushSpray);}
 function renderDock(){
   const favs=G.dockFavs||[];
   const isAll=G.dockTab==='all';
