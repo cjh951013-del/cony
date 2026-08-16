@@ -1979,7 +1979,7 @@ const I18N={
     'fp.oval':'⬭ Oval — bag base, basket (grows both ways from a centre chain)',
     'fp.semi':'◗ Half circle — bag, fan, umbrella','fp.rect':'▭ Rectangle — divide areas',
     'fp.grid':'⊞ Grid — filet crochet, patterns','fp.clear':'🗑 Clear all frames','fp.close':'Close',
-    'shape.line':'Line','shape.curve':'Curve','shape.ellipse':'Circle / ellipse',
+    'shape.line':'Line','shape.poly':'Polyline','shape.curve':'Curve','shape.ellipse':'Circle / ellipse',
     'shape.rect':'Rectangle','shape.triangle':'Triangle','shape.frame':'Frame',
     'aim.on':'Facing the anchor — every symbol now points at ⊕',
     'aim.off':'Facing straight — symbols keep their own angle',
@@ -2140,7 +2140,7 @@ const I18N={
     'fp.oval':'⬭ 楕円（長方）— バッグの底・かご（中央の鎖から両側へ）',
     'fp.semi':'◗ 半円 — バッグ・扇・傘','fp.rect':'▭ 四角 — 範囲を分ける',
     'fp.grid':'⊞ 方眼 — 方眼編み・模様','fp.clear':'🗑 フレームをすべて消す','fp.close':'閉じる',
-    'shape.line':'直線','shape.curve':'曲線','shape.ellipse':'円 / 楕円',
+    'shape.line':'直線','shape.poly':'折れ線','shape.curve':'曲線','shape.ellipse':'円 / 楕円',
     'shape.rect':'四角形','shape.triangle':'三角形','shape.frame':'フレーム',
     'aim.on':'アンカーを向く — すべての記号が ⊕ の方を向きます',
     'aim.off':'まっすぐ — 記号は元の角度のまま',
@@ -6734,10 +6734,10 @@ function resampleAlong(poly,gap){
   return out;
 }
 /* ----- shape detection + QuickShape edit ----- */
-const SHAPE_CYCLE=['line','curve','ellipse','rect','triangle'];
+const SHAPE_CYCLE=['line','poly','curve','ellipse','rect','triangle'];
 // 모양 이름은 showShapeBar 가 그때그때 넣는다. HTML 에 고정 키를 박아 두면 실제 모양과
 // 어긋나므로(#shape-type 에 '직선'이 박혀 있었다) 여기서 T()로 뽑는다.
-const TYPE_LABEL_KO={line:'직선',curve:'곡선',ellipse:'원/타원',rect:'사각형',triangle:'삼각형'};
+const TYPE_LABEL_KO={line:'직선',poly:'꺾은선',curve:'곡선',ellipse:'원/타원',rect:'사각형',triangle:'삼각형'};
 const shapeLabel=t=>T('shape.'+t,TYPE_LABEL_KO[t]||'모양');
 const TYPE_LABEL=new Proxy({},{get:(_,k)=>typeof k==='string'?shapeLabel(k):undefined});
 function bboxOf(p){let ax=1e9,ay=1e9,bx=-1e9,by=-1e9;for(const q of p){if(q.x<ax)ax=q.x;if(q.y<ay)ay=q.y;if(q.x>bx)bx=q.x;if(q.y>by)by=q.y;}return{x:ax,y:ay,w:bx-ax,h:by-ay,cx:(ax+bx)/2,cy:(ay+by)/2};}
@@ -6777,7 +6777,22 @@ function detectShape(path){
     // 짧은 획은 비율이 과민해지므로 2.5px 바닥을 둔다.
     if(dev<=Math.max(2.5,chord*0.012))return{type:'line',a:{x:a.x,y:a.y},b:{x:b.x,y:b.y}};
     const simp=rdp(path,Math.max(2,L*0.02));
-    return{type:'curve',pts:simp.length>=2?simp:[a,b]};
+    const pts=simp.length>=2?simp:[a,b];
+    // 열린 획에 직선/곡선밖에 없어서, 꺾어 그어도 catmull 이 모서리를 뭉갰다(실기기 보고:
+    // "꺾이는 부분에서 직각으로 안 꺾이게 나와"). 뚜렷한 꼭짓점이 있으면 꺾은선으로 낸다.
+    // 판정: 이웃 두 변이 이루는 방향 변화가 40° 이상이면 모서리. 완만한 곡선은 한 점당
+    // 변화가 작게 흩어지므로 걸리지 않는다.
+    let sharp=0;
+    for(let i=1;i<pts.length-1;i++){
+      const v1x=pts[i].x-pts[i-1].x, v1y=pts[i].y-pts[i-1].y;
+      const v2x=pts[i+1].x-pts[i].x, v2y=pts[i+1].y-pts[i].y;
+      const l1=Math.hypot(v1x,v1y), l2=Math.hypot(v2x,v2y);
+      if(l1<6||l2<6)continue;
+      const cos=Math.max(-1,Math.min(1,(v1x*v2x+v1y*v2y)/(l1*l2)));
+      if(Math.acos(cos)>=0.70)sharp++;   // 0.70rad ≈ 40°
+    }
+    if(sharp>0)return{type:'poly',pts};
+    return{type:'curve',pts};
   }
   let raw=path.slice();
   if(raw.length>3&&dist2(raw[0],raw[raw.length-1])<diag*0.12)raw=raw.slice(0,-1);
@@ -6798,6 +6813,7 @@ function detectShape(path){
 function shapeToPoly(s){
   if(!s)return[];
   if(s.type==='line')return[s.a,s.b];
+  if(s.type==='poly')return s.pts.slice();   // 꺾은선은 스무딩하지 않는다 — 모서리가 살아야 한다
   if(s.type==='curve')return s.pts.length>=3?catmull(s.pts,14):s.pts.slice();
   if(s.type==='rect'){const hw=s.w/2,hh=s.h/2,r=s.rot||0;return[[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh],[-hw,-hh]].map(c=>{const w=unproj(c[0],c[1],r);return{x:s.cx+w.x,y:s.cy+w.y};});}
   if(s.type==='triangle')return[s.p[0],s.p[1],s.p[2],s.p[0]];
@@ -6807,7 +6823,7 @@ function shapeToPoly(s){
 function handlesOf(s){
   if(!s)return[];
   if(s.type==='line')return[{id:'a',x:s.a.x,y:s.a.y},{id:'b',x:s.b.x,y:s.b.y}];
-  if(s.type==='curve')return s.pts.map((p,i)=>({id:'p'+i,x:p.x,y:p.y}));
+  if(s.type==='curve'||s.type==='poly')return s.pts.map((p,i)=>({id:'p'+i,x:p.x,y:p.y}));
   if(s.type==='rect'){const r=s.rot||0,hw=s.w/2,hh=s.h/2,W=(u,v)=>{const w=unproj(u,v,r);return{x:s.cx+w.x,y:s.cy+w.y};},rt=W(0,-hh-Math.max(26,hh*0.6));return[Object.assign({id:'tl'},W(-hw,-hh)),Object.assign({id:'tr'},W(hw,-hh)),Object.assign({id:'br'},W(hw,hh)),Object.assign({id:'bl'},W(-hw,hh)),{id:'mv',x:s.cx,y:s.cy},Object.assign({id:'rot'},rt)];}
   if(s.type==='triangle')return[{id:'t0',x:s.p[0].x,y:s.p[0].y},{id:'t1',x:s.p[1].x,y:s.p[1].y},{id:'t2',x:s.p[2].x,y:s.p[2].y},{id:'mv',x:(s.p[0].x+s.p[1].x+s.p[2].x)/3,y:(s.p[0].y+s.p[1].y+s.p[2].y)/3}];
   if(s.type==='ellipse'){const r=s.rot||0,W=(u,v)=>{const w=unproj(u,v,r);return{x:s.cx+w.x,y:s.cy+w.y};},rt=W(0,-s.ry-Math.max(26,s.ry*0.6));return[Object.assign({id:'rx'},W(s.rx,0)),Object.assign({id:'ry'},W(0,s.ry)),{id:'mv',x:s.cx,y:s.cy},Object.assign({id:'rot'},rt)];}
@@ -6816,7 +6832,7 @@ function handlesOf(s){
 function hitHandle(s,pos,tol){let best=null,bd=tol;for(const h of handlesOf(s)){const d=Math.hypot(h.x-pos.x,h.y-pos.y);if(d<=bd){bd=d;best=h.id;}}return best;}
 function dragHandle(s,id,pos){
   if(s.type==='line'){if(id==='a')s.a={x:pos.x,y:pos.y};else if(id==='b')s.b={x:pos.x,y:pos.y};}
-  else if(s.type==='curve'){const i=+id.slice(1);if(s.pts[i])s.pts[i]={x:pos.x,y:pos.y};}
+  else if(s.type==='curve'||s.type==='poly'){const i=+id.slice(1);if(s.pts[i])s.pts[i]={x:pos.x,y:pos.y};}
   else if(s.type==='rect'){
     const r=s.rot||0;
     if(id==='mv'){s.cx=pos.x;s.cy=pos.y;}
@@ -6967,7 +6983,7 @@ function magnetToFrames(p){
 }
 function moveShapeBy(s,dx,dy){
   if(s.type==='line'){s.a.x+=dx;s.a.y+=dy;s.b.x+=dx;s.b.y+=dy;}
-  else if(s.type==='curve')s.pts.forEach(p=>{p.x+=dx;p.y+=dy;});
+  else if(s.type==='curve'||s.type==='poly')s.pts.forEach(p=>{p.x+=dx;p.y+=dy;});
   else if(s.type==='triangle')s.p.forEach(p=>{p.x+=dx;p.y+=dy;});
   else{s.cx+=dx;s.cy+=dy;}
 }
