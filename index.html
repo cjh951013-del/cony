@@ -3878,7 +3878,21 @@ function setUndoBtns(){const u=$('btn-undo'),r=$('btn-redo');if(u)u.disabled=G.h
    WKWebView 는 그 훨씬 아래에서 죽는다. 그래서 '장수' 대신 '용량'으로 묶는다.
    1200px(무료)은 33장쯤, 4000px(Pro)은 3장쯤 남는다 — 크기를 키운 만큼 되돌리기가
    짧아지는 건 어쩔 수 없는 교환이고, 앱이 죽는 것보다는 낫다. */
-const HIST_BUDGET=192*1024*1024;        // 192MB
+/* 스냅샷은 ImageData 가 아니라 오프스크린 캔버스로 뜬다.
+   getImageData 는 GPU→CPU 동기 읽기라 4000px 에서 259ms 가 걸렸다(1200px 19ms).
+   획마다 도는 경로여서 Pro 캔버스에선 그릴 때마다 16프레임이 멈췄다.
+   drawImage 로 캔버스에 복사하면 GPU 안에서 끝나 읽기가 사라진다.
+   되돌릴 때도 putImageData 대신 drawImage 로 되돌린다. */
+function snapCanvas(ctx){
+  const c=document.createElement('canvas');c.width=CW;c.height=CH;
+  c.getContext('2d').drawImage(ctx.canvas,0,0);
+  return c;
+}
+function applySnap(lctx,snap){
+  lctx.clearRect(0,0,CW,CH);
+  if(snap)lctx.drawImage(snap,0,0);
+}
+const HIST_BUDGET=256*1024*1024;        // 256MB
 const HIST_MIN=3, HIST_MAX=40;
 function histSnapBytes(){return CW*CH*4;}
 function histCap(){
@@ -3890,7 +3904,7 @@ function trimHist(perEntryLayers){
 }
 function saveH(){
   if(!mainCtx)return;
-  const d=mainCtx.getImageData(0,0,CW,CH);
+  const d=snapCanvas(mainCtx);
   G.hist=G.hist.slice(0,G.histIdx+1);
   G.hist.push({lid:G.activeL,data:d});
   trimHist(1);
@@ -3899,7 +3913,7 @@ function saveH(){
 }
 // 캔버스 전체(여러 레이어 동시) 변경용 스냅샷
 function saveHMulti(){
-  const multi=G.layers.map(l=>({lid:l.id,data:l.ctx.getImageData(0,0,CW,CH)}));
+  const multi=G.layers.map(l=>({lid:l.id,data:snapCanvas(l.ctx)}));
   G.hist=G.hist.slice(0,G.histIdx+1);
   G.hist.push({multi});
   trimHist(multi.length);   // 여러 레이어를 한 항목에 담으므로 그만큼 더 적게 남긴다
@@ -3921,18 +3935,18 @@ function undo(){
   if(G.seq){G.seq=null;updateSeqHud();} // 연속 배치 카운터는 undo와 어긋나므로 리셋
   const cur=G.hist[G.histIdx];
   const affected=cur.multi?cur.multi.map(x=>x.lid):[cur.lid];
-  affected.forEach(lid=>{const prev=prevDataFor(lid,G.histIdx-1),l=layerById(lid);if(l){if(prev)l.ctx.putImageData(prev,0,0);else l.ctx.clearRect(0,0,CW,CH);}});
+  affected.forEach(lid=>{const prev=prevDataFor(lid,G.histIdx-1),l=layerById(lid);if(l)applySnap(l.ctx,prev);});
   if(!cur.multi){G.activeL=cur.lid;setActiveCtx();}
   G.histIdx--;composite();renderLayers();setUndoBtns();
-  _urFlash('#000');showToast('실행 취소');
+  showToast('실행 취소');  // 화면 전체를 검게 번쩍이던 _urFlash 제거 — 오작동처럼 보인다는 보고
 }
 function redo(){
   if(G.histIdx>=G.hist.length-1){showToast('더 이상 다시실행 없음');return;}
   G.histIdx++;const e=G.hist[G.histIdx];
-  if(e.multi){e.multi.forEach(s=>{const l=layerById(s.lid);if(l)l.ctx.putImageData(s.data,0,0);});}
-  else{const l=layerById(e.lid);if(l){l.ctx.putImageData(e.data,0,0);G.activeL=e.lid;setActiveCtx();}}
+  if(e.multi){e.multi.forEach(s=>{const l=layerById(s.lid);if(l)applySnap(l.ctx,s.data);});}
+  else{const l=layerById(e.lid);if(l){applySnap(l.ctx,e.data);G.activeL=e.lid;setActiveCtx();}}
   composite();renderLayers();setUndoBtns();
-  _urFlash('#fff');showToast('다시 실행');
+  showToast('다시 실행');
 }
 // 캔버스/레이어 액션
 function flipLayerCv(l,dir){
