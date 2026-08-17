@@ -3373,9 +3373,13 @@ function updateSeqHud(){
   if(G.seq){h.style.display='block';h.textContent=G.seq.ring+'단 '+(G.seq.slot+1)+'/'+G.seq.count+'코 — 탭하면 다음 코';}
   else h.style.display='none';
 }
+// 직선으로 편 획을 프레임 링에 끌어붙이면 다시 휘어진다. 원형 프레임 위에 가로줄을 그으면
+// 점마다 다른 링으로 끌려가 Y가 35px 흩어졌다(실기기 보고 "갑자기 또 일자로 안 그어져").
+// 그 획을 놓는 동안만 프레임 스냅을 끈다 — 격자 스냅과 원형 배치 자체는 그대로 둔다.
+let _noFrameSnap=false;
 function snapToGrid(p){
   if(!G.gridOn)return p;
-  const fs=frameSnap(p);if(fs)return fs; // 프레임 안이면 프레임 스냅 우선
+  if(!_noFrameSnap){const fs=frameSnap(p);if(fs)return fs;} // 프레임 안이면 프레임 스냅 우선
   // 격자 프레임 안: 그 프레임의 칸 중심 (칸 크기는 프레임별 가로×세로 칸 수에서 역산)
   const gf=(G.canvasFrames||[]).find(f=>(f.kind==='grid')&&p.x>=f.x&&p.x<=f.x+f.w&&p.y>=f.y&&p.y<=f.y+f.h);
   if(gf){const{cw,ch}=frameGridDims(gf);return{x:gf.x+Math.floor((p.x-gf.x)/cw)*cw+cw/2,y:gf.y+Math.floor((p.y-gf.y)/ch)*ch+ch/2};}
@@ -7673,7 +7677,12 @@ function straightenStroke(poly){
 function stampPolyCtx(ctx,poly,ghost){
   if(!poly||poly.length<1)return;
   const col=G.toolColors[G.stitch]||G.color;
-  if(G.autoStraight!==false&&!G._lineLock&&poly.length>=3)poly=straightenStroke(poly);
+  let straightened=false;
+  if(G.autoStraight!==false&&!G._lineLock&&poly.length>=3){
+    const n0=poly.length;
+    poly=straightenStroke(poly);
+    straightened=(poly.length===2&&n0>2);   // 2점으로 줄었다 = 직선으로 폈다
+  }
   // ★등간격으로 뽑은 점을 격자에 붙이면 간격이 깨진다. 격자 24px 에 기호 간격 38px 이면
   //  스냅 후 24,48,24,48,48,... 로 튀어 "ㅇ ㅇㅇ ㅇ ㅇ" 처럼 들쭉날쭉해진다(실기기 보고).
   //  나누어떨어지지 않아 생기는 에일리어싱이므로, 스냅을 쓸 때는 간격 자체를 칸의 배수로
@@ -7687,7 +7696,10 @@ function stampPolyCtx(ctx,poly,ghost){
   if(poly.length<2)pts=[poly[0]];
   else pts=useSnap?resampleGridAware(poly,gap,cell):resampleAlong(poly,gap);
   if(useSnap){
+    const prevNFS=_noFrameSnap;
+    _noFrameSnap=straightened||G._lineLock;  // 편 직선은 링에 끌려가면 안 된다
     pts=snapPts(pts);            // 직선 잠금 중엔 스냅 생략 — 균등 간격 유지
+    _noFrameSnap=prevNFS;
     // 꺾이는 지점에서 한 칸(24px)만 남는 자리가 생긴다. 기호가 48px 이라 절반이 겹쳐
     // 뭉쳐 보인다 — 겹치느니 살짝 벌어지는 편이 낫다는 판단으로 버린다(간격 24→72).
     pts=dropCrowded(pts,gap*0.7);
