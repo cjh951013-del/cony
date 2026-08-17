@@ -7698,7 +7698,16 @@ function stampPolyCtx(ctx,poly,ghost){
   if(useSnap){
     const prevNFS=_noFrameSnap;
     _noFrameSnap=straightened||G._lineLock;  // 편 직선은 링에 끌려가면 안 된다
-    pts=snapPts(pts);            // 직선 잠금 중엔 스냅 생략 — 균등 간격 유지
+    // ★점을 하나씩 격자에 붙이면 매번 ±반칸씩 어긋나 간격이 깨진다("ㅇㅇㅇ  ㅇ ㅇㅇ").
+    //  리샘플 결과는 이미 정확한 등간격이므로, 첫 점만 격자에 맞추고 그 이동량을 전체에
+    //  똑같이 적용한다. 격자에 정렬되면서 간격은 한 치도 흐트러지지 않는다.
+    if(pts.length>1){
+      const s0=snapToGrid(pts[0]);
+      const dx=s0.x-pts[0].x, dy=s0.y-pts[0].y;
+      if(dx||dy)pts=pts.map(p=>({...p,x:p.x+dx,y:p.y+dy}));
+    }else{
+      pts=snapPts(pts);          // 점 하나(탭)는 그대로 격자에 붙인다
+    }
     _noFrameSnap=prevNFS;
     // 꺾이는 지점에서 한 칸(24px)만 남는 자리가 생긴다. 기호가 48px 이라 절반이 겹쳐
     // 뭉쳐 보인다 — 겹치느니 살짝 벌어지는 편이 낫다는 판단으로 버린다(간격 24→72).
