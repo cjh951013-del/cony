@@ -3873,12 +3873,27 @@ let saveTm;
 // undo는 변경된 레이어를 그 레이어의 직전 스냅샷(없으면 빈 상태)으로 되돌린다.
 function layerById(id){return G.layers.find(l=>l.id===id);}
 function setUndoBtns(){const u=$('btn-undo'),r=$('btn-redo');if(u)u.disabled=G.histIdx<=0;if(r)r.disabled=G.histIdx>=G.hist.length-1;}
+/* 실행취소 기록은 캔버스 전체 픽셀을 그대로 들고 있다. 개수만 40으로 묶어 두면 캔버스가
+   커질 때 메모리가 폭주한다 — 4000px 한 장이 64MB 라 40장이면 2.5GB 다. 아이패드
+   WKWebView 는 그 훨씬 아래에서 죽는다. 그래서 '장수' 대신 '용량'으로 묶는다.
+   1200px(무료)은 33장쯤, 4000px(Pro)은 3장쯤 남는다 — 크기를 키운 만큼 되돌리기가
+   짧아지는 건 어쩔 수 없는 교환이고, 앱이 죽는 것보다는 낫다. */
+const HIST_BUDGET=192*1024*1024;        // 192MB
+const HIST_MIN=3, HIST_MAX=40;
+function histSnapBytes(){return CW*CH*4;}
+function histCap(){
+  return Math.max(HIST_MIN,Math.min(HIST_MAX,Math.floor(HIST_BUDGET/Math.max(1,histSnapBytes()))));
+}
+function trimHist(perEntryLayers){
+  const cap=Math.max(HIST_MIN,Math.floor(histCap()/Math.max(1,perEntryLayers||1)));
+  while(G.hist.length>cap)G.hist.shift();
+}
 function saveH(){
   if(!mainCtx)return;
   const d=mainCtx.getImageData(0,0,CW,CH);
   G.hist=G.hist.slice(0,G.histIdx+1);
   G.hist.push({lid:G.activeL,data:d});
-  if(G.hist.length>40)G.hist.shift();
+  trimHist(1);
   G.histIdx=G.hist.length-1;
   setUndoBtns();setSS();schedulePersist();
 }
@@ -3887,7 +3902,7 @@ function saveHMulti(){
   const multi=G.layers.map(l=>({lid:l.id,data:l.ctx.getImageData(0,0,CW,CH)}));
   G.hist=G.hist.slice(0,G.histIdx+1);
   G.hist.push({multi});
-  if(G.hist.length>40)G.hist.shift();
+  trimHist(multi.length);   // 여러 레이어를 한 항목에 담으므로 그만큼 더 적게 남긴다
   G.histIdx=G.hist.length-1;setUndoBtns();setSS();schedulePersist();
 }
 function prevDataFor(lid,beforeIdx){
